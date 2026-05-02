@@ -9,51 +9,235 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppShopRouteImport } from './routes/_app/shop'
+import { Route as AppContactRouteImport } from './routes/_app/contact'
+import { Route as AppCartRouteImport } from './routes/_app/cart'
+import { Route as AppAuthRouteImport } from './routes/_app/auth'
+import { Route as AppAccountRouteImport } from './routes/_app/account'
+import { Route as AppAboutRouteImport } from './routes/_app/about'
+import { Route as AppProductsSlugRouteImport } from './routes/_app/products.$slug'
 
-const IndexRoute = IndexRouteImport.update({
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
+} as any)
+const AppShopRoute = AppShopRouteImport.update({
+  id: '/shop',
+  path: '/shop',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppContactRoute = AppContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCartRoute = AppCartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAuthRoute = AppAuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAccountRoute = AppAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAboutRoute = AppAboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProductsSlugRoute = AppProductsSlugRouteImport.update({
+  id: '/products/$slug',
+  path: '/products/$slug',
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AppIndexRoute
+  '/about': typeof AppAboutRoute
+  '/account': typeof AppAccountRoute
+  '/auth': typeof AppAuthRoute
+  '/cart': typeof AppCartRoute
+  '/contact': typeof AppContactRoute
+  '/shop': typeof AppShopRoute
+  '/products/$slug': typeof AppProductsSlugRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/about': typeof AppAboutRoute
+  '/account': typeof AppAccountRoute
+  '/auth': typeof AppAuthRoute
+  '/cart': typeof AppCartRoute
+  '/contact': typeof AppContactRoute
+  '/shop': typeof AppShopRoute
+  '/': typeof AppIndexRoute
+  '/products/$slug': typeof AppProductsSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/_app/about': typeof AppAboutRoute
+  '/_app/account': typeof AppAccountRoute
+  '/_app/auth': typeof AppAuthRoute
+  '/_app/cart': typeof AppCartRoute
+  '/_app/contact': typeof AppContactRoute
+  '/_app/shop': typeof AppShopRoute
+  '/_app/': typeof AppIndexRoute
+  '/_app/products/$slug': typeof AppProductsSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/account'
+    | '/auth'
+    | '/cart'
+    | '/contact'
+    | '/shop'
+    | '/products/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/about'
+    | '/account'
+    | '/auth'
+    | '/cart'
+    | '/contact'
+    | '/shop'
+    | '/'
+    | '/products/$slug'
+  id:
+    | '__root__'
+    | '/_app'
+    | '/_app/about'
+    | '/_app/account'
+    | '/_app/auth'
+    | '/_app/cart'
+    | '/_app/contact'
+    | '/_app/shop'
+    | '/_app/'
+    | '/_app/products/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/': {
+      id: '/_app/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/shop': {
+      id: '/_app/shop'
+      path: '/shop'
+      fullPath: '/shop'
+      preLoaderRoute: typeof AppShopRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/contact': {
+      id: '/_app/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof AppContactRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/cart': {
+      id: '/_app/cart'
+      path: '/cart'
+      fullPath: '/cart'
+      preLoaderRoute: typeof AppCartRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/auth': {
+      id: '/_app/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AppAuthRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/account': {
+      id: '/_app/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AppAccountRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/about': {
+      id: '/_app/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AppAboutRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/products/$slug': {
+      id: '/_app/products/$slug'
+      path: '/products/$slug'
+      fullPath: '/products/$slug'
+      preLoaderRoute: typeof AppProductsSlugRouteImport
+      parentRoute: typeof AppRoute
     }
   }
 }
 
+interface AppRouteChildren {
+  AppAboutRoute: typeof AppAboutRoute
+  AppAccountRoute: typeof AppAccountRoute
+  AppAuthRoute: typeof AppAuthRoute
+  AppCartRoute: typeof AppCartRoute
+  AppContactRoute: typeof AppContactRoute
+  AppShopRoute: typeof AppShopRoute
+  AppIndexRoute: typeof AppIndexRoute
+  AppProductsSlugRoute: typeof AppProductsSlugRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAboutRoute: AppAboutRoute,
+  AppAccountRoute: AppAccountRoute,
+  AppAuthRoute: AppAuthRoute,
+  AppCartRoute: AppCartRoute,
+  AppContactRoute: AppContactRoute,
+  AppShopRoute: AppShopRoute,
+  AppIndexRoute: AppIndexRoute,
+  AppProductsSlugRoute: AppProductsSlugRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
