@@ -35,20 +35,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // 1. Listen FIRST
+    // Tout le code auth tourne uniquement côté client.
+    if (typeof window === "undefined") { setLoading(false); return; }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, sess) => {
       setSession(sess);
       setUser(sess?.user ?? null);
-      // Defer role fetch to avoid deadlock with auth callback
-      setTimeout(() => { void fetchRole(sess?.user?.id); }, 0);
+      setTimeout(() => { void fetchRole(sess?.user?.id).catch(() => {}); }, 0);
     });
 
-    // 2. Then read existing session
-    supabase.auth.getSession().then(({ data: { session: sess } }) => {
-      setSession(sess);
-      setUser(sess?.user ?? null);
-      void fetchRole(sess?.user?.id).finally(() => setLoading(false));
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session: sess } }) => {
+        setSession(sess);
+        setUser(sess?.user ?? null);
+        return fetchRole(sess?.user?.id);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
 
     return () => subscription.unsubscribe();
   }, []);
