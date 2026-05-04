@@ -8,8 +8,8 @@ import { ProductCard } from "@/components/product-card";
 import hero from "@/assets/hero.jpg";
 
 export const Route = createFileRoute("/_app/")({
-  loader: ({ context }) => {
-    void context.queryClient.ensureQueryData(productsQuery({ featuredOnly: true }));
+  loader: async ({ context }) => {
+    await context.queryClient.ensureQueryData(productsQuery({ featuredOnly: true })).catch(() => {});
   },
   component: HomePage,
   head: () => ({
