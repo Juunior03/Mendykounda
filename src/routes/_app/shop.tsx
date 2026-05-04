@@ -19,7 +19,7 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/_app/shop")({
   validateSearch: searchSchema,
   loaderDeps: ({ search }) => search,
-  loader: ({ context, deps }) => {
+  loader: async ({ context, deps }) => {
     const filter: ProductsFilter = {
       categorySlug: deps.category,
       search: deps.q,
@@ -27,8 +27,10 @@ export const Route = createFileRoute("/_app/shop")({
       maxPrice: deps.max,
       sort: deps.sort,
     };
-    void context.queryClient.ensureQueryData(productsQuery(filter));
-    void context.queryClient.ensureQueryData(categoriesQuery());
+    await Promise.all([
+      context.queryClient.ensureQueryData(productsQuery(filter)).catch(() => {}),
+      context.queryClient.ensureQueryData(categoriesQuery()).catch(() => {}),
+    ]);
   },
   component: ShopPage,
   head: () => ({
