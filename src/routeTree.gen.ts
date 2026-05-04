@@ -13,8 +13,10 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppShopRouteImport } from './routes/_app/shop'
 import { Route as AppContactRouteImport } from './routes/_app/contact'
+import { Route as AppCheckoutRouteImport } from './routes/_app/checkout'
 import { Route as AppCartRouteImport } from './routes/_app/cart'
 import { Route as AppAuthRouteImport } from './routes/_app/auth'
+import { Route as AppAdminRouteImport } from './routes/_app/admin'
 import { Route as AppAccountRouteImport } from './routes/_app/account'
 import { Route as AppAboutRouteImport } from './routes/_app/about'
 import { Route as AppProductsSlugRouteImport } from './routes/_app/products.$slug'
@@ -38,6 +40,11 @@ const AppContactRoute = AppContactRouteImport.update({
   path: '/contact',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCheckoutRoute = AppCheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCartRoute = AppCartRouteImport.update({
   id: '/cart',
   path: '/cart',
@@ -46,6 +53,11 @@ const AppCartRoute = AppCartRouteImport.update({
 const AppAuthRoute = AppAuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminRoute = AppAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAccountRoute = AppAccountRouteImport.update({
@@ -68,8 +80,10 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/about': typeof AppAboutRoute
   '/account': typeof AppAccountRoute
+  '/admin': typeof AppAdminRoute
   '/auth': typeof AppAuthRoute
   '/cart': typeof AppCartRoute
+  '/checkout': typeof AppCheckoutRoute
   '/contact': typeof AppContactRoute
   '/shop': typeof AppShopRoute
   '/products/$slug': typeof AppProductsSlugRoute
@@ -77,8 +91,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/about': typeof AppAboutRoute
   '/account': typeof AppAccountRoute
+  '/admin': typeof AppAdminRoute
   '/auth': typeof AppAuthRoute
   '/cart': typeof AppCartRoute
+  '/checkout': typeof AppCheckoutRoute
   '/contact': typeof AppContactRoute
   '/shop': typeof AppShopRoute
   '/': typeof AppIndexRoute
@@ -89,8 +105,10 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/_app/about': typeof AppAboutRoute
   '/_app/account': typeof AppAccountRoute
+  '/_app/admin': typeof AppAdminRoute
   '/_app/auth': typeof AppAuthRoute
   '/_app/cart': typeof AppCartRoute
+  '/_app/checkout': typeof AppCheckoutRoute
   '/_app/contact': typeof AppContactRoute
   '/_app/shop': typeof AppShopRoute
   '/_app/': typeof AppIndexRoute
@@ -102,8 +120,10 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/account'
+    | '/admin'
     | '/auth'
     | '/cart'
+    | '/checkout'
     | '/contact'
     | '/shop'
     | '/products/$slug'
@@ -111,8 +131,10 @@ export interface FileRouteTypes {
   to:
     | '/about'
     | '/account'
+    | '/admin'
     | '/auth'
     | '/cart'
+    | '/checkout'
     | '/contact'
     | '/shop'
     | '/'
@@ -122,8 +144,10 @@ export interface FileRouteTypes {
     | '/_app'
     | '/_app/about'
     | '/_app/account'
+    | '/_app/admin'
     | '/_app/auth'
     | '/_app/cart'
+    | '/_app/checkout'
     | '/_app/contact'
     | '/_app/shop'
     | '/_app/'
@@ -164,6 +188,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppContactRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/checkout': {
+      id: '/_app/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof AppCheckoutRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/cart': {
       id: '/_app/cart'
       path: '/cart'
@@ -176,6 +207,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AppAuthRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin': {
+      id: '/_app/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AppAdminRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/account': {
@@ -205,8 +243,10 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppAboutRoute: typeof AppAboutRoute
   AppAccountRoute: typeof AppAccountRoute
+  AppAdminRoute: typeof AppAdminRoute
   AppAuthRoute: typeof AppAuthRoute
   AppCartRoute: typeof AppCartRoute
+  AppCheckoutRoute: typeof AppCheckoutRoute
   AppContactRoute: typeof AppContactRoute
   AppShopRoute: typeof AppShopRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -216,8 +256,10 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAboutRoute: AppAboutRoute,
   AppAccountRoute: AppAccountRoute,
+  AppAdminRoute: AppAdminRoute,
   AppAuthRoute: AppAuthRoute,
   AppCartRoute: AppCartRoute,
+  AppCheckoutRoute: AppCheckoutRoute,
   AppContactRoute: AppContactRoute,
   AppShopRoute: AppShopRoute,
   AppIndexRoute: AppIndexRoute,
