@@ -282,7 +282,7 @@ function OrdersAdmin() {
               <td className="p-3">
                 <select
                   value={o.status}
-                  onChange={(e) => updateStatus(o.id, e.target.value)}
+                  onChange={(e) => updateStatus(o.id, e.target.value as OrderStatus)}
                   className="rounded border border-border bg-background px-2 py-1 text-xs"
                 >
                   {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
