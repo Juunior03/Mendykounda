@@ -19,7 +19,7 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/_app/shop")({
   validateSearch: searchSchema,
   loaderDeps: ({ search }) => search,
-  loader: ({ context, deps }) => {
+  loader: async ({ context, deps }) => {
     const filter: ProductsFilter = {
       categorySlug: deps.category,
       search: deps.q,
