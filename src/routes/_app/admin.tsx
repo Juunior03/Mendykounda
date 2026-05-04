@@ -143,7 +143,7 @@ function Overview() {
               <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
               <Tooltip
                 contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                formatter={(v: number) => formatPrice(v)}
+                formatter={(v) => formatPrice(Number(v))}
               />
               <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
             </BarChart>
@@ -170,7 +170,8 @@ function ProductsAdmin() {
   });
 
   const toggle = async (id: string, field: "is_active" | "is_featured", value: boolean) => {
-    const { error } = await supabase.from("products").update({ [field]: value }).eq("id", id);
+    const patch = field === "is_active" ? { is_active: value } : { is_featured: value };
+    const { error } = await supabase.from("products").update(patch).eq("id", id);
     if (error) toast.error(error.message);
     else { toast.success("Mis à jour"); qc.invalidateQueries({ queryKey: ["admin-products"] }); }
   };
@@ -244,9 +245,10 @@ function OrdersAdmin() {
     },
   });
 
-  const statuses = ["pending", "confirmed", "preparing", "shipped", "delivered", "cancelled"];
+  const statuses = ["pending", "processing", "shipped", "delivered", "cancelled"] as const;
+  type OrderStatus = typeof statuses[number];
 
-  const updateStatus = async (id: string, status: string) => {
+  const updateStatus = async (id: string, status: OrderStatus) => {
     const { error } = await supabase.from("orders").update({ status }).eq("id", id);
     if (error) toast.error(error.message);
     else { toast.success("Statut mis à jour"); qc.invalidateQueries({ queryKey: ["admin-orders"] }); }
