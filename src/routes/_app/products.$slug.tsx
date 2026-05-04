@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_app/products/$slug")({
   loader: async ({ context, params }) => {
     const product = await context.queryClient.ensureQueryData(productBySlugQuery(params.slug));
     if (!product) throw notFound();
-    void context.queryClient.ensureQueryData(reviewsByProductQuery(product.id));
+    await context.queryClient.ensureQueryData(reviewsByProductQuery(product.id)).catch(() => {});
     return product;
   },
   notFoundComponent: () => (

@@ -27,8 +27,10 @@ export const Route = createFileRoute("/_app/shop")({
       maxPrice: deps.max,
       sort: deps.sort,
     };
-    void context.queryClient.ensureQueryData(productsQuery(filter));
-    void context.queryClient.ensureQueryData(categoriesQuery());
+    await Promise.all([
+      context.queryClient.ensureQueryData(productsQuery(filter)).catch(() => {}),
+      context.queryClient.ensureQueryData(categoriesQuery()).catch(() => {}),
+    ]);
   },
   component: ShopPage,
   head: () => ({
