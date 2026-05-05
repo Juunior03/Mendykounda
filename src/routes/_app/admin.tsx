@@ -212,7 +212,8 @@ function ProductsAdmin() {
   });
 
   const toggle = async (id: string, field: "is_active" | "is_featured", value: boolean) => {
-    const { error } = await supabase.from("products").update({ [field]: value }).eq("id", id);
+    const patch = field === "is_active" ? { is_active: value } : { is_featured: value };
+    const { error } = await supabase.from("products").update(patch).eq("id", id);
     if (error) toast.error(error.message);
     else { toast.success("Mis à jour"); invalidateAll(); }
   };
