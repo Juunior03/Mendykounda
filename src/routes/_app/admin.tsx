@@ -155,77 +155,327 @@ function Overview() {
   );
 }
 
+/* ---------- helpers ---------- */
+const slugify = (s: string) =>
+  s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+interface ProductRow {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  price: number;
+  stock: number;
+  unit: string;
+  image_url: string | null;
+  is_active: boolean;
+  is_featured: boolean;
+  category_id: string | null;
+}
+
+const emptyProduct: Partial<ProductRow> = {
+  name: "", slug: "", description: "", price: 0, stock: 0, unit: "kg",
+  image_url: "", is_active: true, is_featured: false, category_id: null,
+};
+
 /* ---------- Products admin ---------- */
 function ProductsAdmin() {
   const qc = useQueryClient();
+  const [editing, setEditing] = useState<Partial<ProductRow> | null>(null);
+
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey: ["admin-products"] });
+    qc.invalidateQueries({ queryKey: ["products"] });
+    qc.invalidateQueries({ queryKey: ["product"] });
+  };
+
   const { data: products } = useQuery({
     queryKey: ["admin-products"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, price, stock, is_active, is_featured, unit")
+        .select("id, name, slug, description, price, stock, is_active, is_featured, unit, image_url, category_id")
         .order("name");
+      if (error) throw error;
+      return data as ProductRow[];
+    },
+  });
+
+  const { data: categories } = useQuery({
+    queryKey: ["admin-categories-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("categories").select("id, name").order("name");
       if (error) throw error;
       return data;
     },
   });
 
   const toggle = async (id: string, field: "is_active" | "is_featured", value: boolean) => {
-    const patch = field === "is_active" ? { is_active: value } : { is_featured: value };
-    const { error } = await supabase.from("products").update(patch).eq("id", id);
+    const { error } = await supabase.from("products").update({ [field]: value }).eq("id", id);
     if (error) toast.error(error.message);
-    else { toast.success("Mis à jour"); qc.invalidateQueries({ queryKey: ["admin-products"] }); }
+    else { toast.success("Mis à jour"); invalidateAll(); }
   };
 
   const updateStock = async (id: string, stock: number) => {
     const { error } = await supabase.from("products").update({ stock }).eq("id", id);
     if (error) toast.error(error.message);
-    else qc.invalidateQueries({ queryKey: ["admin-products"] });
+    else invalidateAll();
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Supprimer ce produit ?")) return;
+    const { error } = await supabase.from("products").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else { toast.success("Supprimé"); invalidateAll(); }
+  };
+
+  const save = async () => {
+    if (!editing) return;
+    const payload = {
+      name: editing.name!,
+      slug: editing.slug || slugify(editing.name || ""),
+      description: editing.description || null,
+      price: Number(editing.price ?? 0),
+      stock: Number(editing.stock ?? 0),
+      unit: editing.unit || "unit",
+      image_url: editing.image_url || null,
+      is_active: !!editing.is_active,
+      is_featured: !!editing.is_featured,
+      category_id: editing.category_id || null,
+    };
+    if (!payload.name) { toast.error("Nom requis"); return; }
+
+    const { error } = editing.id
+      ? await supabase.from("products").update(payload).eq("id", editing.id)
+      : await supabase.from("products").insert(payload);
+    if (error) toast.error(error.message);
+    else { toast.success(editing.id ? "Produit mis à jour" : "Produit créé"); setEditing(null); invalidateAll(); }
   };
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
-      <table className="w-full text-sm">
-        <thead className="bg-cream text-left text-xs uppercase tracking-wider text-muted-foreground">
-          <tr>
-            <th className="p-3">Produit</th>
-            <th className="p-3">Prix</th>
-            <th className="p-3">Stock</th>
-            <th className="p-3">Actif</th>
-            <th className="p-3">Mis en avant</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {products?.map((p) => (
-            <tr key={p.id} className="hover:bg-secondary/40">
-              <td className="p-3 font-medium">{p.name}</td>
-              <td className="p-3 tabular-nums">{formatPrice(Number(p.price))} / {p.unit}</td>
-              <td className="p-3">
-                <input
-                  type="number"
-                  defaultValue={p.stock}
-                  onBlur={(e) => updateStock(p.id, Number(e.target.value))}
-                  className="w-20 rounded border border-border bg-background px-2 py-1 text-xs"
-                />
-              </td>
-              <td className="p-3">
-                <input
-                  type="checkbox"
-                  checked={p.is_active}
-                  onChange={(e) => toggle(p.id, "is_active", e.target.checked)}
-                />
-              </td>
-              <td className="p-3">
-                <input
-                  type="checkbox"
-                  checked={p.is_featured}
-                  onChange={(e) => toggle(p.id, "is_featured", e.target.checked)}
-                />
-              </td>
+    <div className="space-y-6">
+      <div className="flex justify-end">
+        <button
+          onClick={() => setEditing({ ...emptyProduct })}
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+        >
+          + Nouveau produit
+        </button>
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="w-full text-sm">
+          <thead className="bg-cream text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <tr>
+              <th className="p-3">Produit</th>
+              <th className="p-3">Prix</th>
+              <th className="p-3">Stock</th>
+              <th className="p-3">Actif</th>
+              <th className="p-3">Vedette</th>
+              <th className="p-3 text-right">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {products?.map((p) => (
+              <tr key={p.id} className="hover:bg-secondary/40">
+                <td className="p-3 font-medium">{p.name}</td>
+                <td className="p-3 tabular-nums">{formatPrice(Number(p.price))} / {p.unit}</td>
+                <td className="p-3">
+                  <input
+                    type="number"
+                    defaultValue={p.stock}
+                    onBlur={(e) => updateStock(p.id, Number(e.target.value))}
+                    className="w-20 rounded border border-border bg-background px-2 py-1 text-xs"
+                  />
+                </td>
+                <td className="p-3">
+                  <input type="checkbox" checked={p.is_active}
+                    onChange={(e) => toggle(p.id, "is_active", e.target.checked)} />
+                </td>
+                <td className="p-3">
+                  <input type="checkbox" checked={p.is_featured}
+                    onChange={(e) => toggle(p.id, "is_featured", e.target.checked)} />
+                </td>
+                <td className="p-3 text-right space-x-2">
+                  <button onClick={() => setEditing(p)} className="text-xs underline-grow">Éditer</button>
+                  <button onClick={() => remove(p.id)} className="text-xs text-destructive">Suppr.</button>
+                </td>
+              </tr>
+            ))}
+            {products?.length === 0 && (
+              <tr><td colSpan={6} className="p-8 text-center text-sm text-muted-foreground">Aucun produit. Créez-en un.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setEditing(null)}>
+          <div className="w-full max-w-2xl rounded-lg bg-background p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-medium">{editing.id ? "Éditer le produit" : "Nouveau produit"}</h3>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <Field label="Nom">
+                <input className="input" value={editing.name ?? ""}
+                  onChange={(e) => setEditing({ ...editing, name: e.target.value, slug: editing.id ? editing.slug : slugify(e.target.value) })} />
+              </Field>
+              <Field label="Slug">
+                <input className="input" value={editing.slug ?? ""}
+                  onChange={(e) => setEditing({ ...editing, slug: e.target.value })} />
+              </Field>
+              <Field label="Prix (€)">
+                <input type="number" step="0.01" className="input" value={editing.price ?? 0}
+                  onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })} />
+              </Field>
+              <Field label="Stock">
+                <input type="number" className="input" value={editing.stock ?? 0}
+                  onChange={(e) => setEditing({ ...editing, stock: Number(e.target.value) })} />
+              </Field>
+              <Field label="Unité">
+                <input className="input" value={editing.unit ?? ""}
+                  onChange={(e) => setEditing({ ...editing, unit: e.target.value })} placeholder="kg, pièce…" />
+              </Field>
+              <Field label="Catégorie">
+                <select className="input" value={editing.category_id ?? ""}
+                  onChange={(e) => setEditing({ ...editing, category_id: e.target.value || null })}>
+                  <option value="">— Aucune —</option>
+                  {categories?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </Field>
+              <Field label="URL image" className="sm:col-span-2">
+                <input className="input" value={editing.image_url ?? ""}
+                  onChange={(e) => setEditing({ ...editing, image_url: e.target.value })} placeholder="https://…" />
+              </Field>
+              <Field label="Description" className="sm:col-span-2">
+                <textarea className="input min-h-[100px]" value={editing.description ?? ""}
+                  onChange={(e) => setEditing({ ...editing, description: e.target.value })} />
+              </Field>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={!!editing.is_active}
+                  onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })} /> Actif (visible)
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={!!editing.is_featured}
+                  onChange={(e) => setEditing({ ...editing, is_featured: e.target.checked })} /> Mis en avant
+              </label>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button onClick={() => setEditing(null)} className="rounded-md border border-border px-4 py-2 text-sm">Annuler</button>
+              <button onClick={save} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">
+                Enregistrer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Field({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
+  return (
+    <label className={`block text-xs ${className}`}>
+      <span className="mb-1 block text-muted-foreground">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+/* ---------- Categories admin ---------- */
+interface CategoryRow { id: string; name: string; slug: string; description: string | null; image_url: string | null }
+
+function CategoriesAdmin() {
+  const qc = useQueryClient();
+  const [draft, setDraft] = useState<Partial<CategoryRow>>({ name: "", slug: "" });
+
+  const { data: categories } = useQuery({
+    queryKey: ["admin-categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("categories").select("*").order("name");
+      if (error) throw error;
+      return data as CategoryRow[];
+    },
+  });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["admin-categories"] });
+    qc.invalidateQueries({ queryKey: ["admin-categories-list"] });
+    qc.invalidateQueries({ queryKey: ["categories"] });
+  };
+
+  const create = async () => {
+    if (!draft.name) { toast.error("Nom requis"); return; }
+    const { error } = await supabase.from("categories").insert({
+      name: draft.name,
+      slug: draft.slug || slugify(draft.name),
+      description: draft.description || null,
+      image_url: draft.image_url || null,
+    });
+    if (error) toast.error(error.message);
+    else { toast.success("Catégorie créée"); setDraft({ name: "", slug: "" }); invalidate(); }
+  };
+
+  const update = async (id: string, patch: Partial<CategoryRow>) => {
+    const { error } = await supabase.from("categories").update(patch).eq("id", id);
+    if (error) toast.error(error.message);
+    else invalidate();
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Supprimer cette catégorie ?")) return;
+    const { error } = await supabase.from("categories").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else { toast.success("Supprimée"); invalidate(); }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-lg border border-border p-4">
+        <p className="editorial-eyebrow">Nouvelle catégorie</p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-4">
+          <input className="input" placeholder="Nom" value={draft.name ?? ""}
+            onChange={(e) => setDraft({ ...draft, name: e.target.value, slug: slugify(e.target.value) })} />
+          <input className="input" placeholder="Slug" value={draft.slug ?? ""}
+            onChange={(e) => setDraft({ ...draft, slug: e.target.value })} />
+          <input className="input" placeholder="URL image (optionnel)" value={draft.image_url ?? ""}
+            onChange={(e) => setDraft({ ...draft, image_url: e.target.value })} />
+          <button onClick={create} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">
+            Ajouter
+          </button>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="w-full text-sm">
+          <thead className="bg-cream text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <tr><th className="p-3">Nom</th><th className="p-3">Slug</th><th className="p-3">Description</th><th className="p-3 text-right">Actions</th></tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {categories?.map((c) => (
+              <tr key={c.id}>
+                <td className="p-3">
+                  <input defaultValue={c.name} onBlur={(e) => e.target.value !== c.name && update(c.id, { name: e.target.value })}
+                    className="w-full rounded border border-border bg-background px-2 py-1 text-xs" />
+                </td>
+                <td className="p-3">
+                  <input defaultValue={c.slug} onBlur={(e) => e.target.value !== c.slug && update(c.id, { slug: e.target.value })}
+                    className="w-full rounded border border-border bg-background px-2 py-1 text-xs" />
+                </td>
+                <td className="p-3">
+                  <input defaultValue={c.description ?? ""} onBlur={(e) => update(c.id, { description: e.target.value || null })}
+                    className="w-full rounded border border-border bg-background px-2 py-1 text-xs" />
+                </td>
+                <td className="p-3 text-right">
+                  <button onClick={() => remove(c.id)} className="text-xs text-destructive">Suppr.</button>
+                </td>
+              </tr>
+            ))}
+            {categories?.length === 0 && (
+              <tr><td colSpan={4} className="p-8 text-center text-sm text-muted-foreground">Aucune catégorie.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
