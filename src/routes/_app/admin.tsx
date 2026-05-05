@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_app/admin")({
   head: () => ({ meta: [{ title: "Admin — MendyKounda" }] }),
 });
 
-type Tab = "overview" | "products" | "orders";
+type Tab = "overview" | "products" | "categories" | "orders";
 
 function AdminPage() {
   const { isAdmin, loading, user } = useAuth();
