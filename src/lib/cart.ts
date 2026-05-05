@@ -19,25 +19,36 @@ const listeners = new Set<Listener>();
 
 const isBrowser = typeof window !== "undefined";
 
-const read = (): CartItem[] => {
-  if (!isBrowser) return [];
+const EMPTY: CartItem[] = [];
+let cache: CartItem[] = EMPTY;
+
+const readFromStorage = (): CartItem[] => {
+  if (!isBrowser) return EMPTY;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as CartItem[]) : [];
+    return raw ? (JSON.parse(raw) as CartItem[]) : EMPTY;
   } catch {
-    return [];
+    return EMPTY;
   }
 };
 
+if (isBrowser) {
+  cache = readFromStorage();
+}
+
 const write = (items: CartItem[]) => {
-  if (!isBrowser) return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  cache = items;
+  if (isBrowser) {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  }
   listeners.forEach((l) => l());
 };
 
+const read = () => cache;
+
 export const cartStore = {
   getSnapshot: read,
-  getServerSnapshot: () => [] as CartItem[],
+  getServerSnapshot: () => EMPTY,
   subscribe(listener: Listener) {
     listeners.add(listener);
     return () => listeners.delete(listener);
