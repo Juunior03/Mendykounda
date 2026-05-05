@@ -197,3 +197,20 @@
   }
   .underline-grow:hover::after { transform: scaleX(1); }
 }
+
+@layer components {
+  .input {
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--background));
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: hsl(var(--foreground));
+  }
+  .input:focus {
+    outline: none;
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 2px color-mix(in oklab, hsl(var(--primary)) 20%, transparent);
+  }
+}
