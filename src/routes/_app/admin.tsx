@@ -47,16 +47,16 @@ function AdminPage() {
       <p className="editorial-eyebrow">Tableau de bord</p>
       <h1 className="mt-3 text-3xl font-medium tracking-tight md:text-4xl">Administration</h1>
 
-      <div className="mt-8 flex gap-1 border-b border-border">
-        {(["overview", "products", "orders"] as Tab[]).map((t) => (
+      <div className="mt-8 flex gap-1 border-b border-border overflow-x-auto">
+        {(["overview", "products", "categories", "orders"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm border-b-2 -mb-px transition-colors ${
+            className={`whitespace-nowrap px-4 py-2 text-sm border-b-2 -mb-px transition-colors ${
               tab === t ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "overview" ? "Vue d'ensemble" : t === "products" ? "Produits" : "Commandes"}
+            {t === "overview" ? "Vue d'ensemble" : t === "products" ? "Produits" : t === "categories" ? "Catégories" : "Commandes"}
           </button>
         ))}
       </div>
@@ -64,6 +64,7 @@ function AdminPage() {
       <div className="mt-8">
         {tab === "overview" && <Overview />}
         {tab === "products" && <ProductsAdmin />}
+        {tab === "categories" && <CategoriesAdmin />}
         {tab === "orders" && <OrdersAdmin />}
       </div>
     </div>
