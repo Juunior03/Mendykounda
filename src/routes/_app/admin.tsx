@@ -554,3 +554,129 @@ function OrdersAdmin() {
     </div>
   );
 }
+
+/* ---------- ImagePicker (URL ou upload) ---------- */
+function ImagePicker({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+  const [mode, setMode] = useState<"url" | "upload">(value && !value.includes("/storage/v1/") ? "url" : "upload");
+  const [uploading, setUploading] = useState(false);
+
+  const handleFile = async (file: File) => {
+    setUploading(true);
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("product-images").upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+    });
+    setUploading(false);
+    if (error) { toast.error(error.message); return; }
+    const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+    onChange(data.publicUrl);
+    toast.success("Image téléversée");
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-2 text-xs">
+        <button type="button" onClick={() => setMode("url")}
+          className={`rounded px-2 py-1 ${mode === "url" ? "bg-primary text-primary-foreground" : "border border-border"}`}>
+          URL
+        </button>
+        <button type="button" onClick={() => setMode("upload")}
+          className={`rounded px-2 py-1 ${mode === "upload" ? "bg-primary text-primary-foreground" : "border border-border"}`}>
+          Téléverser
+        </button>
+      </div>
+      {mode === "url" ? (
+        <input className="input" value={value} placeholder="https://…"
+          onChange={(e) => onChange(e.target.value)} />
+      ) : (
+        <input
+          type="file"
+          accept="image/*"
+          disabled={uploading}
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleFile(f); }}
+          className="block w-full text-xs"
+        />
+      )}
+      {value && (
+        <img src={value} alt="" className="mt-2 h-24 w-24 rounded border border-border object-cover" />
+      )}
+    </div>
+  );
+}
+
+/* ---------- Messages admin ---------- */
+function MessagesAdmin() {
+  const qc = useQueryClient();
+  const [selected, setSelected] = useState<string | null>(null);
+
+  const { data: threads } = useQuery({
+    queryKey: ["admin-message-threads"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("user_id, content, created_at, is_from_admin")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      // group by user_id, keep latest
+      const map = new Map<string, { user_id: string; last: string; at: string }>();
+      for (const m of data ?? []) {
+        if (!map.has(m.user_id)) {
+          map.set(m.user_id, { user_id: m.user_id, last: m.content, at: m.created_at });
+        }
+      }
+      const list = Array.from(map.values());
+      const ids = list.map((t) => t.user_id);
+      if (ids.length === 0) return [];
+      const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", ids);
+      const nameMap = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
+      return list.map((t) => ({ ...t, name: nameMap.get(t.user_id) || t.user_id.slice(0, 8) }));
+    },
+  });
+
+  // realtime refresh thread list
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-threads")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" },
+        () => qc.invalidateQueries({ queryKey: ["admin-message-threads"] }))
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [qc]);
+
+  return (
+    <div className="grid gap-6 md:grid-cols-[280px_1fr]">
+      <div className="rounded-lg border border-border">
+        <p className="border-b border-border p-3 text-xs uppercase tracking-wider text-muted-foreground">Conversations</p>
+        <ul className="max-h-[500px] overflow-y-auto">
+          {threads?.length === 0 && (
+            <li className="p-4 text-sm text-muted-foreground">Aucune conversation.</li>
+          )}
+          {threads?.map((t) => (
+            <li key={t.user_id}>
+              <button
+                onClick={() => setSelected(t.user_id)}
+                className={`w-full border-b border-border p-3 text-left hover:bg-secondary/40 ${
+                  selected === t.user_id ? "bg-secondary/60" : ""
+                }`}
+              >
+                <p className="text-sm font-medium">{t.name}</p>
+                <p className="truncate text-xs text-muted-foreground">{t.last}</p>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div>
+        {selected ? (
+          <ChatBox userId={selected} asAdmin />
+        ) : (
+          <div className="flex h-[500px] items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
+            Sélectionnez une conversation
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
