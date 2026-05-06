@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatDateTime, formatPrice } from "@/lib/format";
+import { ChatBox } from "@/components/chat-box";
 
 export const Route = createFileRoute("/_app/account")({
   component: AccountPage,
