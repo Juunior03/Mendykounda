@@ -10,13 +10,14 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/format";
+import { ChatBox } from "@/components/chat-box";
 
 export const Route = createFileRoute("/_app/admin")({
   component: AdminPage,
   head: () => ({ meta: [{ title: "Admin — MendyKounda" }] }),
 });
 
-type Tab = "overview" | "products" | "categories" | "orders";
+type Tab = "overview" | "products" | "categories" | "orders" | "messages";
 
 function AdminPage() {
   const { isAdmin, loading, user } = useAuth();
