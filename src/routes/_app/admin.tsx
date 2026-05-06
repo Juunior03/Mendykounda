@@ -49,7 +49,7 @@ function AdminPage() {
       <h1 className="mt-3 text-3xl font-medium tracking-tight md:text-4xl">Administration</h1>
 
       <div className="mt-8 flex gap-1 border-b border-border overflow-x-auto">
-        {(["overview", "products", "categories", "orders"] as Tab[]).map((t) => (
+        {(["overview", "products", "categories", "orders", "messages"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -57,7 +57,7 @@ function AdminPage() {
               tab === t ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "overview" ? "Vue d'ensemble" : t === "products" ? "Produits" : t === "categories" ? "Catégories" : "Commandes"}
+            {t === "overview" ? "Vue d'ensemble" : t === "products" ? "Produits" : t === "categories" ? "Catégories" : t === "orders" ? "Commandes" : "Messages"}
           </button>
         ))}
       </div>
@@ -67,6 +67,7 @@ function AdminPage() {
         {tab === "products" && <ProductsAdmin />}
         {tab === "categories" && <CategoriesAdmin />}
         {tab === "orders" && <OrdersAdmin />}
+        {tab === "messages" && <MessagesAdmin />}
       </div>
     </div>
   );
