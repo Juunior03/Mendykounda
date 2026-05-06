@@ -44,7 +44,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword(parsed);
         if (error) throw error;
         toast.success("Bon retour !");
-      } else {
+      } else if (mode === "signup") {
         const parsed = signupSchema.parse({ email, password, fullName });
         const { error } = await supabase.auth.signUp({
           email: parsed.email,
@@ -56,6 +56,14 @@ function AuthPage() {
         });
         if (error) throw error;
         toast.success("Compte créé. Vérifiez votre boîte mail.");
+      } else {
+        const parsed = z.object({ email: z.string().email("Email invalide") }).parse({ email });
+        const { error } = await supabase.auth.resetPasswordForEmail(parsed.email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        toast.success("Email envoyé. Vérifiez votre boîte mail.");
+        setMode("login");
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erreur inconnue";
