@@ -345,9 +345,11 @@ function ProductsAdmin() {
                   {categories?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </Field>
-              <Field label="URL image" className="sm:col-span-2">
-                <input className="input" value={editing.image_url ?? ""}
-                  onChange={(e) => setEditing({ ...editing, image_url: e.target.value })} placeholder="https://…" />
+              <Field label="Image" className="sm:col-span-2">
+                <ImagePicker
+                  value={editing.image_url ?? ""}
+                  onChange={(url) => setEditing({ ...editing, image_url: url })}
+                />
               </Field>
               <Field label="Description" className="sm:col-span-2">
                 <textarea className="input min-h-[100px]" value={editing.description ?? ""}
