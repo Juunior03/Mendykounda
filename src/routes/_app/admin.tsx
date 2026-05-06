@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_app/admin")({
   head: () => ({ meta: [{ title: "Admin — MendyKounda" }] }),
 });
 
-type Tab = "overview" | "products" | "categories" | "orders" | "messages";
+type Tab = "overview" | "products" | "categories" | "orders" | "customers" | "messages";
 
 function AdminPage() {
   const { isAdmin, loading, user } = useAuth();
@@ -49,7 +49,7 @@ function AdminPage() {
       <h1 className="mt-3 text-3xl font-medium tracking-tight md:text-4xl">Administration</h1>
 
       <div className="mt-8 flex gap-1 border-b border-border overflow-x-auto">
-        {(["overview", "products", "categories", "orders", "messages"] as Tab[]).map((t) => (
+        {(["overview", "products", "categories", "orders", "customers", "messages"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -57,7 +57,7 @@ function AdminPage() {
               tab === t ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "overview" ? "Vue d'ensemble" : t === "products" ? "Produits" : t === "categories" ? "Catégories" : t === "orders" ? "Commandes" : "Messages"}
+            {t === "overview" ? "Vue d'ensemble" : t === "products" ? "Produits" : t === "categories" ? "Catégories" : t === "orders" ? "Commandes" : t === "customers" ? "Clients" : "Messages"}
           </button>
         ))}
       </div>
@@ -67,6 +67,7 @@ function AdminPage() {
         {tab === "products" && <ProductsAdmin />}
         {tab === "categories" && <CategoriesAdmin />}
         {tab === "orders" && <OrdersAdmin />}
+        {tab === "customers" && <CustomersAdmin />}
         {tab === "messages" && <MessagesAdmin />}
       </div>
     </div>
@@ -555,7 +556,113 @@ function OrdersAdmin() {
   );
 }
 
-/* ---------- ImagePicker (URL ou upload) ---------- */
+/* ---------- Customers admin ---------- */
+interface CustomerRow {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  city: string | null;
+  created_at: string;
+  is_admin: boolean;
+  order_count: number;
+  total_spent: number;
+}
+
+function CustomersAdmin() {
+  const [search, setSearch] = useState("");
+
+  const { data: customers, isLoading } = useQuery({
+    queryKey: ["admin-customers"],
+    queryFn: async (): Promise<CustomerRow[]> => {
+      const [{ data: profiles, error: pErr }, { data: roles }, { data: orders }] = await Promise.all([
+        supabase.from("profiles").select("id, full_name, phone, city, created_at").order("created_at", { ascending: false }),
+        supabase.from("user_roles").select("user_id, role"),
+        supabase.from("orders").select("user_id, total_amount"),
+      ]);
+      if (pErr) throw pErr;
+      const adminSet = new Set((roles ?? []).filter((r) => r.role === "admin").map((r) => r.user_id));
+      const orderMap = new Map<string, { count: number; total: number }>();
+      for (const o of orders ?? []) {
+        const cur = orderMap.get(o.user_id) ?? { count: 0, total: 0 };
+        cur.count += 1;
+        cur.total += Number(o.total_amount);
+        orderMap.set(o.user_id, cur);
+      }
+      return (profiles ?? []).map((p) => ({
+        id: p.id,
+        full_name: p.full_name,
+        phone: p.phone,
+        city: p.city,
+        created_at: p.created_at,
+        is_admin: adminSet.has(p.id),
+        order_count: orderMap.get(p.id)?.count ?? 0,
+        total_spent: orderMap.get(p.id)?.total ?? 0,
+      }));
+    },
+  });
+
+  const filtered = useMemo(() => {
+    if (!customers) return [];
+    const q = search.trim().toLowerCase();
+    if (!q) return customers;
+    return customers.filter((c) =>
+      (c.full_name ?? "").toLowerCase().includes(q) ||
+      (c.city ?? "").toLowerCase().includes(q) ||
+      (c.phone ?? "").toLowerCase().includes(q),
+    );
+  }, [customers, search]);
+
+  return (
+    <div className="space-y-4">
+      <input
+        className="input w-full max-w-sm"
+        placeholder="Rechercher un client…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="w-full text-sm">
+          <thead className="bg-cream text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <tr>
+              <th className="p-3">Nom</th>
+              <th className="p-3">Téléphone</th>
+              <th className="p-3">Ville</th>
+              <th className="p-3">Inscrit le</th>
+              <th className="p-3">Commandes</th>
+              <th className="p-3">Total dépensé</th>
+              <th className="p-3">Rôle</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {isLoading && (
+              <tr><td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">Chargement…</td></tr>
+            )}
+            {!isLoading && filtered.length === 0 && (
+              <tr><td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">Aucun client.</td></tr>
+            )}
+            {filtered.map((c) => (
+              <tr key={c.id} className="hover:bg-secondary/40">
+                <td className="p-3 font-medium">{c.full_name || <span className="text-muted-foreground">—</span>}</td>
+                <td className="p-3">{c.phone || <span className="text-muted-foreground">—</span>}</td>
+                <td className="p-3">{c.city || <span className="text-muted-foreground">—</span>}</td>
+                <td className="p-3 text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString("fr-FR")}</td>
+                <td className="p-3 tabular-nums">{c.order_count}</td>
+                <td className="p-3 tabular-nums">{formatPrice(c.total_spent)}</td>
+                <td className="p-3">
+                  {c.is_admin ? (
+                    <span className="rounded bg-primary/10 px-2 py-0.5 text-xs text-primary">admin</span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">client</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
 function ImagePicker({ value, onChange }: { value: string; onChange: (url: string) => void }) {
   const [mode, setMode] = useState<"url" | "upload">(value && !value.includes("/storage/v1/") ? "url" : "upload");
   const [uploading, setUploading] = useState(false);
