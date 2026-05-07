@@ -751,17 +751,21 @@ function MessagesAdmin() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("messages")
-        .select("user_id, content, created_at, is_from_admin")
+        .select("user_id, content, created_at, is_from_admin, read_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      // group by user_id, keep latest
-      const map = new Map<string, { user_id: string; last: string; at: string }>();
+      // group by user_id, keep latest + count unread (from client, not yet read)
+      const map = new Map<string, { user_id: string; last: string; at: string; unread: number }>();
       for (const m of data ?? []) {
-        if (!map.has(m.user_id)) {
-          map.set(m.user_id, { user_id: m.user_id, last: m.content, at: m.created_at });
+        const cur = map.get(m.user_id);
+        const isUnread = !m.is_from_admin && !m.read_at;
+        if (!cur) {
+          map.set(m.user_id, { user_id: m.user_id, last: m.content, at: m.created_at, unread: isUnread ? 1 : 0 });
+        } else if (isUnread) {
+          cur.unread += 1;
         }
       }
-      const list = Array.from(map.values());
+      const list = Array.from(map.values()).sort((a, b) => b.at.localeCompare(a.at));
       const ids = list.map((t) => t.user_id);
       if (ids.length === 0) return [];
       const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", ids);
@@ -774,11 +778,33 @@ function MessagesAdmin() {
   useEffect(() => {
     const channel = supabase
       .channel("admin-threads")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" },
+      .on("postgres_changes", { event: "*", schema: "public", table: "messages" },
         () => qc.invalidateQueries({ queryKey: ["admin-message-threads"] }))
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
   }, [qc]);
+
+  // Mark messages as read when opening a thread
+  useEffect(() => {
+    if (!selected) return;
+    void supabase
+      .from("messages")
+      .update({ read_at: new Date().toISOString() })
+      .eq("user_id", selected)
+      .eq("is_from_admin", false)
+      .is("read_at", null)
+      .then(() => qc.invalidateQueries({ queryKey: ["admin-message-threads"] }));
+  }, [selected, qc]);
+
+  const deleteThread = async (userId: string) => {
+    if (!confirm("Supprimer toute cette conversation ? Cette action est irréversible.")) return;
+    const { error } = await supabase.from("messages").delete().eq("user_id", userId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Conversation supprimée");
+    if (selected === userId) setSelected(null);
+    qc.invalidateQueries({ queryKey: ["admin-message-threads"] });
+    qc.invalidateQueries({ queryKey: ["messages", userId] });
+  };
 
   return (
     <div className="grid gap-6 md:grid-cols-[280px_1fr]">
@@ -789,15 +815,32 @@ function MessagesAdmin() {
             <li className="p-4 text-sm text-muted-foreground">Aucune conversation.</li>
           )}
           {threads?.map((t) => (
-            <li key={t.user_id}>
+            <li key={t.user_id} className="group relative border-b border-border">
               <button
                 onClick={() => setSelected(t.user_id)}
-                className={`w-full border-b border-border p-3 text-left hover:bg-secondary/40 ${
+                className={`w-full p-3 pr-10 text-left hover:bg-secondary/40 ${
                   selected === t.user_id ? "bg-secondary/60" : ""
                 }`}
               >
-                <p className="text-sm font-medium">{t.name}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium truncate">{t.name}</p>
+                  {t.unread > 0 && (
+                    <span className="shrink-0 rounded-full bg-destructive px-1.5 text-[10px] font-semibold text-destructive-foreground">
+                      {t.unread}
+                    </span>
+                  )}
+                </div>
                 <p className="truncate text-xs text-muted-foreground">{t.last}</p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">
+                  {new Date(t.at).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
+                </p>
+              </button>
+              <button
+                onClick={() => void deleteThread(t.user_id)}
+                aria-label="Supprimer la conversation"
+                className="absolute right-2 top-2 rounded p-1 text-xs text-destructive opacity-0 group-hover:opacity-100 hover:bg-destructive/10"
+              >
+                ✕
               </button>
             </li>
           ))}
