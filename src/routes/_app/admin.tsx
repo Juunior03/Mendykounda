@@ -354,6 +354,16 @@ function ProductsAdmin() {
                   {categories?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </Field>
+              <Field label="Prix promo (FCFA, optionnel)">
+                <input type="number" step="1" className="input" value={editing.discount_price ?? ""}
+                  placeholder="Laisser vide si pas de promo"
+                  onChange={(e) => setEditing({ ...editing, discount_price: e.target.value === "" ? null : Number(e.target.value) })} />
+              </Field>
+              <Field label="Étiquette promo">
+                <input className="input" value={editing.discount_label ?? ""}
+                  placeholder="Promo, Bon plan, -20%…"
+                  onChange={(e) => setEditing({ ...editing, discount_label: e.target.value })} />
+              </Field>
               <Field label="Image" className="sm:col-span-2">
                 <ImagePicker
                   value={editing.image_url ?? ""}
