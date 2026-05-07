@@ -175,11 +175,14 @@ interface ProductRow {
   is_active: boolean;
   is_featured: boolean;
   category_id: string | null;
+  discount_price: number | null;
+  discount_label: string | null;
 }
 
 const emptyProduct: Partial<ProductRow> = {
   name: "", slug: "", description: "", price: 0, stock: 0, unit: "kg",
   image_url: "", is_active: true, is_featured: false, category_id: null,
+  discount_price: null, discount_label: "",
 };
 
 /* ---------- Products admin ---------- */
@@ -198,7 +201,7 @@ function ProductsAdmin() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, slug, description, price, stock, is_active, is_featured, unit, image_url, category_id")
+        .select("id, name, slug, description, price, stock, is_active, is_featured, unit, image_url, category_id, discount_price, discount_label")
         .order("name");
       if (error) throw error;
       return data as ProductRow[];
@@ -247,6 +250,11 @@ function ProductsAdmin() {
       is_active: !!editing.is_active,
       is_featured: !!editing.is_featured,
       category_id: editing.category_id || null,
+      discount_price:
+        editing.discount_price != null && Number(editing.discount_price) > 0
+          ? Number(editing.discount_price)
+          : null,
+      discount_label: editing.discount_label?.trim() ? editing.discount_label.trim() : null,
     };
     if (!payload.name) { toast.error("Nom requis"); return; }
 
@@ -327,8 +335,8 @@ function ProductsAdmin() {
                 <input className="input" value={editing.slug ?? ""}
                   onChange={(e) => setEditing({ ...editing, slug: e.target.value })} />
               </Field>
-              <Field label="Prix (€)">
-                <input type="number" step="0.01" className="input" value={editing.price ?? 0}
+              <Field label="Prix (FCFA)">
+                <input type="number" step="1" className="input" value={editing.price ?? 0}
                   onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })} />
               </Field>
               <Field label="Stock">
