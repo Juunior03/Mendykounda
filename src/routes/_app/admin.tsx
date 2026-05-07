@@ -292,7 +292,17 @@ function ProductsAdmin() {
             {products?.map((p) => (
               <tr key={p.id} className="hover:bg-secondary/40">
                 <td className="p-3 font-medium">{p.name}</td>
-                <td className="p-3 tabular-nums">{formatPrice(Number(p.price))} / {p.unit}</td>
+                <td className="p-3 tabular-nums">
+                  {p.discount_price != null && Number(p.discount_price) < Number(p.price) ? (
+                    <>
+                      <span className="text-destructive">{formatPrice(Number(p.discount_price))}</span>
+                      <span className="ml-1 text-xs text-muted-foreground line-through">{formatPrice(Number(p.price))}</span>
+                    </>
+                  ) : (
+                    formatPrice(Number(p.price))
+                  )}
+                  <span className="text-xs text-muted-foreground"> / {p.unit}</span>
+                </td>
                 <td className="p-3">
                   <input
                     type="number"
