@@ -1,9 +1,13 @@
 /**
  * Formatting helpers for prices, dates, ratings.
- * Locale: fr-FR by default to match the brand.
+ * Locale: fr-FR. Devise par défaut : FCFA (XOF) — marché Sénégal.
  */
-export const formatPrice = (amount: number, currency = "EUR") =>
-  new Intl.NumberFormat("fr-FR", { style: "currency", currency }).format(amount);
+export const formatPrice = (amount: number, currency = "XOF") =>
+  new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(amount);
 
 export const formatDate = (iso: string) =>
   new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(iso));
