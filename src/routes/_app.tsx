@@ -4,6 +4,7 @@
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { ChatWidget } from "@/components/chat-widget";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -17,6 +18,7 @@ function AppLayout() {
         <Outlet />
       </main>
       <SiteFooter />
+      <ChatWidget />
     </div>
   );
 }

@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatDateTime, formatPrice } from "@/lib/format";
-import { ChatBox } from "@/components/chat-box";
+
 
 export const Route = createFileRoute("/_app/account")({
   component: AccountPage,
@@ -148,13 +148,6 @@ function AccountPage() {
         </section>
       </div>
 
-      <section className="mt-16">
-        <p className="editorial-eyebrow mb-5">Discuter avec le vendeur</p>
-        <p className="mb-4 text-sm text-muted-foreground">
-          Une demande particulière, une question sur un produit ? Écrivez-nous directement ici.
-        </p>
-        <ChatBox userId={user.id} />
-      </section>
     </div>
   );
 }
