@@ -104,7 +104,7 @@ function ShopPage() {
             </div>
 
             <div>
-              <p className="editorial-eyebrow mb-4">Prix (€)</p>
+              <p className="editorial-eyebrow mb-4">Prix (FCFA)</p>
               <div className="flex gap-2">
                 <input
                   type="number"
