@@ -8,6 +8,7 @@ import { resolveProductImage } from "@/lib/product-images";
 
 export function ProductCard({ product }: { product: Product }) {
   const img = resolveProductImage(product.image_url);
+  const hasPromo = product.discount_price != null && Number(product.discount_price) < Number(product.price);
   return (
     <Link
       to="/products/$slug"
@@ -34,6 +35,11 @@ export function ProductCard({ product }: { product: Product }) {
             Coup de cœur
           </span>
         )}
+        {hasPromo && (
+          <span className="absolute left-3 bottom-3 rounded-full bg-destructive px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-destructive-foreground">
+            {product.discount_label || "Promo"}
+          </span>
+        )}
         {product.stock === 0 && (
           <span className="absolute right-3 top-3 rounded-full bg-foreground/90 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-background">
             Épuisé
@@ -45,7 +51,14 @@ export function ProductCard({ product }: { product: Product }) {
           {product.name}
         </h3>
         <p className="text-sm tabular-nums text-foreground">
-          {formatPrice(Number(product.price))}
+          {hasPromo ? (
+            <>
+              <span className="text-destructive">{formatPrice(Number(product.discount_price))}</span>
+              <span className="ml-1 text-xs text-muted-foreground line-through">{formatPrice(Number(product.price))}</span>
+            </>
+          ) : (
+            formatPrice(Number(product.price))
+          )}
           <span className="ml-1 text-xs text-muted-foreground">/ {product.unit}</span>
         </p>
       </div>

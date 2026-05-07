@@ -26,6 +26,8 @@ export interface Product {
   is_active: boolean;
   is_featured: boolean;
   created_at: string;
+  discount_price: number | null;
+  discount_label: string | null;
 }
 
 export interface Review {
