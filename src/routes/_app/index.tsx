@@ -110,11 +110,24 @@ function HomePage() {
               Voir toute la boutique →
             </Link>
           </div>
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            {featured.map((p) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
-          </div>
+          <Carousel
+            opts={{ align: "start", loop: true }}
+            plugins={[autoplay.current]}
+            className="w-full"
+          >
+            <CarouselContent className="-ml-4">
+              {featured.map((p) => (
+                <CarouselItem
+                  key={p.id}
+                  className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3 xl:basis-1/4"
+                >
+                  <ProductCard product={p} />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="hidden md:flex -left-4 lg:-left-12" />
+            <CarouselNext className="hidden md:flex -right-4 lg:-right-12" />
+          </Carousel>
         </div>
       </section>
 
