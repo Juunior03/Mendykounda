@@ -3,8 +3,17 @@
  */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { useRef } from "react";
+import Autoplay from "embla-carousel-autoplay";
 import { productsQuery } from "@/lib/queries";
 import { ProductCard } from "@/components/product-card";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from "@/components/ui/carousel";
 import hero from "@/assets/hero.jpg";
 
 export const Route = createFileRoute("/_app/")({
@@ -26,6 +35,9 @@ export const Route = createFileRoute("/_app/")({
 
 function HomePage() {
   const { data: featured } = useSuspenseQuery(productsQuery({ featuredOnly: true }));
+  const autoplay = useRef(
+    Autoplay({ delay: 3500, stopOnInteraction: false, stopOnMouseEnter: true }),
+  );
 
   return (
     <>
@@ -36,7 +48,7 @@ function HomePage() {
           alt="Poules en plein air au lever du soleil"
           width={1920}
           height={1080}
-          className="h-[78vh] min-h-[520px] w-full object-cover"
+          className="h-[60vh] min-h-[420px] w-full object-cover sm:h-[70vh] md:h-[78vh] md:min-h-[520px]"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/30 to-background/10" />
         <div className="container-editorial absolute inset-x-0 bottom-0 pb-16 md:pb-24">
@@ -98,11 +110,24 @@ function HomePage() {
               Voir toute la boutique →
             </Link>
           </div>
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            {featured.map((p) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
-          </div>
+          <Carousel
+            opts={{ align: "start", loop: true }}
+            plugins={[autoplay.current]}
+            className="w-full"
+          >
+            <CarouselContent className="-ml-4">
+              {featured.map((p) => (
+                <CarouselItem
+                  key={p.id}
+                  className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3 xl:basis-1/4"
+                >
+                  <ProductCard product={p} />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="hidden md:flex -left-4 lg:-left-12" />
+            <CarouselNext className="hidden md:flex -right-4 lg:-right-12" />
+          </Carousel>
         </div>
       </section>
 
