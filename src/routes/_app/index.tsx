@@ -35,6 +35,9 @@ export const Route = createFileRoute("/_app/")({
 
 function HomePage() {
   const { data: featured } = useSuspenseQuery(productsQuery({ featuredOnly: true }));
+  const autoplay = useRef(
+    Autoplay({ delay: 3500, stopOnInteraction: false, stopOnMouseEnter: true }),
+  );
 
   return (
     <>
