@@ -48,7 +48,7 @@ function HomePage() {
           alt="Poules en plein air au lever du soleil"
           width={1920}
           height={1080}
-          className="h-[78vh] min-h-[520px] w-full object-cover"
+          className="h-[60vh] min-h-[420px] w-full object-cover sm:h-[70vh] md:h-[78vh] md:min-h-[520px]"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/30 to-background/10" />
         <div className="container-editorial absolute inset-x-0 bottom-0 pb-16 md:pb-24">
