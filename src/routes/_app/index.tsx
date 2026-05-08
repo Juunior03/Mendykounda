@@ -3,8 +3,17 @@
  */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { useRef } from "react";
+import Autoplay from "embla-carousel-autoplay";
 import { productsQuery } from "@/lib/queries";
 import { ProductCard } from "@/components/product-card";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from "@/components/ui/carousel";
 import hero from "@/assets/hero.jpg";
 
 export const Route = createFileRoute("/_app/")({
