@@ -67,6 +67,7 @@ export function ImageCropDialog({ imageUrl, fileName, open, onCancel, onConfirm 
   const [zoom, setZoom] = useState(1);
   const [croppedArea, setCroppedArea] = useState<Area | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleComplete = useCallback((_area: Area, pixels: Area) => {
     setCroppedArea(pixels);
@@ -75,13 +76,17 @@ export function ImageCropDialog({ imageUrl, fileName, open, onCancel, onConfirm 
   const reset = () => {
     setCrop({ x: 0, y: 0 });
     setZoom(1);
+    setError(null);
   };
 
   const confirm = async () => {
     if (!imageUrl || !croppedArea) return;
     setProcessing(true);
+    setError(null);
     try {
       onConfirm(await createCroppedFile(imageUrl, croppedArea, fileName));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Impossible de recadrer cette image.");
     } finally {
       setProcessing(false);
     }
@@ -124,6 +129,7 @@ export function ImageCropDialog({ imageUrl, fileName, open, onCancel, onConfirm 
             />
             <span className="w-10 text-right text-xs tabular-nums text-muted-foreground">{zoom.toFixed(1)}×</span>
           </div>
+          {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
         </div>
 
         <DialogFooter className="gap-2 px-5 pb-5 sm:space-x-0">

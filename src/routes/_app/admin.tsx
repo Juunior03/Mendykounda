@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/format";
 import { ChatBox } from "@/components/chat-box";
+import { ImageCropDialog } from "@/components/image-crop-dialog";
 
 export const Route = createFileRoute("/_app/admin")({
   component: AdminPage,
@@ -694,10 +695,17 @@ function CustomersAdmin() {
 function ImagePicker({ value, onChange }: { value: string; onChange: (url: string) => void }) {
   const [mode, setMode] = useState<"url" | "upload">(value && !value.includes("/storage/v1/") ? "url" : "upload");
   const [uploading, setUploading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<{ file: File; url: string } | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (selectedImage) URL.revokeObjectURL(selectedImage.url);
+    };
+  }, [selectedImage]);
 
   const handleFile = async (file: File) => {
     setUploading(true);
-    const ext = file.name.split(".").pop() || "jpg";
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
     const path = `${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from("product-images").upload(path, file, {
       cacheControl: "3600",
@@ -708,6 +716,25 @@ function ImagePicker({ value, onChange }: { value: string; onChange: (url: strin
     const { data } = supabase.storage.from("product-images").getPublicUrl(path);
     onChange(data.publicUrl);
     toast.success("Image téléversée");
+  };
+
+  const chooseFile = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Choisissez un fichier image.");
+      return;
+    }
+    if (file.size > 12 * 1024 * 1024) {
+      toast.error("L’image ne doit pas dépasser 12 Mo.");
+      return;
+    }
+    setSelectedImage({ file, url: URL.createObjectURL(file) });
+  };
+
+  const cancelCrop = () => setSelectedImage(null);
+
+  const confirmCrop = (file: File) => {
+    setSelectedImage(null);
+    void handleFile(file);
   };
 
   return (
@@ -730,13 +757,29 @@ function ImagePicker({ value, onChange }: { value: string; onChange: (url: strin
           type="file"
           accept="image/*"
           disabled={uploading}
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleFile(f); }}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) chooseFile(file);
+            e.target.value = "";
+          }}
           className="block w-full text-xs"
         />
       )}
-      {value && (
-        <img src={value} alt="" className="mt-2 h-24 w-24 rounded border border-border object-cover" />
+      {mode === "upload" && (
+        <p className="text-[11px] text-muted-foreground">
+          Après le choix, vous pourrez déplacer, zoomer et recadrer l’image au format de la boutique.
+        </p>
       )}
+      {value && (
+        <img src={value} alt="Aperçu du produit" className="mt-2 aspect-[4/5] h-28 rounded border border-border object-cover" />
+      )}
+      <ImageCropDialog
+        imageUrl={selectedImage?.url ?? null}
+        fileName={selectedImage?.file.name ?? "produit.jpg"}
+        open={selectedImage !== null}
+        onCancel={cancelCrop}
+        onConfirm={confirmCrop}
+      />
     </div>
   );
 }
