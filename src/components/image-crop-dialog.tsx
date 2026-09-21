@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Cropper, { type Area } from "react-easy-crop";
 import { Crop, RotateCcw, ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ interface ImageCropDialogProps {
 
 const createCroppedFile = async (imageUrl: string, area: Area, fileName: string) => {
   const image = new Image();
+  image.crossOrigin = "anonymous";
   image.src = imageUrl;
   await image.decode();
 
@@ -69,6 +70,14 @@ export function ImageCropDialog({ imageUrl, fileName, open, onCancel, onConfirm 
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!open) return;
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedArea(null);
+    setError(null);
+  }, [imageUrl, open]);
+
   const handleComplete = useCallback((_area: Area, pixels: Area) => {
     setCroppedArea(pixels);
   }, []);
@@ -97,7 +106,7 @@ export function ImageCropDialog({ imageUrl, fileName, open, onCancel, onConfirm 
       <DialogContent className="max-w-2xl overflow-hidden p-0">
         <DialogHeader className="px-5 pt-5 pr-12">
           <DialogTitle className="flex items-center gap-2"><Crop className="h-5 w-5" />Recadrer l’image</DialogTitle>
-          <DialogDescription>Déplacez l’image et ajustez le zoom pour remplir le cadre du produit.</DialogDescription>
+          <DialogDescription>L’image complète est visible au départ. Zoomez seulement si vous souhaitez resserrer le cadrage.</DialogDescription>
         </DialogHeader>
 
         <div className="relative h-[min(58vh,520px)] w-full bg-foreground">
@@ -108,6 +117,8 @@ export function ImageCropDialog({ imageUrl, fileName, open, onCancel, onConfirm 
               zoom={zoom}
               aspect={4 / 5}
               objectFit="contain"
+              minZoom={1}
+              maxZoom={3}
               showGrid
               onCropChange={setCrop}
               onZoomChange={setZoom}

@@ -5,13 +5,14 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { Package, ShoppingCart, Users, Euro } from "lucide-react";
+import { Crop, Package, ShoppingCart, Users, Euro } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/format";
 import { ChatBox } from "@/components/chat-box";
 import { ImageCropDialog } from "@/components/image-crop-dialog";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_app/admin")({
   component: AdminPage,
@@ -695,11 +696,11 @@ function CustomersAdmin() {
 function ImagePicker({ value, onChange }: { value: string; onChange: (url: string) => void }) {
   const [mode, setMode] = useState<"url" | "upload">(value && !value.includes("/storage/v1/") ? "url" : "upload");
   const [uploading, setUploading] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<{ file: File; url: string } | null>(null);
+  const [selectedImage, setSelectedImage] = useState<{ fileName: string; url: string; local: boolean } | null>(null);
 
   useEffect(() => {
     return () => {
-      if (selectedImage) URL.revokeObjectURL(selectedImage.url);
+      if (selectedImage?.local) URL.revokeObjectURL(selectedImage.url);
     };
   }, [selectedImage]);
 
@@ -727,7 +728,13 @@ function ImagePicker({ value, onChange }: { value: string; onChange: (url: strin
       toast.error("L’image ne doit pas dépasser 12 Mo.");
       return;
     }
-    setSelectedImage({ file, url: URL.createObjectURL(file) });
+    setSelectedImage({ fileName: file.name, url: URL.createObjectURL(file), local: true });
+  };
+
+  const editExistingImage = () => {
+    if (!value) return;
+    const fileName = value.split("/").pop()?.split("?")[0] || "produit.jpg";
+    setSelectedImage({ fileName, url: value, local: false });
   };
 
   const cancelCrop = () => setSelectedImage(null);
@@ -771,11 +778,16 @@ function ImagePicker({ value, onChange }: { value: string; onChange: (url: strin
         </p>
       )}
       {value && (
-        <img src={value} alt="Aperçu du produit" className="mt-2 aspect-[4/5] h-28 rounded border border-border object-cover" />
+        <div className="mt-2 flex items-end gap-3">
+          <img src={value} alt="Aperçu du produit" className="aspect-[4/5] h-28 rounded border border-border object-cover" />
+          <Button type="button" size="sm" variant="outline" onClick={editExistingImage} disabled={uploading}>
+            <Crop />Modifier le cadrage
+          </Button>
+        </div>
       )}
       <ImageCropDialog
         imageUrl={selectedImage?.url ?? null}
-        fileName={selectedImage?.file.name ?? "produit.jpg"}
+        fileName={selectedImage?.fileName ?? "produit.jpg"}
         open={selectedImage !== null}
         onCancel={cancelCrop}
         onConfirm={confirmCrop}
