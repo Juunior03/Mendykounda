@@ -774,12 +774,12 @@ function ImagePicker({ value, onChange }: { value: string; onChange: (url: strin
       )}
       {mode === "upload" && (
         <p className="text-[11px] text-muted-foreground">
-          Après le choix, vous pourrez déplacer, zoomer et recadrer l’image au format de la boutique.
+          L’image sera conservée entière et centrée. Vous pourrez zoomer si nécessaire.
         </p>
       )}
       {value && (
         <div className="mt-2 flex items-end gap-3">
-          <img src={value} alt="Aperçu du produit" className="aspect-[4/5] h-28 rounded border border-border object-cover" />
+          <img src={value} alt="Aperçu du produit" className="aspect-[4/5] h-28 rounded border border-border bg-warm object-contain" />
           <Button type="button" size="sm" variant="outline" onClick={editExistingImage} disabled={uploading}>
             <Crop />Modifier le cadrage
           </Button>
