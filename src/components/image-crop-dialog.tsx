@@ -66,6 +66,7 @@ const createCroppedFile = async (imageUrl: string, area: Area, fileName: string)
 export function ImageCropDialog({ imageUrl, fileName, open, onCancel, onConfirm }: ImageCropDialogProps) {
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  const [imageAspect, setImageAspect] = useState(1);
   const [croppedArea, setCroppedArea] = useState<Area | null>(null);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +75,7 @@ export function ImageCropDialog({ imageUrl, fileName, open, onCancel, onConfirm 
     if (!open) return;
     setCrop({ x: 0, y: 0 });
     setZoom(1);
+    setImageAspect(1);
     setCroppedArea(null);
     setError(null);
   }, [imageUrl, open]);
@@ -106,7 +108,7 @@ export function ImageCropDialog({ imageUrl, fileName, open, onCancel, onConfirm 
       <DialogContent className="max-w-2xl overflow-hidden p-0">
         <DialogHeader className="px-5 pt-5 pr-12">
           <DialogTitle className="flex items-center gap-2"><Crop className="h-5 w-5" />Recadrer l’image</DialogTitle>
-          <DialogDescription>L’image complète est visible au départ. Zoomez seulement si vous souhaitez resserrer le cadrage.</DialogDescription>
+          <DialogDescription>L’image est conservée entière et centrée. Zoomez seulement si vous souhaitez la recadrer.</DialogDescription>
         </DialogHeader>
 
         <div className="relative h-[min(58vh,520px)] w-full bg-foreground">
@@ -115,13 +117,20 @@ export function ImageCropDialog({ imageUrl, fileName, open, onCancel, onConfirm 
               image={imageUrl}
               crop={crop}
               zoom={zoom}
-              aspect={4 / 5}
+              aspect={imageAspect}
               objectFit="contain"
               minZoom={1}
               maxZoom={3}
               showGrid
               onCropChange={setCrop}
               onZoomChange={setZoom}
+              onMediaLoaded={({ naturalWidth, naturalHeight }) => {
+                if (naturalWidth > 0 && naturalHeight > 0) {
+                  setImageAspect(naturalWidth / naturalHeight);
+                  setCrop({ x: 0, y: 0 });
+                  setZoom(1);
+                }
+              }}
               onCropComplete={handleComplete}
             />
           )}

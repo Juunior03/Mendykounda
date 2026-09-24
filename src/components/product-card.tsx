@@ -23,7 +23,7 @@ export function ProductCard({ product }: { product: Product }) {
             loading="lazy"
             width={1024}
             height={1280}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-contain"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
