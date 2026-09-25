@@ -1,155 +1,71 @@
-/**
- * Home — editorial hero, featured products, story.
- */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useRef } from "react";
 import Autoplay from "embla-carousel-autoplay";
-import { productsQuery } from "@/lib/queries";
+import { Beef, ChevronRight, Clock3, Egg, Milk, ShieldCheck, Truck } from "lucide-react";
+import { categoriesQuery, productsQuery } from "@/lib/queries";
 import { ProductCard } from "@/components/product-card";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselPrevious,
-  CarouselNext,
-} from "@/components/ui/carousel";
+import { Button } from "@/components/ui/button";
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import hero from "@/assets/hero.jpg";
 
 export const Route = createFileRoute("/_app/")({
-  loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(productsQuery({ featuredOnly: true })).catch(() => {});
-  },
+  loader: async ({ context }) => { await Promise.all([context.queryClient.ensureQueryData(productsQuery({ featuredOnly: true })).catch(() => {}), context.queryClient.ensureQueryData(categoriesQuery()).catch(() => {})]); },
   component: HomePage,
-  head: () => ({
-    meta: [
-      { title: "MendyKounda — Élevage fermier premium" },
-      {
-        name: "description",
-        content:
-          "Volailles, œufs, lait et viandes fermières issus d'un élevage en plein air. Direct producteur.",
-      },
-    ],
-  }),
+  head: () => ({ meta: [
+    { title: "MendyKounda — Produits fermiers au Sénégal" },
+    { name: "description", content: "Volailles, œufs, lait et viandes fermières livrés directement du producteur au Sénégal." },
+    { property: "og:title", content: "MendyKounda — Produits fermiers au Sénégal" },
+    { property: "og:description", content: "Commandez des produits fermiers frais, locaux et soigneusement élevés." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 function HomePage() {
   const { data: featured } = useSuspenseQuery(productsQuery({ featuredOnly: true }));
-  const autoplay = useRef(
-    Autoplay({ delay: 3500, stopOnInteraction: false, stopOnMouseEnter: true }),
-  );
-
+  const { data: categories } = useSuspenseQuery(categoriesQuery());
+  const autoplay = useRef(Autoplay({ delay: 3500, stopOnInteraction: false, stopOnMouseEnter: true }));
+  const categoryIcons = [Beef, Egg, Milk, Beef];
   return (
-    <>
-      {/* HERO */}
-      <section className="relative isolate overflow-hidden">
-        <img
-          src={hero}
-          alt="Poules en plein air au lever du soleil"
-          width={1920}
-          height={1080}
-          className="h-[60vh] min-h-[420px] w-full object-cover sm:h-[70vh] md:h-[78vh] md:min-h-[520px]"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/30 to-background/10" />
-        <div className="container-editorial absolute inset-x-0 bottom-0 pb-16 md:pb-24">
-          <div className="max-w-2xl fade-in-up">
-            <p className="editorial-eyebrow mb-4 text-foreground/80">Ferme MendyKounda · Depuis 1987</p>
-            <h1 className="text-balance text-4xl font-medium leading-[1.05] tracking-tight md:text-6xl">
-              L'élevage fermier,<br />tel qu'il devrait être.
-            </h1>
-            <p className="mt-5 max-w-lg text-pretty text-base text-foreground/75 md:text-lg">
-              Volailles, œufs, lait cru et viandes — élevés au grand air, livrés directement
-              de notre pré à votre table.
-            </p>
-            <div className="mt-8 flex items-center gap-3">
-              <Link
-                to="/shop"
-                className="rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-              >
-                Découvrir la boutique
-              </Link>
-              <Link
-                to="/about"
-                className="rounded-md border border-border bg-background/70 px-6 py-3 text-sm font-medium backdrop-blur transition-colors hover:bg-background"
-              >
-                Notre histoire
-              </Link>
-            </div>
+    <div className="bg-secondary/50 pb-10">
+      <section className="container-market grid gap-3 py-3 lg:grid-cols-[220px_minmax(0,1fr)_220px]">
+        <aside className="hidden rounded-md bg-card p-2 shadow-soft lg:block">
+          <p className="border-b border-border px-3 py-2 text-sm font-semibold">Nos catégories</p>
+          <nav className="py-1">{categories.map((category, index) => { const Icon = categoryIcons[index % categoryIcons.length]; return <Link key={category.id} to="/shop" search={{ category: category.slug }} className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm hover:bg-secondary hover:text-primary"><Icon className="h-4 w-4" /> <span className="min-w-0 flex-1 truncate">{category.name}</span><ChevronRight className="h-3 w-3" /></Link>; })}</nav>
+        </aside>
+        <div className="relative isolate min-h-[320px] overflow-hidden rounded-md md:min-h-[400px] lg:min-h-[430px]">
+          <img src={hero} alt="Élevage MendyKounda en plein air" width={1920} height={1080} className="absolute inset-0 h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-foreground/40" />
+          <div className="relative flex min-h-[320px] max-w-xl flex-col justify-end p-6 text-primary-foreground md:min-h-[400px] md:p-10 lg:min-h-[430px]">
+            <p className="mb-2 text-xs font-semibold uppercase">Directement de notre ferme</p>
+            <h1 className="text-3xl font-semibold leading-tight md:text-5xl">Le frais du Sénégal, livré chez vous.</h1>
+            <p className="mt-3 max-w-md text-sm text-primary-foreground/85 md:text-base">Des produits fermiers sélectionnés, des prix transparents et une commande simple.</p>
+            <Button className="mt-6 w-fit bg-accent text-accent-foreground hover:bg-accent/90" asChild><Link to="/shop">Découvrir la boutique <ChevronRight /></Link></Button>
           </div>
         </div>
+        <aside className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+          <Link to="/shop" search={{ sort: "newest" }} className="flex min-h-32 flex-col justify-between rounded-md bg-primary p-4 text-primary-foreground shadow-soft"><Clock3 /><span><strong className="block text-lg">Arrivages frais</strong><small>Découvrez les nouveautés</small></span></Link>
+          <Link to="/contact" className="flex min-h-32 flex-col justify-between rounded-md bg-accent p-4 text-accent-foreground shadow-soft"><Truck /><span><strong className="block text-lg">Livraison locale</strong><small>Organisons votre livraison</small></span></Link>
+        </aside>
       </section>
 
-      {/* VALUES */}
-      <section className="container-editorial py-20 md:py-28">
-        <div className="grid gap-12 md:grid-cols-3">
-          {[
-            { eyebrow: "01", title: "Élevage en plein air", text: "Nos animaux disposent de vastes parcours herbeux toute l'année." },
-            { eyebrow: "02", title: "Sans intermédiaire", text: "Du producteur à votre table — la juste rémunération du travail bien fait." },
-            { eyebrow: "03", title: "Récolte du jour", text: "Œufs ramassés chaque matin, lait du jour, viandes maturées avec soin." },
-          ].map((v) => (
-            <div key={v.eyebrow} className="fade-in-up">
-              <p className="editorial-eyebrow">{v.eyebrow}</p>
-              <h3 className="mt-4 text-2xl font-medium tracking-tight">{v.title}</h3>
-              <p className="mt-3 text-sm text-muted-foreground">{v.text}</p>
-            </div>
-          ))}
-        </div>
+      <section className="container-market py-3 lg:hidden">
+        <div className="flex gap-3 overflow-x-auto pb-2">{categories.map((category, index) => { const Icon = categoryIcons[index % categoryIcons.length]; return <Link key={category.id} to="/shop" search={{ category: category.slug }} className="flex w-20 shrink-0 flex-col items-center gap-2 text-center text-xs"><span className="grid h-14 w-14 place-items-center rounded-full bg-card shadow-soft"><Icon className="h-6 w-6 text-primary" /></span><span className="line-clamp-2">{category.name}</span></Link>; })}</div>
       </section>
 
-      {/* FEATURED */}
-      <section className="bg-cream py-20 md:py-28">
-        <div className="container-editorial">
-          <div className="mb-12 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
-            <div>
-              <p className="editorial-eyebrow">Sélection</p>
-              <h2 className="mt-3 text-3xl font-medium tracking-tight md:text-4xl">
-                Les essentiels du moment
-              </h2>
-            </div>
-            <Link to="/shop" className="underline-grow text-sm font-medium">
-              Voir toute la boutique →
-            </Link>
-          </div>
-          <Carousel
-            opts={{ align: "start", loop: true }}
-            plugins={[autoplay.current]}
-            className="w-full"
-          >
-            <CarouselContent className="-ml-4">
-              {featured.map((p) => (
-                <CarouselItem
-                  key={p.id}
-                  className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3 xl:basis-1/4"
-                >
-                  <ProductCard product={p} />
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious className="hidden md:flex -left-4 lg:-left-12" />
-            <CarouselNext className="hidden md:flex -right-4 lg:-right-12" />
-          </Carousel>
-        </div>
+      <section className="container-market py-3">
+        <div className="grid grid-cols-2 gap-2 rounded-md bg-card p-3 shadow-soft md:grid-cols-4">{[
+          [Truck, "Livraison au Sénégal", "Service de proximité"], [ShieldCheck, "Qualité contrôlée", "Produits soigneusement suivis"], [Clock3, "Produits frais", "Préparés avec soin"], [Egg, "Direct producteur", "Sans intermédiaire"],
+        ].map(([Icon, title, text]) => { const ItemIcon = Icon as typeof Truck; return <div key={String(title)} className="flex min-w-0 items-center gap-3 p-2"><ItemIcon className="h-6 w-6 shrink-0 text-primary" /><span className="min-w-0"><strong className="block text-xs sm:text-sm">{String(title)}</strong><small className="hidden text-muted-foreground sm:block">{String(text)}</small></span></div>; })}</div>
       </section>
 
-      {/* STORY */}
-      <section className="container-editorial py-24 md:py-32">
-        <div className="mx-auto max-w-3xl text-center">
-          <p className="editorial-eyebrow">Notre engagement</p>
-          <h2 className="mt-4 text-balance text-3xl font-medium tracking-tight md:text-5xl">
-            Le bon goût, sans compromis.
-          </h2>
-          <p className="mt-6 text-pretty text-base text-muted-foreground md:text-lg">
-            Nous croyons qu'un élevage respectueux donne des produits incomparables.
-            Cette conviction guide chacun de nos gestes, depuis trois générations.
-          </p>
-          <Link
-            to="/about"
-            className="mt-8 inline-block underline-grow text-sm font-medium"
-          >
-            Découvrir notre histoire →
-          </Link>
+      <section className="container-market py-3">
+        <div className="rounded-md bg-card shadow-soft">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3"><div><p className="text-xs font-semibold uppercase text-primary">Sélection MendyKounda</p><h2 className="text-xl font-semibold md:text-2xl">Les produits du moment</h2></div><Link to="/shop" className="flex shrink-0 items-center text-sm font-semibold text-primary">Tout voir <ChevronRight /></Link></div>
+          <div className="p-2 sm:p-4"><Carousel opts={{ align: "start", loop: true }} plugins={[autoplay.current]}><CarouselContent className="-ml-2 sm:-ml-4">{featured.map((product) => <CarouselItem key={product.id} className="basis-1/2 pl-2 sm:basis-1/3 sm:pl-4 lg:basis-1/4 xl:basis-1/5"><ProductCard product={product} /></CarouselItem>)}</CarouselContent><CarouselPrevious className="hidden md:flex" /><CarouselNext className="hidden md:flex" /></Carousel></div>
         </div>
       </section>
-    </>
+    </div>
   );
 }

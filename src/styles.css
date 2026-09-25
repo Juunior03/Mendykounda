@@ -150,6 +150,16 @@
     .container-editorial { padding-inline: 2.5rem; }
   }
 
+  .container-market {
+    width: 100%;
+    max-width: 1280px;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 768px) {
+    .container-market { padding-inline: 1.5rem; }
+  }
+
   .editorial-eyebrow {
     font-size: 0.75rem;
     text-transform: uppercase;
