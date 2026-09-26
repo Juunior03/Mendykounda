@@ -38,8 +38,19 @@ export const Route = createFileRoute("/_app/products/$slug")({
       ? [
           { title: `${loaderData.name} — MendyKounda` },
           { name: "description", content: loaderData.description ?? loaderData.name },
+          { property: "og:title", content: `${loaderData.name} — MendyKounda` },
+          { property: "og:description", content: loaderData.description ?? `Découvrez ${loaderData.name} sur MendyKounda.` },
+          { property: "og:type", content: "website" },
+          { name: "twitter:card", content: "summary" },
         ]
-      : [],
+      : [
+          { title: "Produit indisponible — MendyKounda" },
+          { name: "description", content: "Ce produit fermier n'est pas disponible actuellement." },
+          { property: "og:title", content: "Produit indisponible — MendyKounda" },
+          { property: "og:description", content: "Consultez les autres produits disponibles dans la boutique MendyKounda." },
+          { property: "og:type", content: "website" },
+          { name: "twitter:card", content: "summary" },
+        ],
   }),
 });
 

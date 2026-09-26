@@ -7,7 +7,7 @@ import { categoriesQuery, productsQuery } from "@/lib/queries";
 import { ProductCard } from "@/components/product-card";
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
-import hero from "@/assets/hero.jpg";
+import hero from "@/assets/market-hero.jpg";
 
 export const Route = createFileRoute("/_app/")({
   loader: async ({ context }) => { await Promise.all([context.queryClient.ensureQueryData(productsQuery({ featuredOnly: true })).catch(() => {}), context.queryClient.ensureQueryData(categoriesQuery()).catch(() => {})]); },
@@ -35,7 +35,7 @@ function HomePage() {
           <nav className="py-1">{categories.map((category, index) => { const Icon = categoryIcons[index % categoryIcons.length]; return <Link key={category.id} to="/shop" search={{ category: category.slug }} className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm hover:bg-secondary hover:text-primary"><Icon className="h-4 w-4" /> <span className="min-w-0 flex-1 truncate">{category.name}</span><ChevronRight className="h-3 w-3" /></Link>; })}</nav>
         </aside>
         <div className="relative isolate min-h-[320px] overflow-hidden rounded-md md:min-h-[400px] lg:min-h-[430px]">
-          <img src={hero} alt="Élevage MendyKounda en plein air" width={1920} height={1080} className="absolute inset-0 h-full w-full object-cover" />
+          <img src={hero} alt="Illustration d'un élevage de poules en plein air" width={1600} height={900} className="absolute inset-0 h-full w-full object-cover" />
           <div className="absolute inset-0 bg-foreground/40" />
           <div className="relative flex min-h-[320px] max-w-xl flex-col justify-end p-6 text-primary-foreground md:min-h-[400px] md:p-10 lg:min-h-[430px]">
             <p className="mb-2 text-xs font-semibold uppercase">Directement de notre ferme</p>
@@ -63,7 +63,7 @@ function HomePage() {
       <section className="container-market py-3">
         <div className="rounded-md bg-card shadow-soft">
           <div className="flex items-center justify-between border-b border-border px-4 py-3"><div><p className="text-xs font-semibold uppercase text-primary">Sélection MendyKounda</p><h2 className="text-xl font-semibold md:text-2xl">Les produits du moment</h2></div><Link to="/shop" className="flex shrink-0 items-center text-sm font-semibold text-primary">Tout voir <ChevronRight /></Link></div>
-          <div className="p-2 sm:p-4"><Carousel opts={{ align: "start", loop: true }} plugins={[autoplay.current]}><CarouselContent className="-ml-2 sm:-ml-4">{featured.map((product) => <CarouselItem key={product.id} className="basis-1/2 pl-2 sm:basis-1/3 sm:pl-4 lg:basis-1/4 xl:basis-1/5"><ProductCard product={product} /></CarouselItem>)}</CarouselContent><CarouselPrevious className="hidden md:flex" /><CarouselNext className="hidden md:flex" /></Carousel></div>
+          <div className="p-2 sm:p-4"><Carousel opts={{ align: "start", loop: true }} plugins={[autoplay.current]}><CarouselContent className="-ml-2 sm:-ml-4">{featured.map((product) => <CarouselItem key={product.id} className="basis-1/2 pl-2 sm:basis-1/3 sm:pl-4 lg:basis-1/4 xl:basis-1/5"><ProductCard product={product} /></CarouselItem>)}</CarouselContent><CarouselPrevious className="left-1 hidden border-border bg-card/90 md:flex" /><CarouselNext className="right-1 hidden border-border bg-card/90 md:flex" /></Carousel></div>
         </div>
       </section>
     </div>

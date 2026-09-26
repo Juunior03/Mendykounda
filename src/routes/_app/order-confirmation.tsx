@@ -13,7 +13,14 @@ const searchSchema = z.object({ id: z.string().uuid() });
 export const Route = createFileRoute("/_app/order-confirmation")({
   validateSearch: (s) => searchSchema.parse(s),
   component: OrderConfirmation,
-  head: () => ({ meta: [{ title: "Commande confirmée — MendyKounda" }] }),
+  head: () => ({ meta: [
+    { title: "Commande confirmée — MendyKounda" },
+    { name: "description", content: "Votre commande MendyKounda a bien été enregistrée." },
+    { property: "og:title", content: "Commande confirmée — MendyKounda" },
+    { property: "og:description", content: "Confirmation de votre commande de produits fermiers." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 function OrderConfirmation() {

@@ -32,6 +32,7 @@ export function SiteHeader() {
       </div>
       <div className="container-market grid min-h-16 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 py-2 lg:min-h-20 lg:gap-8">
         <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen((v) => !v)} aria-label="Menu">{open ? <X /> : <Menu />}</Button>
+        <Link to="/" className="min-w-0 truncate text-base font-semibold sm:text-lg lg:hidden">MendyKounda</Link>
         <Link to="/" className="hidden items-center gap-2 font-semibold lg:flex"><span className="grid h-9 w-9 place-items-center rounded-md bg-primary text-lg text-primary-foreground">M</span><span className="text-xl">MendyKounda</span></Link>
         <form className="col-span-3 row-start-2 flex min-w-0 lg:col-span-1 lg:row-start-auto" onSubmit={(event) => { event.preventDefault(); navigate({ to: "/shop", search: query.trim() ? { q: query.trim() } : {} }); }}>
           <div className="relative min-w-0 flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un produit fermier" className="h-11 w-full rounded-l-md border border-r-0 border-input bg-background pl-10 pr-3 text-sm outline-none focus:border-primary" aria-label="Rechercher un produit" /></div>

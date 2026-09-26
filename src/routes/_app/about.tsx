@@ -3,7 +3,14 @@ import hero from "@/assets/hero.jpg";
 
 export const Route = createFileRoute("/_app/about")({
   component: AboutPage,
-  head: () => ({ meta: [{ title: "Notre ferme — MendyKounda" }] }),
+  head: () => ({ meta: [
+    { title: "Notre ferme — MendyKounda" },
+    { name: "description", content: "Découvrez l'histoire, les valeurs et l'élevage responsable de la ferme MendyKounda." },
+    { property: "og:title", content: "Notre ferme — MendyKounda" },
+    { property: "og:description", content: "Une ferme familiale engagée pour des produits locaux de qualité au Sénégal." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 function AboutPage() {

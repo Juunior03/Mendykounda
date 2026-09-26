@@ -11,7 +11,14 @@ import { lovable } from "@/integrations/lovable";
 
 export const Route = createFileRoute("/_app/auth")({
   component: AuthPage,
-  head: () => ({ meta: [{ title: "Connexion — MendyKounda" }] }),
+  head: () => ({ meta: [
+    { title: "Connexion et inscription — MendyKounda" },
+    { name: "description", content: "Connectez-vous ou créez votre compte client MendyKounda." },
+    { property: "og:title", content: "Connexion — MendyKounda" },
+    { property: "og:description", content: "Accédez à votre compte client MendyKounda." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 const loginSchema = z.object({

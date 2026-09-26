@@ -9,7 +9,14 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/reset-password")({
   component: ResetPasswordPage,
-  head: () => ({ meta: [{ title: "Réinitialiser le mot de passe — MendyKounda" }] }),
+  head: () => ({ meta: [
+    { title: "Nouveau mot de passe — MendyKounda" },
+    { name: "description", content: "Choisissez un nouveau mot de passe pour votre compte MendyKounda." },
+    { property: "og:title", content: "Nouveau mot de passe — MendyKounda" },
+    { property: "og:description", content: "Réinitialisation sécurisée de votre compte MendyKounda." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 function ResetPasswordPage() {
