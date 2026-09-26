@@ -2,7 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_app/contact")({
   component: ContactPage,
-  head: () => ({ meta: [{ title: "Contact — MendyKounda" }] }),
+  head: () => ({ meta: [
+    { title: "Contactez la ferme — MendyKounda" },
+    { name: "description", content: "Contactez MendyKounda pour une commande ou une demande particulière." },
+    { property: "og:title", content: "Contactez la ferme — MendyKounda" },
+    { property: "og:description", content: "L'équipe MendyKounda répond à vos questions et demandes particulières." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 function ContactPage() {

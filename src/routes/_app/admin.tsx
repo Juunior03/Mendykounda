@@ -16,7 +16,14 @@ import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_app/admin")({
   component: AdminPage,
-  head: () => ({ meta: [{ title: "Admin — MendyKounda" }] }),
+  head: () => ({ meta: [
+    { title: "Administration — MendyKounda" },
+    { name: "description", content: "Console vendeur sécurisée de MendyKounda." },
+    { property: "og:title", content: "Administration — MendyKounda" },
+    { property: "og:description", content: "Gestion sécurisée de la boutique MendyKounda." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 type Tab = "overview" | "products" | "categories" | "orders" | "customers" | "messages";

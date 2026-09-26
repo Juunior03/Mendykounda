@@ -12,7 +12,14 @@ import { formatDateTime, formatPrice } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/account")({
   component: AccountPage,
-  head: () => ({ meta: [{ title: "Mon compte — MendyKounda" }] }),
+  head: () => ({ meta: [
+    { title: "Mon compte — MendyKounda" },
+    { name: "description", content: "Consultez votre profil et vos commandes MendyKounda." },
+    { property: "og:title", content: "Mon compte — MendyKounda" },
+    { property: "og:description", content: "Votre espace client MendyKounda." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 function AccountPage() {

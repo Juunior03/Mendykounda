@@ -9,7 +9,14 @@ import { formatPrice } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/cart")({
   component: CartPage,
-  head: () => ({ meta: [{ title: "Panier — MendyKounda" }] }),
+  head: () => ({ meta: [
+    { title: "Mon panier — MendyKounda" },
+    { name: "description", content: "Vérifiez vos produits fermiers avant de passer votre commande." },
+    { property: "og:title", content: "Mon panier — MendyKounda" },
+    { property: "og:description", content: "Votre sélection de produits fermiers MendyKounda." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 function CartPage() {

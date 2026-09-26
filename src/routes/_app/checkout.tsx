@@ -13,7 +13,14 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/checkout")({
   component: CheckoutPage,
-  head: () => ({ meta: [{ title: "Commande — MendyKounda" }] }),
+  head: () => ({ meta: [
+    { title: "Finaliser ma commande — MendyKounda" },
+    { name: "description", content: "Indiquez vos informations de livraison pour confirmer votre commande MendyKounda." },
+    { property: "og:title", content: "Finaliser ma commande — MendyKounda" },
+    { property: "og:description", content: "Finalisez votre commande de produits fermiers." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 const shippingSchema = z.object({
