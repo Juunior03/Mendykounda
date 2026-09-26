@@ -74,7 +74,17 @@ export const productsQuery = (filter: ProductsFilter = {}) =>
       if (filter.featuredOnly) q = q.eq("is_featured", true);
       if (filter.minPrice != null) q = q.gte("price", filter.minPrice);
       if (filter.maxPrice != null) q = q.lte("price", filter.maxPrice);
-      if (filter.search) q = q.ilike("name", `%${filter.search}%`);
+      if (filter.search) {
+        const safeSearch = filter.search.trim().replace(/[,%()]/g, "");
+        const searchVariants = Array.from(new Set([
+          safeSearch,
+          safeSearch.replace(/oe/gi, "œ"),
+          safeSearch.replace(/œ/gi, "oe"),
+        ])).filter(Boolean);
+        if (searchVariants.length > 0) {
+          q = q.or(searchVariants.map((term) => `name.ilike.%${term}%`).join(","));
+        }
+      }
 
       switch (filter.sort) {
         case "price_asc": q = q.order("price", { ascending: true }); break;
