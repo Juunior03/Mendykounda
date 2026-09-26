@@ -52,6 +52,7 @@ function AccountPage() {
       const { data, error } = await supabase
         .from("orders")
         .select("*, order_items(*)")
+        .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];

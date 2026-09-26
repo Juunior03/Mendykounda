@@ -7,6 +7,7 @@ import { z } from "zod";
 import { CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/format";
+import { useAuth } from "@/lib/auth";
 
 const searchSchema = z.object({ id: z.string().uuid() });
 
@@ -25,14 +26,17 @@ export const Route = createFileRoute("/_app/order-confirmation")({
 
 function OrderConfirmation() {
   const { id } = Route.useSearch();
+  const { user } = useAuth();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["order", id],
+    queryKey: ["order", id, user?.id],
+    enabled: !!user,
     queryFn: async () => {
       const { data: order, error } = await supabase
         .from("orders")
         .select("*, order_items(*)")
         .eq("id", id)
+        .eq("user_id", user!.id)
         .maybeSingle();
       if (error) throw error;
       return order;
