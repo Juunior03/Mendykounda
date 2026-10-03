@@ -5,11 +5,11 @@ Plateforme e-commerce premium pour la ferme MendyKounda (élevage : volailles, �
 ## 🛠 Stack
 
 - **Frontend** : React 19 + TanStack Start (SSR) + Vite 7 + Tailwind CSS v4
-- **Backend** : Lovable Cloud (Supabase) — Postgres + RLS + Auth + Edge Functions
+- **Backend** : Supabase (projet `mqngaphjmrcftnkcojnv`) — Postgres + RLS + Auth + Storage + Realtime — voir [MIGRATION-SUPABASE.md](MIGRATION-SUPABASE.md)
 - **State** : TanStack Query, store panier custom (`useSyncExternalStore`)
 - **UI** : shadcn/ui + Lucide icons + Sonner (toasts)
 - **Charts** : Recharts (dashboard admin)
-- **Auth** : Email/mot de passe + Google OAuth (managed by Lovable)
+- **Auth** : Email/mot de passe + Google OAuth (Supabase Auth)
 
 ## 📁 Structure
 
