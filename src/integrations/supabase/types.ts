@@ -41,6 +41,33 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_rates: {
+        Row: {
+          brackets: Json
+          created_at: string
+          free_from: number | null
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          brackets?: Json
+          created_at?: string
+          free_from?: number | null
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          brackets?: Json
+          created_at?: string
+          free_from?: number | null
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       delivery_zones: {
         Row: {
           commune: string
@@ -48,6 +75,7 @@ export type Database = {
           department: string
           id: string
           is_active: boolean
+          rate_id: string | null
           region: string
           sort_order: number
         }
@@ -57,6 +85,7 @@ export type Database = {
           department: string
           id?: string
           is_active?: boolean
+          rate_id?: string | null
           region?: string
           sort_order?: number
         }
@@ -66,6 +95,7 @@ export type Database = {
           department?: string
           id?: string
           is_active?: boolean
+          rate_id?: string | null
           region?: string
           sort_order?: number
         }
@@ -153,6 +183,7 @@ export type Database = {
           confirmation_email_sent_at: string | null
           confirmation_sms_sent_at: string | null
           created_at: string
+          delivery_fee: number
           delivery_zone_id: string | null
           id: string
           notes: string | null
@@ -179,6 +210,7 @@ export type Database = {
           confirmation_email_sent_at?: string | null
           confirmation_sms_sent_at?: string | null
           created_at?: string
+          delivery_fee?: number
           delivery_zone_id?: string | null
           id?: string
           notes?: string | null
@@ -205,6 +237,7 @@ export type Database = {
           confirmation_email_sent_at?: string | null
           confirmation_sms_sent_at?: string | null
           created_at?: string
+          delivery_fee?: number
           delivery_zone_id?: string | null
           id?: string
           notes?: string | null
@@ -386,6 +419,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delivery_fee: {
+        Args: { _subtotal: number; _zone_id: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -17,6 +17,8 @@ export interface NotifyOrder {
   user_id: string;
   created_at: string;
   total_amount: number | string;
+  /** Frais de livraison inclus dans total_amount (absent = 0). */
+  delivery_fee?: number | string;
   status: string;
   payment_method: string;
   shipping_full_name: string;
@@ -117,6 +119,9 @@ export const formatFcfa = (n: number | string) =>
   `${Math.round(Number(n))
     .toString()
     .replace(/\B(?=(\d{3})+(?!\d))/g, " ")} F CFA`;
+
+const deliveryLabel = (order: NotifyOrder) =>
+  Number(order.delivery_fee ?? 0) > 0 ? formatFcfa(order.delivery_fee!) : "offerte";
 
 export const orderNumber = (id: string) => id.slice(0, 8).toUpperCase();
 
@@ -243,6 +248,10 @@ export function buildCustomerEmail(order: NotifyOrder, siteUrl: string) {
      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
        ${itemsRows(order)}
        <tr>
+         <td style="padding:8px 0;border-bottom:1px solid #eee">Livraison</td>
+         <td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;white-space:nowrap">${deliveryLabel(order)}</td>
+       </tr>
+       <tr>
          <td style="padding:12px 0 0;font-weight:bold">Total</td>
          <td style="padding:12px 0 0;text-align:right;font-weight:bold;white-space:nowrap">${formatFcfa(order.total_amount)}</td>
        </tr>
@@ -264,6 +273,7 @@ export function buildCustomerEmail(order: NotifyOrder, siteUrl: string) {
       (it) =>
         `- ${it.product_name} x ${it.quantity} : ${formatFcfa(Number(it.unit_price) * it.quantity)}`,
     ),
+    `Livraison : ${deliveryLabel(order)}`,
     `Total : ${formatFcfa(order.total_amount)}`,
     "",
     `Livraison prévue entre ${longDate(start)} et ${longDate(end)}.`,
@@ -287,6 +297,10 @@ export function buildAdminEmail(order: NotifyOrder, siteUrl: string) {
      ${escapeHtml(order.shipping_address)}, ${escapeHtml(order.shipping_postal_code)} ${escapeHtml(order.shipping_city)}</p>
      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
        ${itemsRows(order)}
+       <tr>
+         <td style="padding:8px 0;border-bottom:1px solid #eee">Livraison</td>
+         <td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;white-space:nowrap">${deliveryLabel(order)}</td>
+       </tr>
        <tr><td style="padding:12px 0 0;font-weight:bold">Total</td>
        <td style="padding:12px 0 0;text-align:right;font-weight:bold">${formatFcfa(order.total_amount)}</td></tr>
      </table>

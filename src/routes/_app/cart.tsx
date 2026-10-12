@@ -9,6 +9,8 @@ import { resolveProductImage } from "@/lib/product-images";
 import { formatPrice } from "@/lib/format";
 import { LOW_STOCK_THRESHOLD } from "@/lib/pricing";
 import { formatDeliveryWindow } from "@/lib/delivery";
+import { useQuery } from "@tanstack/react-query";
+import { deliveryZonesQuery } from "@/lib/zones";
 
 export const Route = createFileRoute("/_app/cart")({
   component: CartPage,
@@ -157,6 +159,7 @@ function CartPage() {
         <aside className="h-fit space-y-3 lg:sticky lg:top-40">
           <div className="rounded-lg bg-card p-5 shadow-soft">
             <p className="text-lg">{subtotalLabel}</p>
+            <DeliveryInfo subtotal={subtotal} />
             <p className="mt-2 text-xs text-muted-foreground">
               Livraison estimée {formatDeliveryWindow()}.
             </p>
@@ -179,6 +182,50 @@ function CartPage() {
           </p>
         </aside>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Règles de livraison avant le choix de la commune : communes toujours
+ * gratuites, seuil de gratuité ailleurs et montant restant à atteindre.
+ */
+function DeliveryInfo({ subtotal }: { subtotal: number }) {
+  const { data: zones = [] } = useQuery(deliveryZonesQuery());
+  if (zones.length === 0) return null;
+  const alwaysFree = zones.filter(
+    (z) => z.delivery_rates?.free_from != null && Number(z.delivery_rates.free_from) <= 0,
+  );
+  const thresholds = zones
+    .map((z) => z.delivery_rates?.free_from)
+    .filter((t): t is number => t != null && Number(t) > 0)
+    .map(Number);
+  const threshold = thresholds.length ? Math.min(...thresholds) : null;
+  const gap = threshold != null ? threshold - subtotal : 0;
+
+  return (
+    <div className="mt-3 space-y-1 rounded-md bg-secondary px-3 py-2 text-xs">
+      {alwaysFree.length > 0 && (
+        <p>
+          Livraison <span className="font-medium text-primary">gratuite</span> à{" "}
+          {alwaysFree.map((z) => z.commune).join(", ")}.
+        </p>
+      )}
+      {threshold != null &&
+        (gap > 0 ? (
+          <p>
+            Ailleurs, gratuite dès {formatPrice(threshold)} d'achats selon la commune : plus que{" "}
+            <span className="font-semibold tabular-nums">{formatPrice(gap)}</span>.
+          </p>
+        ) : (
+          <p>
+            Votre panier atteint le seuil de livraison gratuite ({formatPrice(threshold)}) selon la
+            commune.
+          </p>
+        ))}
+      <p className="text-muted-foreground">
+        Frais exacts calculés à l'étape suivante selon votre commune.
+      </p>
     </div>
   );
 }

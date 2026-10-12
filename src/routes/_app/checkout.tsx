@@ -20,9 +20,12 @@ import { startWavePayment } from "@/lib/wave";
 import { notifyOrderPlaced } from "@/lib/notify";
 import {
   DELIVERY_AREA,
+  deliveryFee,
   deliveryZonesQuery,
+  freeDeliveryGap,
   groupByDepartment,
   matchZone,
+  rateSummary,
   zoneLabel,
 } from "@/lib/zones";
 import type { PaymentMethod } from "@/lib/orders";
@@ -75,6 +78,10 @@ function CheckoutPage() {
   const [busy, setBusy] = useState(false);
   const { data: zones = [] } = useQuery(deliveryZonesQuery());
   const zone = zones.find((z) => z.id === address.zoneId);
+  // Frais affichés à titre indicatif : place_order recalcule en base.
+  const fee = zone ? deliveryFee(zone.delivery_rates, subtotal) : 0;
+  const gap = zone ? freeDeliveryGap(zone.delivery_rates, subtotal) : null;
+  const total = subtotal + fee;
 
   useEffect(() => {
     if (!loading && !user) void navigate({ to: "/auth" });
@@ -269,8 +276,19 @@ function CheckoutPage() {
                       ))}
                     </select>
                     <span className="mt-1 block text-xs text-muted-foreground">
-                      Nous livrons dans {DELIVERY_AREA}. Votre village n'apparaît pas ? Choisissez
-                      sa commune (ex. Cap Skirring → Diembéring).
+                      {zone ? (
+                        <>
+                          Livraison à {zoneLabel(zone, zones)} :{" "}
+                          <span className="font-medium text-foreground">
+                            {rateSummary(zone.delivery_rates)}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          Nous livrons dans {DELIVERY_AREA}. Votre village n'apparaît pas ?
+                          Choisissez sa commune (ex. Cap Skirring → Diembéring).
+                        </>
+                      )}
                     </span>
                   </label>
                   {fields.map((f) => (
@@ -430,7 +448,7 @@ function CheckoutPage() {
             <div className="mt-4 flex flex-col gap-3 rounded-md border border-border p-4 sm:flex-row sm:items-center">
               <div className="sm:w-56">{placeButton}</div>
               <p className="text-base font-semibold text-destructive">
-                Montant total : <span className="tabular-nums">{formatPrice(subtotal)}</span>
+                Montant total : <span className="tabular-nums">{formatPrice(total)}</span>
               </p>
             </div>
           </Step>
@@ -448,12 +466,30 @@ function CheckoutPage() {
               <span className="tabular-nums">{formatPrice(subtotal)}</span>
             </div>
             <div className="mt-1 flex justify-between">
+              <span>Livraison :</span>
+              <span className="tabular-nums">
+                {!zone ? (
+                  <span className="text-muted-foreground">selon la commune</span>
+                ) : fee === 0 ? (
+                  <span className="font-medium text-primary">Gratuite</span>
+                ) : (
+                  formatPrice(fee)
+                )}
+              </span>
+            </div>
+            {gap != null && (
+              <p className="mt-1 rounded-md bg-accent/15 px-2 py-1 text-xs">
+                Plus que <span className="font-semibold tabular-nums">{formatPrice(gap)}</span>{" "}
+                d'achats pour la livraison gratuite à {zone?.commune}.
+              </p>
+            )}
+            <div className="mt-1 flex justify-between">
               <span>Paiement :</span>
               <span>{paymentMethod === "wave" ? "Wave" : "À la livraison"}</span>
             </div>
             <div className="mt-3 flex justify-between gap-2 border-t border-border pt-3 text-base font-semibold text-destructive">
               <span className="whitespace-nowrap">Montant total :</span>
-              <span className="tabular-nums">{formatPrice(subtotal)}</span>
+              <span className="tabular-nums">{formatPrice(total)}</span>
             </div>
           </div>
         </aside>

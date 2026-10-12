@@ -178,6 +178,11 @@ function OrderCard({ order: o }: { order: Order }) {
         <div>
           <p className="uppercase text-muted-foreground">Total</p>
           <p className="mt-0.5 text-sm tabular-nums">{formatPrice(Number(o.total_amount))}</p>
+          <p className="text-[11px] text-muted-foreground">
+            {Number(o.delivery_fee) > 0
+              ? `dont livraison ${formatPrice(Number(o.delivery_fee))}`
+              : "livraison offerte"}
+          </p>
         </div>
         <div className="min-w-0">
           <p className="uppercase text-muted-foreground">Livraison à</p>

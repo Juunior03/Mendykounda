@@ -114,6 +114,20 @@ function OrderConfirmation() {
         <aside className="h-fit space-y-3">
           {data && (
             <div className="rounded-lg bg-card p-5 text-sm shadow-soft">
+              <div className="mb-2 space-y-1 border-b border-border pb-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Articles</span>
+                  <span className="tabular-nums">
+                    {formatPrice(Number(data.total_amount) - Number(data.delivery_fee ?? 0))}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Livraison</span>
+                  <span className="tabular-nums">
+                    {Number(data.delivery_fee ?? 0) > 0 ? formatPrice(Number(data.delivery_fee)) : "Gratuite"}
+                  </span>
+                </div>
+              </div>
               <div className="flex justify-between text-lg font-semibold">
                 <span>Total</span>
                 <span className="tabular-nums">{formatPrice(Number(data.total_amount))}</span>
