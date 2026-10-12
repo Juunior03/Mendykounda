@@ -120,6 +120,8 @@ export type Database = {
         Row: {
           cancelled_at: string | null
           delivered_at: string | null
+          confirmation_email_sent_at: string | null
+          confirmation_sms_sent_at: string | null
           created_at: string
           id: string
           notes: string | null
@@ -143,6 +145,8 @@ export type Database = {
         Insert: {
           cancelled_at?: string | null
           delivered_at?: string | null
+          confirmation_email_sent_at?: string | null
+          confirmation_sms_sent_at?: string | null
           created_at?: string
           id?: string
           notes?: string | null
@@ -166,6 +170,8 @@ export type Database = {
         Update: {
           cancelled_at?: string | null
           delivered_at?: string | null
+          confirmation_email_sent_at?: string | null
+          confirmation_sms_sent_at?: string | null
           created_at?: string
           id?: string
           notes?: string | null
