@@ -77,38 +77,28 @@ function CheckoutPage() {
     setBusy(true);
     try {
       const parsed = shippingSchema.parse(form);
-      const { data: order, error: orderErr } = await supabase
-        .from("orders")
-        .insert({
-          user_id: user.id,
-          total_amount: subtotal,
-          shipping_full_name: parsed.fullName,
-          shipping_phone: parsed.phone,
-          shipping_address: parsed.address,
-          shipping_city: parsed.city,
-          shipping_postal_code: parsed.postalCode,
+      // Prix et total sont recalculés en base à partir des produits :
+      // on n'envoie que les identifiants et les quantités.
+      const { data: orderId, error: orderErr } = await supabase.rpc("place_order", {
+        _items: items.map((it) => ({ product_id: it.productId, quantity: it.quantity })),
+        _shipping: {
+          full_name: parsed.fullName,
+          phone: parsed.phone,
+          address: parsed.address,
+          city: parsed.city,
+          postal_code: parsed.postalCode,
           notes: parsed.notes || null,
-        })
-        .select("id")
-        .single();
+        },
+      });
       if (orderErr) throw orderErr;
-
-      const { error: itemsErr } = await supabase.from("order_items").insert(
-        items.map((it) => ({
-          order_id: order.id,
-          product_id: it.productId,
-          product_name: it.name,
-          unit_price: it.price,
-          quantity: it.quantity,
-        }))
-      );
-      if (itemsErr) throw itemsErr;
 
       cartStore.clear();
       toast.success("Commande enregistrée !");
-      void navigate({ to: "/order-confirmation", search: { id: order.id } });
+      void navigate({ to: "/order-confirmation", search: { id: orderId } });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur");
+      // Les erreurs Supabase sont des objets { message } (pas des Error).
+      const msg = (err as { message?: unknown } | null)?.message;
+      toast.error(typeof msg === "string" && msg ? msg : "Erreur");
     } finally {
       setBusy(false);
     }

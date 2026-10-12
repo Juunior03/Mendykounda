@@ -333,6 +333,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      place_order: {
+        Args: { _items: Json; _shipping: Json }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "customer"
