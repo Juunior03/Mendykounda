@@ -118,9 +118,13 @@ export type Database = {
       }
       orders: {
         Row: {
+          cancelled_at: string | null
+          delivered_at: string | null
           created_at: string
           id: string
           notes: string | null
+          processing_at: string | null
+          shipped_at: string | null
           payment_status: Database["public"]["Enums"]["payment_status"]
           shipping_address: string
           shipping_city: string
@@ -134,9 +138,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cancelled_at?: string | null
+          delivered_at?: string | null
           created_at?: string
           id?: string
           notes?: string | null
+          processing_at?: string | null
+          shipped_at?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           shipping_address: string
           shipping_city: string
@@ -150,9 +158,13 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cancelled_at?: string | null
+          delivered_at?: string | null
           created_at?: string
           id?: string
           notes?: string | null
+          processing_at?: string | null
+          shipped_at?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           shipping_address?: string
           shipping_city?: string
@@ -332,6 +344,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      cancel_order: {
+        Args: { _order_id: string }
+        Returns: undefined
       }
       place_order: {
         Args: { _items: Json; _shipping: Json }

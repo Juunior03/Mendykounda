@@ -28,6 +28,9 @@ export interface Product {
   created_at: string;
   discount_price: number | null;
   discount_label: string | null;
+  /** Note moyenne et nombre d'avis (listes produits uniquement). */
+  rating_avg?: number;
+  rating_count?: number;
 }
 
 export interface Review {
@@ -69,7 +72,7 @@ export const productsQuery = (filter: ProductsFilter = {}) =>
   queryOptions({
     queryKey: ["products", filter],
     queryFn: async (): Promise<Product[]> => {
-      let q = supabase.from("products").select("*, categories(slug)");
+      let q = supabase.from("products").select("*, categories(slug), reviews(rating)");
       if (!filter.includeInactive) q = q.eq("is_active", true);
       if (filter.featuredOnly) q = q.eq("is_featured", true);
       if (filter.minPrice != null) q = q.gte("price", filter.minPrice);
@@ -95,11 +98,19 @@ export const productsQuery = (filter: ProductsFilter = {}) =>
 
       const { data, error } = await q;
       if (error) throw error;
-      let rows = (data ?? []) as unknown as (Product & { categories: { slug: string } | null })[];
+      type Row = Product & { categories: { slug: string } | null; reviews: { rating: number }[] | null };
+      let rows = (data ?? []) as unknown as Row[];
       if (filter.categorySlug) {
         rows = rows.filter((r) => r.categories?.slug === filter.categorySlug);
       }
-      return rows;
+      return rows.map(({ reviews, ...r }) => {
+        const ratings = reviews ?? [];
+        return {
+          ...r,
+          rating_count: ratings.length,
+          rating_avg: ratings.length ? ratings.reduce((sum, x) => sum + x.rating, 0) / ratings.length : 0,
+        };
+      });
     },
   });
 

@@ -66,6 +66,10 @@ export const cartStore = {
       .filter((i) => i.quantity > 0);
     write(items);
   },
+  /** Met à jour les infos d'une ligne (ex. prix actualisé depuis la base). */
+  update(productId: string, patch: Partial<Omit<CartItem, "productId" | "quantity">>) {
+    write(read().map((i) => (i.productId === productId ? { ...i, ...patch } : i)));
+  },
   remove(productId: string) {
     write(read().filter((i) => i.productId !== productId));
   },

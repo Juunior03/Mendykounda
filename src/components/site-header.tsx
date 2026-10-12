@@ -2,7 +2,7 @@
  * Header — minimalist editorial nav, slim sticky bar.
  */
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ChevronDown, Headphones, Menu, Search, ShoppingBag, User as UserIcon, X } from "lucide-react";
+import { ChevronDown, Headphones, Menu, Package, Search, ShoppingBag, User as UserIcon, X } from "lucide-react";
 import { useState } from "react";
 import { useCart, cartTotals } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
@@ -54,6 +54,14 @@ export function SiteHeader() {
           >
             <UserIcon className="h-5 w-5" /><span className="hidden text-sm lg:inline">{user ? "Mon compte" : "Se connecter"}</span><ChevronDown className="hidden h-3 w-3 xl:block" />
           </Link>
+          {user && (
+            <Link
+              to="/orders"
+              className="hidden min-h-10 items-center gap-2 rounded-md px-2 text-foreground/80 hover:bg-secondary hover:text-foreground md:flex"
+            >
+              <Package className="h-5 w-5" /><span className="hidden text-sm lg:inline">Mes commandes</span>
+            </Link>
+          )}
           <Link
             to="/cart"
             className="relative flex min-h-10 items-center gap-2 rounded-md px-2 text-foreground/80 hover:bg-secondary hover:text-foreground"
@@ -84,6 +92,11 @@ export function SiteHeader() {
                 {n.label}
               </Link>
             ))}
+            {user && (
+              <Link to="/orders" onClick={() => setOpen(false)} className="py-2 text-sm">
+                Mes commandes
+              </Link>
+            )}
             {isAdmin && (
               <Link to="/admin" onClick={() => setOpen(false)} className="py-2 text-sm">
                 Admin

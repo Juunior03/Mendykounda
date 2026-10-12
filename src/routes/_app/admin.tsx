@@ -10,9 +10,17 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/format";
+import { ORDER_STATUS_LABEL, type OrderStatus } from "@/lib/orders";
 import { ChatBox } from "@/components/chat-box";
 import { ImageCropDialog } from "@/components/image-crop-dialog";
 import { Button } from "@/components/ui/button";
+
+const PAYMENT_STATUS_LABEL: Record<string, string> = {
+  unpaid: "Non payée",
+  paid: "Payée",
+  refunded: "Remboursée",
+  failed: "Échec",
+};
 
 export const Route = createFileRoute("/_app/admin")({
   component: AdminPage,
@@ -539,13 +547,21 @@ function OrdersAdmin() {
     },
   });
 
-  const statuses = ["pending", "processing", "shipped", "delivered", "cancelled"] as const;
-  type OrderStatus = typeof statuses[number];
+  const statuses: OrderStatus[] = ["pending", "processing", "shipped", "delivered", "cancelled"];
 
   const updateStatus = async (id: string, status: OrderStatus) => {
+    // Annuler remet les articles en stock ; réactiver une commande annulée les reprend.
+    if (status === "cancelled" && !window.confirm("Annuler cette commande ? Les articles seront remis en stock.")) {
+      return;
+    }
     const { error } = await supabase.from("orders").update({ status }).eq("id", id);
     if (error) toast.error(error.message);
-    else { toast.success("Statut mis à jour"); qc.invalidateQueries({ queryKey: ["admin-orders"] }); }
+    else {
+      toast.success("Statut mis à jour");
+      void qc.invalidateQueries({ queryKey: ["admin-orders"] });
+      void qc.invalidateQueries({ queryKey: ["admin-products"] });
+      void qc.invalidateQueries({ queryKey: ["products"] });
+    }
   };
 
   return (
@@ -564,13 +580,16 @@ function OrdersAdmin() {
         <tbody className="divide-y divide-border">
           {orders?.map((o) => (
             <tr key={o.id} className="hover:bg-secondary/40">
-              <td className="p-3 text-xs text-muted-foreground">{new Date(o.created_at).toLocaleDateString("fr-FR")}</td>
+              <td className="p-3 text-xs text-muted-foreground">
+                {new Date(o.created_at).toLocaleDateString("fr-FR")}
+                <span className="block font-mono">#{o.id.slice(0, 8).toUpperCase()}</span>
+              </td>
               <td className="p-3">{o.shipping_full_name}</td>
               <td className="p-3">{o.shipping_city}</td>
               <td className="p-3 tabular-nums">{formatPrice(Number(o.total_amount))}</td>
               <td className="p-3">
                 <span className={`rounded px-2 py-0.5 text-xs ${o.payment_status === "paid" ? "bg-primary/10 text-primary" : "bg-secondary"}`}>
-                  {o.payment_status}
+                  {PAYMENT_STATUS_LABEL[o.payment_status] ?? o.payment_status}
                 </span>
               </td>
               <td className="p-3">
@@ -579,7 +598,7 @@ function OrdersAdmin() {
                   onChange={(e) => updateStatus(o.id, e.target.value as OrderStatus)}
                   className="rounded border border-border bg-background px-2 py-1 text-xs"
                 >
-                  {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
+                  {statuses.map((s) => <option key={s} value={s}>{ORDER_STATUS_LABEL[s]}</option>)}
                 </select>
               </td>
             </tr>
