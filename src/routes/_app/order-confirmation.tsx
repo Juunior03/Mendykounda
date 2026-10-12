@@ -7,6 +7,8 @@ import { z } from "zod";
 import { CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/format";
+import { formatDeliveryWindow } from "@/lib/delivery";
+import { resolveProductImage } from "@/lib/product-images";
 import { useAuth } from "@/lib/auth";
 
 const searchSchema = z.object({ id: z.string().uuid() });
@@ -34,7 +36,7 @@ function OrderConfirmation() {
     queryFn: async () => {
       const { data: order, error } = await supabase
         .from("orders")
-        .select("*, order_items(*)")
+        .select("*, order_items(*, products(image_url))")
         .eq("id", id)
         .eq("user_id", user!.id)
         .maybeSingle();
@@ -44,39 +46,78 @@ function OrderConfirmation() {
   });
 
   return (
-    <div className="container-editorial py-16 md:py-24">
-      <div className="mx-auto max-w-xl text-center">
-        <CheckCircle2 className="mx-auto h-12 w-12 text-primary" />
-        <p className="editorial-eyebrow mt-4">Merci</p>
-        <h1 className="mt-3 text-3xl font-medium tracking-tight md:text-4xl">
-          Votre commande est enregistrée
-        </h1>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Référence : <span className="tabular-nums">{id.slice(0, 8)}</span>
-          {data && <> — Total : <span className="tabular-nums">{formatPrice(Number(data.total_amount))}</span></>}
-        </p>
+    <div className="container-market py-6 md:py-10">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <section className="rounded-lg bg-card p-5 shadow-soft md:p-6">
+          <p className="flex items-center gap-2 text-xl font-semibold text-primary">
+            <CheckCircle2 className="h-6 w-6" />
+            Merci, votre commande a été passée.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Commande n° <span className="font-medium text-foreground tabular-nums">{id.slice(0, 8).toUpperCase()}</span>
+            {" "}· Paiement à la livraison
+          </p>
 
-        {isLoading && <p className="mt-6 text-sm text-muted-foreground">Chargement…</p>}
+          {isLoading && <p className="mt-6 text-sm text-muted-foreground">Chargement…</p>}
 
-        {data && (
-          <ul className="mt-8 divide-y divide-border rounded-lg border border-border text-left">
-            {data.order_items.map((it: { id: string; product_name: string; quantity: number; unit_price: number }) => (
-              <li key={it.id} className="flex justify-between p-4 text-sm">
-                <span>{it.product_name} × {it.quantity}</span>
-                <span className="tabular-nums">{formatPrice(Number(it.unit_price) * it.quantity)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
+          {data && (
+            <>
+              <div className="mt-5 grid gap-4 rounded-md border border-border p-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-sm font-semibold">Livraison estimée</p>
+                  <p className="mt-1 text-sm text-primary">{formatDeliveryWindow(data.created_at)}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">Livraison à</p>
+                  <address className="mt-1 text-sm not-italic text-muted-foreground">
+                    {data.shipping_full_name}, {data.shipping_address}, {data.shipping_postal_code} {data.shipping_city}
+                  </address>
+                </div>
+              </div>
 
-        <div className="mt-10 flex items-center justify-center gap-3">
-          <Link to="/account" className="rounded-md border border-border px-4 py-2 text-sm">
-            Mes commandes
+              <ul className="mt-5 divide-y divide-border">
+                {data.order_items.map((it) => {
+                  const img = resolveProductImage(it.products?.image_url ?? null);
+                  return (
+                    <li key={it.id} className="flex items-center gap-3 py-3 text-sm">
+                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md bg-warm">
+                        {img && <img src={img} alt={it.product_name} className="h-full w-full object-contain" />}
+                      </div>
+                      <span className="min-w-0 flex-1">
+                        {it.product_name} <span className="text-muted-foreground">× {it.quantity}</span>
+                      </span>
+                      <span className="tabular-nums">{formatPrice(Number(it.unit_price) * it.quantity)}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
+        </section>
+
+        <aside className="h-fit space-y-3">
+          {data && (
+            <div className="rounded-lg bg-card p-5 text-sm shadow-soft">
+              <div className="flex justify-between text-lg font-semibold">
+                <span>Total</span>
+                <span className="tabular-nums">{formatPrice(Number(data.total_amount))}</span>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">À régler à la livraison</p>
+            </div>
+          )}
+          <Link
+            to="/orders"
+            className="block rounded-full bg-accent px-4 py-2.5 text-center text-sm font-medium text-accent-foreground hover:bg-accent/85"
+          >
+            Suivre ma commande
           </Link>
-          <Link to="/shop" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
+          <Link
+            to="/shop"
+            className="block rounded-full border border-border bg-card px-4 py-2.5 text-center text-sm hover:bg-secondary"
+          >
             Continuer mes achats
           </Link>
-        </div>
+        </aside>
       </div>
     </div>
   );

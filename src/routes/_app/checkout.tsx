@@ -1,53 +1,70 @@
 /**
- * Checkout — formulaire de livraison + création de la commande en base.
- * (Le paiement Stripe sera branché ensuite via une server function.)
+ * Validation de commande en trois sections : adresse de livraison,
+ * mode de paiement, vérification des articles. Les prix et le total
+ * sont recalculés en base par place_order.
  */
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "sonner";
-import { useCart, cartTotals, cartStore } from "@/lib/cart";
+import { Lock, Truck } from "lucide-react";
+import { useCart, cartStore } from "@/lib/cart";
+import { useCartLines } from "@/lib/cart-live";
 import { useAuth } from "@/lib/auth";
 import { formatPrice } from "@/lib/format";
+import { formatDeliveryWindow } from "@/lib/delivery";
+import { resolveProductImage } from "@/lib/product-images";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/checkout")({
   component: CheckoutPage,
-  head: () => ({ meta: [
-    { title: "Finaliser ma commande — MendyKounda" },
-    { name: "description", content: "Indiquez vos informations de livraison pour confirmer votre commande MendyKounda." },
-    { property: "og:title", content: "Finaliser ma commande — MendyKounda" },
-    { property: "og:description", content: "Finalisez votre commande de produits fermiers." },
-    { property: "og:type", content: "website" },
-    { name: "twitter:card", content: "summary" },
-  ] }),
+  head: () => ({
+    meta: [
+      { title: "Finaliser ma commande — MendyKounda" },
+      {
+        name: "description",
+        content:
+          "Indiquez vos informations de livraison pour confirmer votre commande MendyKounda.",
+      },
+      { property: "og:title", content: "Finaliser ma commande — MendyKounda" },
+      { property: "og:description", content: "Finalisez votre commande de produits fermiers." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
 
 const shippingSchema = z.object({
-  fullName: z.string().min(2, "Nom requis").max(120),
-  phone: z.string().min(6, "Téléphone requis").max(30),
-  address: z.string().min(4, "Adresse requise").max(200),
-  city: z.string().min(2, "Ville requise").max(80),
-  postalCode: z.string().min(3, "Code postal requis").max(20),
+  fullName: z.string().trim().min(2, "Nom requis").max(120),
+  phone: z.string().trim().min(6, "Téléphone requis").max(30),
+  address: z.string().trim().min(4, "Adresse requise").max(200),
+  city: z.string().trim().min(2, "Ville requise").max(80),
+  postalCode: z.string().trim().min(3, "Code postal requis").max(20),
   notes: z.string().max(500).optional(),
 });
 
+type Address = Omit<z.infer<typeof shippingSchema>, "notes">;
+const EMPTY_ADDRESS: Address = { fullName: "", phone: "", address: "", city: "", postalCode: "" };
+
 function CheckoutPage() {
   const items = useCart();
-  const { subtotal } = cartTotals(items);
+  const { lines, subtotal, itemCount, blocked, loading: linesLoading } = useCartLines(items);
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const qc = useQueryClient();
 
-  const [form, setForm] = useState({
-    fullName: "", phone: "", address: "", city: "", postalCode: "", notes: "",
-  });
+  const [address, setAddress] = useState<Address>(EMPTY_ADDRESS);
+  const [editingAddress, setEditingAddress] = useState(true);
+  const [saveAsDefault, setSaveAsDefault] = useState(true);
+  const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) void navigate({ to: "/auth" });
   }, [loading, user, navigate]);
 
-  // Préremplir depuis le profil
+  // Préremplir avec l'adresse enregistrée du profil.
   useEffect(() => {
     if (!user) return;
     void supabase
@@ -57,48 +74,71 @@ function CheckoutPage() {
       .maybeSingle()
       .then(({ data }) => {
         if (!data) return;
-        setForm((f) => ({
-          fullName: data.full_name ?? f.fullName,
-          phone: data.phone ?? f.phone,
-          address: data.address ?? f.address,
-          city: data.city ?? f.city,
-          postalCode: data.postal_code ?? f.postalCode,
-          notes: f.notes,
-        }));
+        const saved: Address = {
+          fullName: data.full_name ?? "",
+          phone: data.phone ?? "",
+          address: data.address ?? "",
+          city: data.city ?? "",
+          postalCode: data.postal_code ?? "",
+        };
+        setAddress(saved);
+        // Adresse complète : on affiche le résumé au lieu du formulaire.
+        if (shippingSchema.safeParse(saved).success) setEditingAddress(false);
       });
   }, [user]);
 
-  const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setForm({ ...form, [k]: e.target.value });
+  const update = (k: keyof Address) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setAddress({ ...address, [k]: e.target.value });
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
+  const submit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!user || blocked) return;
+    const parsed = shippingSchema.safeParse({ ...address, notes });
+    if (!parsed.success) {
+      setEditingAddress(true);
+      toast.error(parsed.error.issues[0]?.message ?? "Adresse incomplète");
+      return;
+    }
     setBusy(true);
     try {
-      const parsed = shippingSchema.parse(form);
-      // Prix et total sont recalculés en base à partir des produits :
-      // on n'envoie que les identifiants et les quantités.
-      const { data: orderId, error: orderErr } = await supabase.rpc("place_order", {
+      const a = parsed.data;
+      const { data: orderId, error } = await supabase.rpc("place_order", {
         _items: items.map((it) => ({ product_id: it.productId, quantity: it.quantity })),
         _shipping: {
-          full_name: parsed.fullName,
-          phone: parsed.phone,
-          address: parsed.address,
-          city: parsed.city,
-          postal_code: parsed.postalCode,
-          notes: parsed.notes || null,
+          full_name: a.fullName,
+          phone: a.phone,
+          address: a.address,
+          city: a.city,
+          postal_code: a.postalCode,
+          notes: a.notes || null,
         },
       });
-      if (orderErr) throw orderErr;
+      if (error) throw error;
+
+      if (saveAsDefault) {
+        await supabase
+          .from("profiles")
+          .update({
+            full_name: a.fullName,
+            phone: a.phone,
+            address: a.address,
+            city: a.city,
+            postal_code: a.postalCode,
+          })
+          .eq("id", user.id);
+      }
 
       cartStore.clear();
-      toast.success("Commande enregistrée !");
+      // Le stock a changé : on rafraîchit les listes produits.
+      void qc.invalidateQueries({ queryKey: ["products"] });
+      void qc.invalidateQueries({ queryKey: ["product"] });
+      void qc.invalidateQueries({ queryKey: ["my-orders"] });
       void navigate({ to: "/order-confirmation", search: { id: orderId } });
     } catch (err) {
       // Les erreurs Supabase sont des objets { message } (pas des Error).
       const msg = (err as { message?: unknown } | null)?.message;
       toast.error(typeof msg === "string" && msg ? msg : "Erreur");
+      void qc.invalidateQueries({ queryKey: ["cart-products"] });
     } finally {
       setBusy(false);
     }
@@ -106,83 +146,237 @@ function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <div className="container-editorial py-20 text-center">
+      <div className="container-market py-20 text-center">
         <p className="text-sm text-muted-foreground">Votre panier est vide.</p>
-        <Link to="/shop" className="mt-4 inline-block underline-grow text-sm font-medium">
+        <Link
+          to="/shop"
+          className="mt-4 inline-block text-sm font-medium text-primary hover:underline"
+        >
           Parcourir la boutique →
         </Link>
       </div>
     );
   }
 
-  const fields: { k: keyof typeof form; label: string; type?: string; full?: boolean; ta?: boolean }[] = [
-    { k: "fullName", label: "Nom complet", full: true },
-    { k: "phone", label: "Téléphone" },
-    { k: "postalCode", label: "Code postal" },
-    { k: "address", label: "Adresse", full: true },
-    { k: "city", label: "Ville", full: true },
-    { k: "notes", label: "Notes (facultatif)", full: true, ta: true },
+  const canSubmit = !busy && !blocked && !linesLoading && itemCount > 0;
+  const placeButton = (
+    <button
+      type="submit"
+      form="checkout-form"
+      disabled={!canSubmit}
+      className="w-full rounded-full bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground hover:bg-accent/85 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {busy ? "Validation…" : "Valider la commande"}
+    </button>
+  );
+
+  const fields: {
+    k: keyof Address;
+    label: string;
+    full?: boolean;
+    autoComplete: string;
+    type?: string;
+  }[] = [
+    { k: "fullName", label: "Nom complet", full: true, autoComplete: "name" },
+    { k: "phone", label: "Téléphone", autoComplete: "tel", type: "tel" },
+    { k: "postalCode", label: "Code postal", autoComplete: "postal-code" },
+    { k: "address", label: "Adresse", full: true, autoComplete: "street-address" },
+    { k: "city", label: "Ville", full: true, autoComplete: "address-level2" },
   ];
 
   return (
-    <div className="container-editorial py-12 md:py-20">
-      <p className="editorial-eyebrow">Finalisation</p>
-      <h1 className="mt-3 text-3xl font-medium tracking-tight md:text-4xl">Commande</h1>
+    <div className="container-market py-6 md:py-10">
+      <h1 className="mb-6 flex items-center gap-2 text-xl font-medium md:text-2xl">
+        <Lock className="h-5 w-5 text-muted-foreground" aria-hidden />
+        Validation de la commande
+        <Link to="/cart" className="text-base font-normal text-primary hover:underline">
+          ({itemCount} article{itemCount > 1 ? "s" : ""})
+        </Link>
+      </h1>
 
-      <div className="mt-10 grid gap-12 lg:grid-cols-[1fr_360px]">
-        <form onSubmit={submit} className="space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2">
-            {fields.map((f) => (
-              <div key={f.k} className={f.full ? "sm:col-span-2" : ""}>
-                <label className="text-xs text-muted-foreground">{f.label}</label>
-                {f.ta ? (
-                  <textarea
-                    value={form[f.k]}
-                    onChange={update(f.k)}
-                    rows={3}
-                    className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2.5 text-sm"
-                  />
-                ) : (
+      <form
+        id="checkout-form"
+        onSubmit={submit}
+        className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]"
+      >
+        <div className="space-y-4">
+          {/* 1. Adresse */}
+          <Step n={1} title="Adresse de livraison">
+            {editingAddress ? (
+              <div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {fields.map((f) => (
+                    <label key={f.k} className={f.full ? "sm:col-span-2" : ""}>
+                      <span className="text-xs font-medium">{f.label}</span>
+                      <input
+                        type={f.type ?? "text"}
+                        value={address[f.k]}
+                        onChange={update(f.k)}
+                        autoComplete={f.autoComplete}
+                        required
+                        className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                      />
+                    </label>
+                  ))}
+                </div>
+                <label className="mt-4 flex items-center gap-2 text-sm">
                   <input
-                    type={f.type ?? "text"}
-                    value={form[f.k]}
-                    onChange={update(f.k)}
-                    required={f.k !== "notes"}
-                    className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2.5 text-sm"
+                    type="checkbox"
+                    checked={saveAsDefault}
+                    onChange={(e) => setSaveAsDefault(e.target.checked)}
+                    className="h-4 w-4 accent-[var(--primary)]"
                   />
+                  Enregistrer comme adresse par défaut
+                </label>
+                {shippingSchema.safeParse(address).success && (
+                  <button
+                    type="button"
+                    onClick={() => setEditingAddress(false)}
+                    className="mt-4 rounded-full border border-border px-4 py-1.5 text-sm hover:bg-secondary"
+                  >
+                    Utiliser cette adresse
+                  </button>
                 )}
               </div>
-            ))}
-          </div>
+            ) : (
+              <div className="flex items-start justify-between gap-4">
+                <address className="text-sm not-italic leading-6">
+                  <span className="font-medium">{address.fullName}</span>
+                  <br />
+                  {address.address}
+                  <br />
+                  {address.postalCode} {address.city}
+                  <br />
+                  Tél. : {address.phone}
+                </address>
+                <button
+                  type="button"
+                  onClick={() => setEditingAddress(true)}
+                  className="shrink-0 text-sm text-primary hover:underline"
+                >
+                  Modifier
+                </button>
+              </div>
+            )}
+          </Step>
 
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-full rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 sm:w-auto"
-          >
-            {busy ? "Enregistrement…" : "Valider ma commande"}
-          </button>
-          <p className="text-xs text-muted-foreground">
-            Le paiement en ligne (Stripe) sera activé prochainement. Votre commande est enregistrée et notre équipe vous contactera pour finaliser.
+          {/* 2. Paiement */}
+          <Step n={2} title="Mode de paiement">
+            <label className="flex items-start gap-3 rounded-md border border-primary bg-primary/5 p-3 text-sm">
+              <input
+                type="radio"
+                checked
+                readOnly
+                className="mt-1 h-4 w-4 accent-[var(--primary)]"
+              />
+              <span>
+                <span className="font-medium">Paiement à la livraison</span>
+                <br />
+                <span className="text-muted-foreground">
+                  Vous réglez à la réception de votre commande.
+                </span>
+              </span>
+            </label>
+          </Step>
+
+          {/* 3. Vérification */}
+          <Step n={3} title="Vérification des articles et de la livraison">
+            <div className="rounded-md border border-border p-4">
+              <p className="flex items-center gap-2 text-base font-semibold text-primary">
+                <Truck className="h-5 w-5" />
+                Livraison estimée {formatDeliveryWindow()}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Expédié et vendu par Ferme MendyKounda
+              </p>
+
+              <ul className="mt-4 divide-y divide-border">
+                {lines.map(({ item, price, issue }) => {
+                  const img = resolveProductImage(item.imageUrl);
+                  return (
+                    <li key={item.productId} className="flex gap-3 py-3">
+                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md bg-warm">
+                        {img && (
+                          <img src={img} alt={item.name} className="h-full w-full object-contain" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1 text-sm">
+                        <p className="line-clamp-2 font-medium">{item.name}</p>
+                        <p className="font-semibold text-destructive tabular-nums">
+                          {formatPrice(price)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Quantité : {item.quantity}</p>
+                        {issue && <p className="text-xs font-medium text-destructive">{issue}</p>}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+              {blocked && (
+                <p className="mt-2 text-sm text-destructive">
+                  Certains articles posent problème.{" "}
+                  <Link to="/cart" className="underline">
+                    Modifier le panier
+                  </Link>
+                </p>
+              )}
+            </div>
+
+            <label className="mt-4 block">
+              <span className="text-xs font-medium">Instructions de livraison (facultatif)</span>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                maxLength={500}
+                rows={2}
+                placeholder="Point de repère, horaires de disponibilité…"
+                className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+              />
+            </label>
+
+            <div className="mt-4 flex flex-col gap-3 rounded-md border border-border p-4 sm:flex-row sm:items-center">
+              <div className="sm:w-56">{placeButton}</div>
+              <p className="text-base font-semibold text-destructive">
+                Montant total : <span className="tabular-nums">{formatPrice(subtotal)}</span>
+              </p>
+            </div>
+          </Step>
+        </div>
+
+        <aside className="h-fit rounded-lg bg-card p-5 shadow-soft lg:sticky lg:top-40">
+          {placeButton}
+          <p className="mt-2 text-center text-[11px] text-muted-foreground">
+            Le montant final est calculé à partir des prix en vigueur.
           </p>
-        </form>
-
-        <aside className="h-fit rounded-lg border border-border bg-cream p-6">
-          <p className="editorial-eyebrow">Récapitulatif</p>
-          <ul className="mt-4 space-y-2 text-sm">
-            {items.map((it) => (
-              <li key={it.productId} className="flex justify-between gap-4">
-                <span className="text-muted-foreground">{it.name} × {it.quantity}</span>
-                <span className="tabular-nums">{formatPrice(it.price * it.quantity)}</span>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-4 border-t border-border pt-4 flex justify-between">
-            <span className="font-medium">Total</span>
-            <span className="text-lg font-medium tabular-nums">{formatPrice(subtotal)}</span>
+          <div className="mt-4 border-t border-border pt-4 text-sm">
+            <h2 className="font-semibold">Récapitulatif de commande</h2>
+            <div className="mt-2 flex justify-between">
+              <span>Articles ({itemCount}) :</span>
+              <span className="tabular-nums">{formatPrice(subtotal)}</span>
+            </div>
+            <div className="mt-1 flex justify-between">
+              <span>Paiement :</span>
+              <span>À la livraison</span>
+            </div>
+            <div className="mt-3 flex justify-between gap-2 border-t border-border pt-3 text-base font-semibold text-destructive">
+              <span className="whitespace-nowrap">Montant total :</span>
+              <span className="tabular-nums">{formatPrice(subtotal)}</span>
+            </div>
           </div>
         </aside>
-      </div>
+      </form>
     </div>
+  );
+}
+
+function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-lg bg-card p-4 shadow-soft md:p-5">
+      <h2 className="mb-4 flex items-baseline gap-3 text-lg font-semibold">
+        <span className="tabular-nums">{n}</span>
+        {title}
+      </h2>
+      {children}
+    </section>
   );
 }

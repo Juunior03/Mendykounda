@@ -1,5 +1,5 @@
 /**
- * Customer account — profile + order history.
+ * Compte client — coordonnées / adresse par défaut et raccourcis.
  */
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -7,7 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { formatDateTime, formatPrice } from "@/lib/format";
+import { Package, ShoppingBag } from "lucide-react";
 
 
 export const Route = createFileRoute("/_app/account")({
@@ -42,20 +42,6 @@ function AccountPage() {
         .maybeSingle();
       if (error) throw error;
       return data;
-    },
-  });
-
-  const { data: orders } = useQuery({
-    queryKey: ["my-orders", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*, order_items(*)")
-        .eq("user_id", user!.id)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
     },
   });
 
@@ -97,7 +83,7 @@ function AccountPage() {
 
       <div className="mt-12 grid gap-12 lg:grid-cols-[360px_1fr]">
         <section>
-          <p className="editorial-eyebrow mb-5">Coordonnées</p>
+          <p className="editorial-eyebrow mb-5">Coordonnées et adresse par défaut</p>
           <form onSubmit={save} className="space-y-4">
             {[
               { k: "full_name", label: "Nom complet" },
@@ -122,37 +108,32 @@ function AccountPage() {
           </form>
         </section>
 
-        <section>
-          <p className="editorial-eyebrow mb-5">Mes commandes</p>
-          {!orders || orders.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Aucune commande pour le moment. <Link to="/shop" className="underline-grow">Découvrir la boutique →</Link>
-            </p>
-          ) : (
-            <ul className="space-y-4">
-              {orders.map((o) => (
-                <li key={o.id} className="rounded-lg border border-border bg-card p-5">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground">
-                      {formatDateTime(o.created_at)} · #{o.id.slice(0, 8)}
-                    </p>
-                    <StatusPill status={o.status} payment={o.payment_status} />
-                  </div>
-                  <ul className="mt-3 space-y-1 text-sm">
-                    {o.order_items?.map((it: { id: string; product_name: string; quantity: number; unit_price: number }) => (
-                      <li key={it.id} className="flex justify-between">
-                        <span>{it.product_name} × {it.quantity}</span>
-                        <span className="tabular-nums">{formatPrice(it.unit_price * it.quantity)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="mt-3 border-t border-border pt-3 text-right text-sm font-medium tabular-nums">
-                    Total : {formatPrice(Number(o.total_amount))}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
+        <section className="order-first lg:order-none">
+          <p className="editorial-eyebrow mb-5">Raccourcis</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Link
+              to="/orders"
+              className="flex items-start gap-4 rounded-lg border border-border bg-card p-5 hover:bg-secondary/60"
+            >
+              <Package className="h-8 w-8 shrink-0 text-primary" />
+              <span>
+                <span className="block font-medium">Mes commandes</span>
+                <span className="mt-0.5 block text-sm text-muted-foreground">
+                  Suivre, annuler ou commander à nouveau
+                </span>
+              </span>
+            </Link>
+            <Link
+              to="/shop"
+              className="flex items-start gap-4 rounded-lg border border-border bg-card p-5 hover:bg-secondary/60"
+            >
+              <ShoppingBag className="h-8 w-8 shrink-0 text-primary" />
+              <span>
+                <span className="block font-medium">Boutique</span>
+                <span className="mt-0.5 block text-sm text-muted-foreground">Découvrir nos produits fermiers</span>
+              </span>
+            </Link>
+          </div>
         </section>
       </div>
 
@@ -160,11 +141,3 @@ function AccountPage() {
   );
 }
 
-function StatusPill({ status, payment }: { status: string; payment: string }) {
-  const label = payment === "paid" ? `Payée · ${status}` : status;
-  return (
-    <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider">
-      {label}
-    </span>
-  );
-}

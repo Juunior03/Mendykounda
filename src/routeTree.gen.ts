@@ -13,6 +13,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppShopRouteImport } from './routes/_app/shop'
 import { Route as AppResetPasswordRouteImport } from './routes/_app/reset-password'
+import { Route as AppOrdersRouteImport } from './routes/_app/orders'
 import { Route as AppOrderConfirmationRouteImport } from './routes/_app/order-confirmation'
 import { Route as AppContactRouteImport } from './routes/_app/contact'
 import { Route as AppCheckoutRouteImport } from './routes/_app/checkout'
@@ -40,6 +41,11 @@ const AppShopRoute = AppShopRouteImport.update({
 const AppResetPasswordRoute = AppResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOrdersRoute = AppOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
   getParentRoute: () => AppRoute,
 } as any)
 const AppOrderConfirmationRoute = AppOrderConfirmationRouteImport.update({
@@ -98,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof AppCheckoutRoute
   '/contact': typeof AppContactRoute
   '/order-confirmation': typeof AppOrderConfirmationRoute
+  '/orders': typeof AppOrdersRoute
   '/reset-password': typeof AppResetPasswordRoute
   '/shop': typeof AppShopRoute
   '/products/$slug': typeof AppProductsSlugRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof AppCheckoutRoute
   '/contact': typeof AppContactRoute
   '/order-confirmation': typeof AppOrderConfirmationRoute
+  '/orders': typeof AppOrdersRoute
   '/reset-password': typeof AppResetPasswordRoute
   '/shop': typeof AppShopRoute
   '/': typeof AppIndexRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/_app/checkout': typeof AppCheckoutRoute
   '/_app/contact': typeof AppContactRoute
   '/_app/order-confirmation': typeof AppOrderConfirmationRoute
+  '/_app/orders': typeof AppOrdersRoute
   '/_app/reset-password': typeof AppResetPasswordRoute
   '/_app/shop': typeof AppShopRoute
   '/_app/': typeof AppIndexRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/order-confirmation'
+    | '/orders'
     | '/reset-password'
     | '/shop'
     | '/products/$slug'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/order-confirmation'
+    | '/orders'
     | '/reset-password'
     | '/shop'
     | '/'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/_app/checkout'
     | '/_app/contact'
     | '/_app/order-confirmation'
+    | '/_app/orders'
     | '/_app/reset-password'
     | '/_app/shop'
     | '/_app/'
@@ -210,6 +222,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof AppResetPasswordRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/orders': {
+      id: '/_app/orders'
+      path: '/orders'
+      fullPath: '/orders'
+      preLoaderRoute: typeof AppOrdersRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/order-confirmation': {
@@ -287,6 +306,7 @@ interface AppRouteChildren {
   AppCheckoutRoute: typeof AppCheckoutRoute
   AppContactRoute: typeof AppContactRoute
   AppOrderConfirmationRoute: typeof AppOrderConfirmationRoute
+  AppOrdersRoute: typeof AppOrdersRoute
   AppResetPasswordRoute: typeof AppResetPasswordRoute
   AppShopRoute: typeof AppShopRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -302,6 +322,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCheckoutRoute: AppCheckoutRoute,
   AppContactRoute: AppContactRoute,
   AppOrderConfirmationRoute: AppOrderConfirmationRoute,
+  AppOrdersRoute: AppOrdersRoute,
   AppResetPasswordRoute: AppResetPasswordRoute,
   AppShopRoute: AppShopRoute,
   AppIndexRoute: AppIndexRoute,
