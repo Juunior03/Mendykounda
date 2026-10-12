@@ -193,11 +193,13 @@ function CartPage() {
 function DeliveryInfo({ subtotal }: { subtotal: number }) {
   const { data: zones = [] } = useQuery(deliveryZonesQuery());
   if (zones.length === 0) return null;
+  // Communes toujours livrées gratuitement (frais nuls ou seuil à 0).
   const alwaysFree = zones.filter(
-    (z) => z.delivery_rates?.free_from != null && Number(z.delivery_rates.free_from) <= 0,
+    (z) => Number(z.delivery_fee) <= 0 || (z.free_from != null && Number(z.free_from) <= 0),
   );
   const thresholds = zones
-    .map((z) => z.delivery_rates?.free_from)
+    .filter((z) => !alwaysFree.includes(z))
+    .map((z) => z.free_from)
     .filter((t): t is number => t != null && Number(t) > 0)
     .map(Number);
   const threshold = thresholds.length ? Math.min(...thresholds) : null;
