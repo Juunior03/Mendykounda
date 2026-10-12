@@ -43,6 +43,7 @@
   --color-cream: var(--cream);
   --color-warm: var(--warm);
   --color-ink: var(--ink);
+  --color-chart-sales: var(--chart-sales);
 
   --shadow-soft: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04);
   --shadow-elevated: 0 2px 4px rgba(0,0,0,0.05), 0 16px 48px rgba(0,0,0,0.08);
@@ -90,9 +91,13 @@
   --chart-3: oklch(0.55 0.12 200);
   --chart-4: oklch(0.65 0.18 30);
   --chart-5: oklch(0.45 0.06 85);
+  /* Barres du tableau de bord : vert un cran plus foncé que --primary,
+     validé (contraste >= 3:1 sur la carte, bande de luminosité). */
+  --chart-sales: #3a9742;
 }
 
 .dark {
+  --chart-sales: #46a84d;
   --background: oklch(0.14 0.012 85);
   --foreground: oklch(0.97 0.008 85);
   --ink: oklch(0.97 0.008 85);

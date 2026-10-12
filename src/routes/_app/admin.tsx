@@ -4,13 +4,19 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { Crop, Package, ShoppingCart, Users, Euro } from "lucide-react";
+import { Crop } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/format";
 import { ORDER_STATUS_LABEL, PAYMENT_METHOD_LABEL, type OrderStatus } from "@/lib/orders";
+import { LOW_STOCK_THRESHOLD } from "@/lib/pricing";
+import {
+  AdminDashboard,
+  type DashboardNav,
+  type OrdersFilter,
+  type ProductsFilter,
+} from "@/components/admin/dashboard";
 import { ChatBox } from "@/components/chat-box";
 import { ImageCropDialog } from "@/components/image-crop-dialog";
 import { Button } from "@/components/ui/button";
@@ -40,6 +46,19 @@ function AdminPage() {
   const { isAdmin, loading, user } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("overview");
+  const [ordersFilter, setOrdersFilter] = useState<OrdersFilter>("all");
+  const [productsFilter, setProductsFilter] = useState<ProductsFilter>("all");
+  const nav: DashboardNav = {
+    orders: (f) => {
+      setOrdersFilter(f);
+      setTab("orders");
+    },
+    products: (f) => {
+      setProductsFilter(f);
+      setTab("products");
+    },
+    messages: () => setTab("messages"),
+  };
 
   useEffect(() => {
     if (!loading && !user) void navigate({ to: "/auth" });
@@ -69,7 +88,12 @@ function AdminPage() {
         {(["overview", "products", "categories", "orders", "customers", "messages"] as Tab[]).map((t) => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => {
+              // Un clic direct sur l'onglet repart de la liste complète.
+              if (t === "orders") setOrdersFilter("all");
+              if (t === "products") setProductsFilter("all");
+              setTab(t);
+            }}
             className={`whitespace-nowrap px-4 py-2 text-sm border-b-2 -mb-px transition-colors ${
               tab === t ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
@@ -80,10 +104,10 @@ function AdminPage() {
       </div>
 
       <div className="mt-8">
-        {tab === "overview" && <Overview />}
-        {tab === "products" && <ProductsAdmin />}
+        {tab === "overview" && <AdminDashboard nav={nav} />}
+        {tab === "products" && <ProductsAdmin filter={productsFilter} onFilter={setProductsFilter} />}
         {tab === "categories" && <CategoriesAdmin />}
-        {tab === "orders" && <OrdersAdmin />}
+        {tab === "orders" && <OrdersAdmin filter={ordersFilter} onFilter={setOrdersFilter} />}
         {tab === "customers" && <CustomersAdmin />}
         {tab === "messages" && <MessagesAdmin />}
       </div>
@@ -91,91 +115,38 @@ function AdminPage() {
   );
 }
 
-/* ---------- Overview ---------- */
-function Overview() {
-  const { data: stats } = useQuery({
-    queryKey: ["admin-stats"],
-    queryFn: async () => {
-      const [orders, products, profiles] = await Promise.all([
-        supabase.from("orders").select("id, total_amount, created_at, status"),
-        supabase.from("products").select("id", { count: "exact", head: true }),
-        supabase.from("profiles").select("id", { count: "exact", head: true }),
-      ]);
-      const allOrders = orders.data ?? [];
-      const revenue = allOrders.reduce((s, o) => s + Number(o.total_amount), 0);
-      return {
-        orderCount: allOrders.length,
-        revenue,
-        productCount: products.count ?? 0,
-        userCount: profiles.count ?? 0,
-        orders: allOrders,
-      };
-    },
-  });
-
-  const chartData = useMemo(() => {
-    if (!stats) return [];
-    const buckets = new Map<string, number>();
-    const now = new Date();
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(now.getDate() - i);
-      const key = d.toISOString().slice(0, 10);
-      buckets.set(key, 0);
-    }
-    for (const o of stats.orders) {
-      const key = (o.created_at as string).slice(0, 10);
-      if (buckets.has(key)) buckets.set(key, (buckets.get(key) ?? 0) + Number(o.total_amount));
-    }
-    return Array.from(buckets.entries()).map(([date, value]) => ({
-      date: date.slice(5),
-      value: Math.round(value),
-    }));
-  }, [stats]);
-
-  const kpis = [
-    { label: "Revenus", value: stats ? formatPrice(stats.revenue) : "—", icon: Euro },
-    { label: "Commandes", value: stats?.orderCount ?? "—", icon: ShoppingCart },
-    { label: "Produits", value: stats?.productCount ?? "—", icon: Package },
-    { label: "Clients", value: stats?.userCount ?? "—", icon: Users },
-  ];
-
+/* ---------- helpers ---------- */
+function FilterChips<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string; count?: number }[];
+}) {
   return (
-    <div className="space-y-8">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {kpis.map((k) => (
-          <div key={k.label} className="rounded-lg border border-border bg-cream p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">{k.label}</p>
-              <k.icon className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <p className="mt-2 text-2xl font-medium tabular-nums">{k.value}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="rounded-lg border border-border p-6">
-        <p className="editorial-eyebrow">Ventes — 14 derniers jours</p>
-        <div className="mt-4 h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-              <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
-              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
-              <Tooltip
-                contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                formatter={(v) => formatPrice(Number(v))}
-              />
-              <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Filtrer">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          role="radio"
+          aria-checked={value === o.value}
+          onClick={() => onChange(o.value)}
+          className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+            value === o.value
+              ? "border-foreground bg-foreground text-background"
+              : "border-border text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {o.label}
+          {o.count != null && <span className="ml-1.5 tabular-nums opacity-70">{o.count}</span>}
+        </button>
+      ))}
     </div>
   );
 }
 
-/* ---------- helpers ---------- */
 const slugify = (s: string) =>
   s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -203,7 +174,7 @@ const emptyProduct: Partial<ProductRow> = {
 };
 
 /* ---------- Products admin ---------- */
-function ProductsAdmin() {
+function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter: (f: ProductsFilter) => void }) {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Partial<ProductRow> | null>(null);
 
@@ -224,6 +195,10 @@ function ProductsAdmin() {
       return data as ProductRow[];
     },
   });
+
+  const shownProducts = products?.filter((p) =>
+    filter === "out" ? p.stock <= 0 : filter === "low" ? p.stock > 0 && p.stock <= LOW_STOCK_THRESHOLD : true,
+  );
 
   const { data: categories } = useQuery({
     queryKey: ["admin-categories-list"],
@@ -284,7 +259,16 @@ function ProductsAdmin() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <FilterChips
+          value={filter}
+          onChange={onFilter}
+          options={[
+            { value: "all", label: "Tous", count: products?.length },
+            { value: "low", label: `Stock bas (≤ ${LOW_STOCK_THRESHOLD})`, count: products?.filter((p) => p.stock > 0 && p.stock <= LOW_STOCK_THRESHOLD).length },
+            { value: "out", label: "Épuisés", count: products?.filter((p) => p.stock <= 0).length },
+          ]}
+        />
         <button
           onClick={() => setEditing({ ...emptyProduct })}
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
@@ -306,7 +290,7 @@ function ProductsAdmin() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {products?.map((p) => (
+            {shownProducts?.map((p) => (
               <tr key={p.id} className="hover:bg-secondary/40">
                 <td className="p-3 font-medium">{p.name}</td>
                 <td className="p-3 tabular-nums">
@@ -532,7 +516,7 @@ function CategoriesAdmin() {
 }
 
 /* ---------- Orders admin ---------- */
-function OrdersAdmin() {
+function OrdersAdmin({ filter, onFilter }: { filter: OrdersFilter; onFilter: (f: OrdersFilter) => void }) {
   const qc = useQueryClient();
   const { data: orders } = useQuery({
     queryKey: ["admin-orders"],
@@ -541,7 +525,8 @@ function OrdersAdmin() {
         .from("orders")
         .select("id, created_at, total_amount, status, payment_status, payment_method, shipping_full_name, shipping_city, confirmation_email_sent_at, confirmation_sms_sent_at")
         .order("created_at", { ascending: false })
-        .limit(100);
+        // Assez large pour que les compteurs des filtres correspondent au tableau de bord.
+        .limit(2000);
       if (error) throw error;
       return data;
     },
@@ -564,7 +549,34 @@ function OrdersAdmin() {
     }
   };
 
+  const matches = (o: NonNullable<typeof orders>[number], f: OrdersFilter) =>
+    f === "all"
+      ? true
+      : f === "wave_unpaid"
+        ? o.payment_method === "wave" && o.payment_status !== "paid" && o.status !== "cancelled"
+        : o.status === f;
+  const shownOrders = orders?.filter((o) => matches(o, filter));
+  const chip = (value: OrdersFilter, label: string) => ({
+    value,
+    label,
+    count: orders?.filter((o) => matches(o, value)).length,
+  });
+
   return (
+    <div className="space-y-4">
+    <FilterChips
+      value={filter}
+      onChange={onFilter}
+      options={[
+        chip("all", "Toutes"),
+        chip("pending", "À préparer"),
+        chip("processing", "En préparation"),
+        chip("shipped", "Expédiées"),
+        chip("delivered", "Livrées"),
+        chip("cancelled", "Annulées"),
+        chip("wave_unpaid", "Wave en attente"),
+      ]}
+    />
     <div className="overflow-x-auto rounded-lg border border-border">
       <table className="w-full text-sm">
         <thead className="bg-cream text-left text-xs uppercase tracking-wider text-muted-foreground">
@@ -578,7 +590,7 @@ function OrdersAdmin() {
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
-          {orders?.map((o) => (
+          {shownOrders?.map((o) => (
             <tr key={o.id} className="hover:bg-secondary/40">
               <td className="p-3 text-xs text-muted-foreground">
                 {new Date(o.created_at).toLocaleDateString("fr-FR")}
@@ -612,11 +624,12 @@ function OrdersAdmin() {
               </td>
             </tr>
           ))}
-          {orders?.length === 0 && (
+          {shownOrders?.length === 0 && (
             <tr><td colSpan={6} className="p-8 text-center text-sm text-muted-foreground">Aucune commande pour le moment.</td></tr>
           )}
         </tbody>
       </table>
+    </div>
     </div>
   );
 }
