@@ -16,6 +16,8 @@ import { formatPrice } from "@/lib/format";
 import { formatDeliveryWindow } from "@/lib/delivery";
 import { resolveProductImage } from "@/lib/product-images";
 import { supabase } from "@/integrations/supabase/client";
+import { startWavePayment } from "@/lib/wave";
+import type { PaymentMethod } from "@/lib/orders";
 
 export const Route = createFileRoute("/_app/checkout")({
   component: CheckoutPage,
@@ -44,6 +46,9 @@ const shippingSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 
+/** Wave n'apparaît qu'une fois configuré (voir docs/PAIEMENT-WAVE.md). */
+const WAVE_ENABLED = import.meta.env.VITE_WAVE_ENABLED === "true";
+
 type Address = Omit<z.infer<typeof shippingSchema>, "notes">;
 const EMPTY_ADDRESS: Address = { fullName: "", phone: "", address: "", city: "", postalCode: "" };
 
@@ -58,6 +63,7 @@ function CheckoutPage() {
   const [editingAddress, setEditingAddress] = useState(true);
   const [saveAsDefault, setSaveAsDefault] = useState(true);
   const [notes, setNotes] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash_on_delivery");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -112,6 +118,7 @@ function CheckoutPage() {
           postal_code: a.postalCode,
           notes: a.notes || null,
         },
+        _payment_method: paymentMethod,
       });
       if (error) throw error;
 
@@ -133,6 +140,19 @@ function CheckoutPage() {
       void qc.invalidateQueries({ queryKey: ["products"] });
       void qc.invalidateQueries({ queryKey: ["product"] });
       void qc.invalidateQueries({ queryKey: ["my-orders"] });
+
+      if (paymentMethod === "wave") {
+        // La commande est enregistrée ; on part payer chez Wave. En cas
+        // d'échec, le client pourra relancer le paiement depuis la confirmation.
+        try {
+          await startWavePayment(orderId);
+          return; // redirection vers Wave en cours
+        } catch (waveErr) {
+          toast.error(waveErr instanceof Error ? waveErr.message : "Paiement Wave indisponible");
+          void navigate({ to: "/order-confirmation", search: { id: orderId, wave: "error" } });
+          return;
+        }
+      }
       void navigate({ to: "/order-confirmation", search: { id: orderId } });
     } catch (err) {
       // Les erreurs Supabase sont des objets { message } (pas des Error).
@@ -166,7 +186,11 @@ function CheckoutPage() {
       disabled={!canSubmit}
       className="w-full rounded-full bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground hover:bg-accent/85 disabled:cursor-not-allowed disabled:opacity-50"
     >
-      {busy ? "Validation…" : "Valider la commande"}
+      {busy
+        ? "Validation…"
+        : paymentMethod === "wave"
+          ? "Valider et payer avec Wave"
+          : "Valider la commande"}
     </button>
   );
 
@@ -262,21 +286,45 @@ function CheckoutPage() {
 
           {/* 2. Paiement */}
           <Step n={2} title="Mode de paiement">
-            <label className="flex items-start gap-3 rounded-md border border-primary bg-primary/5 p-3 text-sm">
-              <input
-                type="radio"
-                checked
-                readOnly
-                className="mt-1 h-4 w-4 accent-[var(--primary)]"
-              />
-              <span>
-                <span className="font-medium">Paiement à la livraison</span>
-                <br />
-                <span className="text-muted-foreground">
-                  Vous réglez à la réception de votre commande.
-                </span>
-              </span>
-            </label>
+            <div className="space-y-2" role="radiogroup" aria-label="Mode de paiement">
+              {(
+                [
+                  {
+                    id: "wave",
+                    title: "Wave",
+                    text: "Payez maintenant depuis l'application Wave (ou en scannant le QR code).",
+                  },
+                  {
+                    id: "cash_on_delivery",
+                    title: "Paiement à la livraison",
+                    text: "Vous réglez à la réception de votre commande.",
+                  },
+                ] as const
+              )
+                .filter((m) => m.id !== "wave" || WAVE_ENABLED)
+                .map((m) => (
+                  <label
+                    key={m.id}
+                    className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 text-sm ${
+                      paymentMethod === m.id ? "border-primary bg-primary/5" : "border-border"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="payment"
+                      value={m.id}
+                      checked={paymentMethod === m.id}
+                      onChange={() => setPaymentMethod(m.id)}
+                      className="mt-1 h-4 w-4 accent-[var(--primary)]"
+                    />
+                    <span>
+                      <span className="font-medium">{m.title}</span>
+                      <br />
+                      <span className="text-muted-foreground">{m.text}</span>
+                    </span>
+                  </label>
+                ))}
+            </div>
           </Step>
 
           {/* 3. Vérification */}
@@ -356,7 +404,7 @@ function CheckoutPage() {
             </div>
             <div className="mt-1 flex justify-between">
               <span>Paiement :</span>
-              <span>À la livraison</span>
+              <span>{paymentMethod === "wave" ? "Wave" : "À la livraison"}</span>
             </div>
             <div className="mt-3 flex justify-between gap-2 border-t border-border pt-3 text-base font-semibold text-destructive">
               <span className="whitespace-nowrap">Montant total :</span>

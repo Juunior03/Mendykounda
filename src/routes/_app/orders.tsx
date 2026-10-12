@@ -13,7 +13,15 @@ import { formatDate, formatPrice } from "@/lib/format";
 import { deliveryWindow, formatDeliveryWindow, formatLongDate } from "@/lib/delivery";
 import { effectivePrice } from "@/lib/pricing";
 import { resolveProductImage } from "@/lib/product-images";
-import { ORDER_STATUS_LABEL, ORDER_STEPS, canCustomerCancel, type OrderStatus } from "@/lib/orders";
+import {
+  ORDER_STATUS_LABEL,
+  ORDER_STEPS,
+  PAYMENT_METHOD_LABEL,
+  canCustomerCancel,
+  canPayWithWave,
+  type OrderStatus,
+} from "@/lib/orders";
+import { WavePayButton } from "@/components/wave-payment";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog,
@@ -210,6 +218,7 @@ function OrderCard({ order: o }: { order: Order }) {
         </div>
 
         <div className="space-y-2">
+          {canPayWithWave(o) && <WavePayButton orderId={o.id} className="w-full" />}
           {canCustomerCancel(o.status, o.payment_status) && <CancelButton orderId={o.id} />}
           <Link
             to="/contact"
@@ -218,7 +227,12 @@ function OrderCard({ order: o }: { order: Order }) {
             Besoin d'aide ?
           </Link>
           <p className="pt-1 text-xs text-muted-foreground">
-            Paiement : {o.payment_status === "paid" ? "réglé" : "à la livraison"}
+            {PAYMENT_METHOD_LABEL[o.payment_method] ?? o.payment_method}
+            {o.payment_status === "paid"
+              ? " · réglé"
+              : o.payment_method === "wave" && o.status !== "cancelled"
+                ? " · en attente de paiement"
+                : ""}
           </p>
           {o.notes && <p className="text-xs text-muted-foreground">Instructions : {o.notes}</p>}
         </div>

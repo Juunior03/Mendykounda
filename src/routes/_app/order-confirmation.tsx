@@ -10,8 +10,14 @@ import { formatPrice } from "@/lib/format";
 import { formatDeliveryWindow } from "@/lib/delivery";
 import { resolveProductImage } from "@/lib/product-images";
 import { useAuth } from "@/lib/auth";
+import { PAYMENT_METHOD_LABEL } from "@/lib/orders";
+import { WavePaymentStatusPanel } from "@/components/wave-payment";
 
-const searchSchema = z.object({ id: z.string().uuid() });
+const searchSchema = z.object({
+  id: z.string().uuid(),
+  // Retour depuis Wave : success_url / error_url de la session de paiement.
+  wave: z.enum(["success", "error"]).optional(),
+});
 
 export const Route = createFileRoute("/_app/order-confirmation")({
   validateSearch: (s) => searchSchema.parse(s),
@@ -27,7 +33,7 @@ export const Route = createFileRoute("/_app/order-confirmation")({
 });
 
 function OrderConfirmation() {
-  const { id } = Route.useSearch();
+  const { id, wave } = Route.useSearch();
   const { user } = useAuth();
 
   const { data, isLoading } = useQuery({
@@ -55,8 +61,18 @@ function OrderConfirmation() {
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             Commande n° <span className="font-medium text-foreground tabular-nums">{id.slice(0, 8).toUpperCase()}</span>
-            {" "}· Paiement à la livraison
+            {data && <> · {PAYMENT_METHOD_LABEL[data.payment_method] ?? data.payment_method}</>}
           </p>
+
+          {data && data.payment_method === "wave" && data.status !== "cancelled" && (
+            <div className="mt-4">
+              <WavePaymentStatusPanel
+                orderId={id}
+                alreadyPaid={data.payment_status === "paid"}
+                returnedWithError={wave === "error"}
+              />
+            </div>
+          )}
 
           {isLoading && <p className="mt-6 text-sm text-muted-foreground">Chargement…</p>}
 
@@ -102,7 +118,13 @@ function OrderConfirmation() {
                 <span>Total</span>
                 <span className="tabular-nums">{formatPrice(Number(data.total_amount))}</span>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">À régler à la livraison</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {data.payment_status === "paid"
+                  ? "Réglé"
+                  : data.payment_method === "wave"
+                    ? "À régler avec Wave"
+                    : "À régler à la livraison"}
+              </p>
             </div>
           )}
           <Link
