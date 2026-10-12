@@ -6,16 +6,6 @@ import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/format";
 
-export interface DeliveryRate {
-  id: string;
-  name: string;
-  /** Montant d'articles à partir duquel la livraison est offerte (0 = toujours, null = jamais). */
-  free_from: number | null;
-  /** Barème : on applique la ligne au « from » le plus élevé ne dépassant pas le montant. */
-  brackets: { from: number; fee: number }[];
-  sort_order: number;
-}
-
 export interface DeliveryZone {
   id: string;
   region: string;
@@ -23,8 +13,10 @@ export interface DeliveryZone {
   commune: string;
   is_active: boolean;
   sort_order: number;
-  rate_id: string | null;
-  delivery_rates: DeliveryRate | null;
+  /** Frais de livraison = coût du transport depuis la ferme (0 = toujours gratuite). */
+  delivery_fee: number;
+  /** Montant d'articles à partir duquel la livraison est offerte (null = jamais). */
+  free_from: number | null;
 }
 
 /** Texte affiché partout sur le site pour la zone desservie. */
@@ -35,7 +27,7 @@ export const deliveryZonesQuery = (includeInactive = false) =>
     queryKey: ["delivery-zones", includeInactive],
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<DeliveryZone[]> => {
-      let q = supabase.from("delivery_zones").select("*, delivery_rates(*)");
+      let q = supabase.from("delivery_zones").select("*");
       if (!includeInactive) q = q.eq("is_active", true);
       const { data, error } = await q.order("sort_order").order("commune");
       if (error) throw error;
@@ -43,56 +35,39 @@ export const deliveryZonesQuery = (includeInactive = false) =>
     },
   });
 
-export const deliveryRatesQuery = () =>
-  queryOptions({
-    queryKey: ["delivery-rates"],
-    staleTime: 5 * 60 * 1000,
-    queryFn: async (): Promise<DeliveryRate[]> => {
-      const { data, error } = await supabase.from("delivery_rates").select("*").order("sort_order");
-      if (error) throw error;
-      return (data ?? []) as unknown as DeliveryRate[];
-    },
-  });
-
 /**
  * Frais de livraison pour un montant d'articles.
  * Même règle que la fonction SQL delivery_fee (qui fait foi à la commande).
  */
-export function deliveryFee(rate: DeliveryRate | null | undefined, subtotal: number): number {
-  if (!rate) return 0;
-  if (rate.free_from != null && subtotal >= Number(rate.free_from)) return 0;
-  const applicable = (rate.brackets ?? [])
-    .filter((b) => typeof b?.from === "number" && typeof b?.fee === "number" && b.from <= subtotal)
-    .sort((a, b) => b.from - a.from)[0];
-  return applicable ? applicable.fee : 0;
+export function deliveryFee(zone: DeliveryZone | null | undefined, subtotal: number): number {
+  if (!zone) return 0;
+  if (zone.free_from != null && subtotal >= Number(zone.free_from)) return 0;
+  return Number(zone.delivery_fee);
 }
 
 /** Montant restant pour obtenir la livraison gratuite (null si impossible ou déjà gratuite). */
 export function freeDeliveryGap(
-  rate: DeliveryRate | null | undefined,
+  zone: DeliveryZone | null | undefined,
   subtotal: number,
 ): number | null {
-  if (!rate || rate.free_from == null) return null;
-  const gap = Number(rate.free_from) - subtotal;
-  return gap > 0 && deliveryFee(rate, subtotal) > 0 ? gap : null;
+  if (!zone || zone.free_from == null || deliveryFee(zone, subtotal) === 0) return null;
+  const gap = Number(zone.free_from) - subtotal;
+  return gap > 0 ? gap : null;
 }
 
-/** Résumé lisible d'un tarif, ex. « gratuite dès 15 000 F CFA, sinon 1 000 à 2 000 F CFA ». */
-export function rateSummary(rate: DeliveryRate | null | undefined): string {
-  if (!rate) return "gratuite";
-  if (rate.free_from != null && Number(rate.free_from) <= 0) return "gratuite";
-  const fees = (rate.brackets ?? [])
-    .map((b) => b.fee)
-    .filter((f) => typeof f === "number" && f > 0);
-  const min = fees.length ? Math.min(...fees) : 0;
-  const max = fees.length ? Math.max(...fees) : 0;
-  const range = !fees.length
-    ? ""
-    : min === max
-      ? formatPrice(min)
-      : `${formatPrice(min)} à ${formatPrice(max)} selon le montant`;
-  if (rate.free_from == null) return range || "gratuite";
-  return range ? `gratuite dès ${formatPrice(Number(rate.free_from))}, sinon ${range}` : "gratuite";
+/** Résumé lisible, ex. « 5 000 F CFA, offerte dès 15 000 F CFA d'achats ». */
+export function feeSummary(zone: DeliveryZone | null | undefined): string {
+  if (
+    !zone ||
+    Number(zone.delivery_fee) <= 0 ||
+    (zone.free_from != null && Number(zone.free_from) <= 0)
+  ) {
+    return "gratuite";
+  }
+  const fee = formatPrice(Number(zone.delivery_fee));
+  return zone.free_from == null
+    ? fee
+    : `${fee}, offerte dès ${formatPrice(Number(zone.free_from))} d'achats`;
 }
 
 /** Libellé d'une zone ; précise le département si le nom de commune est en double (Mlomp). */

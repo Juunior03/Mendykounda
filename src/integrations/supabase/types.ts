@@ -41,33 +41,6 @@ export type Database = {
         }
         Relationships: []
       }
-      delivery_rates: {
-        Row: {
-          brackets: Json
-          created_at: string
-          free_from: number | null
-          id: string
-          name: string
-          sort_order: number
-        }
-        Insert: {
-          brackets?: Json
-          created_at?: string
-          free_from?: number | null
-          id?: string
-          name: string
-          sort_order?: number
-        }
-        Update: {
-          brackets?: Json
-          created_at?: string
-          free_from?: number | null
-          id?: string
-          name?: string
-          sort_order?: number
-        }
-        Relationships: []
-      }
       delivery_zones: {
         Row: {
           commune: string
@@ -75,7 +48,8 @@ export type Database = {
           department: string
           id: string
           is_active: boolean
-          rate_id: string | null
+          delivery_fee: number
+          free_from: number | null
           region: string
           sort_order: number
         }
@@ -85,7 +59,8 @@ export type Database = {
           department: string
           id?: string
           is_active?: boolean
-          rate_id?: string | null
+          delivery_fee?: number
+          free_from?: number | null
           region?: string
           sort_order?: number
         }
@@ -95,7 +70,8 @@ export type Database = {
           department?: string
           id?: string
           is_active?: boolean
-          rate_id?: string | null
+          delivery_fee?: number
+          free_from?: number | null
           region?: string
           sort_order?: number
         }

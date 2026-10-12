@@ -25,7 +25,7 @@ import {
   freeDeliveryGap,
   groupByDepartment,
   matchZone,
-  rateSummary,
+  feeSummary,
   zoneLabel,
 } from "@/lib/zones";
 import type { PaymentMethod } from "@/lib/orders";
@@ -79,8 +79,8 @@ function CheckoutPage() {
   const { data: zones = [] } = useQuery(deliveryZonesQuery());
   const zone = zones.find((z) => z.id === address.zoneId);
   // Frais affichés à titre indicatif : place_order recalcule en base.
-  const fee = zone ? deliveryFee(zone.delivery_rates, subtotal) : 0;
-  const gap = zone ? freeDeliveryGap(zone.delivery_rates, subtotal) : null;
+  const fee = zone ? deliveryFee(zone, subtotal) : 0;
+  const gap = zone ? freeDeliveryGap(zone, subtotal) : null;
   const total = subtotal + fee;
 
   useEffect(() => {
@@ -279,9 +279,7 @@ function CheckoutPage() {
                       {zone ? (
                         <>
                           Livraison à {zoneLabel(zone, zones)} :{" "}
-                          <span className="font-medium text-foreground">
-                            {rateSummary(zone.delivery_rates)}
-                          </span>
+                          <span className="font-medium text-foreground">{feeSummary(zone)}</span>
                         </>
                       ) : (
                         <>
