@@ -17,6 +17,7 @@ import { formatDeliveryWindow } from "@/lib/delivery";
 import { resolveProductImage } from "@/lib/product-images";
 import { supabase } from "@/integrations/supabase/client";
 import { startWavePayment } from "@/lib/wave";
+import { notifyOrderPlaced } from "@/lib/notify";
 import type { PaymentMethod } from "@/lib/orders";
 
 export const Route = createFileRoute("/_app/checkout")({
@@ -140,6 +141,10 @@ function CheckoutPage() {
       void qc.invalidateQueries({ queryKey: ["products"] });
       void qc.invalidateQueries({ queryKey: ["product"] });
       void qc.invalidateQueries({ queryKey: ["my-orders"] });
+
+      // Confirmation par e-mail / SMS (attente courte, avant une éventuelle
+      // redirection vers Wave qui interromprait la requête).
+      await notifyOrderPlaced(orderId);
 
       if (paymentMethod === "wave") {
         // La commande est enregistrée ; on part payer chez Wave. En cas

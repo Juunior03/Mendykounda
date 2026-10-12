@@ -539,7 +539,7 @@ function OrdersAdmin() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, created_at, total_amount, status, payment_status, payment_method, shipping_full_name, shipping_city")
+        .select("id, created_at, total_amount, status, payment_status, payment_method, shipping_full_name, shipping_city, confirmation_email_sent_at, confirmation_sms_sent_at")
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw error;
@@ -584,7 +584,13 @@ function OrdersAdmin() {
                 {new Date(o.created_at).toLocaleDateString("fr-FR")}
                 <span className="block font-mono">#{o.id.slice(0, 8).toUpperCase()}</span>
               </td>
-              <td className="p-3">{o.shipping_full_name}</td>
+              <td className="p-3">
+                {o.shipping_full_name}
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  {/* Confirmations envoyées au client */}
+                  E-mail {o.confirmation_email_sent_at ? "✓" : "—"} · SMS {o.confirmation_sms_sent_at ? "✓" : "—"}
+                </span>
+              </td>
               <td className="p-3">{o.shipping_city}</td>
               <td className="p-3 tabular-nums">{formatPrice(Number(o.total_amount))}</td>
               <td className="p-3">
