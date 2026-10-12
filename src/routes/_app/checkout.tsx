@@ -5,7 +5,7 @@
  */
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Lock, Truck } from "lucide-react";
@@ -18,6 +18,13 @@ import { resolveProductImage } from "@/lib/product-images";
 import { supabase } from "@/integrations/supabase/client";
 import { startWavePayment } from "@/lib/wave";
 import { notifyOrderPlaced } from "@/lib/notify";
+import {
+  DELIVERY_AREA,
+  deliveryZonesQuery,
+  groupByDepartment,
+  matchZone,
+  zoneLabel,
+} from "@/lib/zones";
 import type { PaymentMethod } from "@/lib/orders";
 
 export const Route = createFileRoute("/_app/checkout")({
@@ -42,8 +49,8 @@ const shippingSchema = z.object({
   fullName: z.string().trim().min(2, "Nom requis").max(120),
   phone: z.string().trim().min(6, "Téléphone requis").max(30),
   address: z.string().trim().min(4, "Adresse requise").max(200),
-  city: z.string().trim().min(2, "Ville requise").max(80),
-  postalCode: z.string().trim().min(3, "Code postal requis").max(20),
+  zoneId: z.string().uuid("Choisissez votre commune de livraison"),
+  postalCode: z.string().trim().max(20).optional(),
   notes: z.string().max(500).optional(),
 });
 
@@ -51,7 +58,7 @@ const shippingSchema = z.object({
 const WAVE_ENABLED = import.meta.env.VITE_WAVE_ENABLED === "true";
 
 type Address = Omit<z.infer<typeof shippingSchema>, "notes">;
-const EMPTY_ADDRESS: Address = { fullName: "", phone: "", address: "", city: "", postalCode: "" };
+const EMPTY_ADDRESS: Address = { fullName: "", phone: "", address: "", zoneId: "", postalCode: "" };
 
 function CheckoutPage() {
   const items = useCart();
@@ -66,14 +73,17 @@ function CheckoutPage() {
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash_on_delivery");
   const [busy, setBusy] = useState(false);
+  const { data: zones = [] } = useQuery(deliveryZonesQuery());
+  const zone = zones.find((z) => z.id === address.zoneId);
 
   useEffect(() => {
     if (!loading && !user) void navigate({ to: "/auth" });
   }, [loading, user, navigate]);
 
-  // Préremplir avec l'adresse enregistrée du profil.
+  // Préremplir avec l'adresse enregistrée du profil (la ville doit
+  // correspondre à une commune desservie).
   useEffect(() => {
-    if (!user) return;
+    if (!user || zones.length === 0) return;
     void supabase
       .from("profiles")
       .select("full_name, phone, address, city, postal_code")
@@ -85,17 +95,18 @@ function CheckoutPage() {
           fullName: data.full_name ?? "",
           phone: data.phone ?? "",
           address: data.address ?? "",
-          city: data.city ?? "",
+          zoneId: matchZone(data.city, zones)?.id ?? "",
           postalCode: data.postal_code ?? "",
         };
         setAddress(saved);
         // Adresse complète : on affiche le résumé au lieu du formulaire.
         if (shippingSchema.safeParse(saved).success) setEditingAddress(false);
       });
-  }, [user]);
+  }, [user, zones]);
 
-  const update = (k: keyof Address) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setAddress({ ...address, [k]: e.target.value });
+  const update =
+    (k: keyof Address) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+      setAddress({ ...address, [k]: e.target.value });
 
   const submit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -115,8 +126,8 @@ function CheckoutPage() {
           full_name: a.fullName,
           phone: a.phone,
           address: a.address,
-          city: a.city,
-          postal_code: a.postalCode,
+          zone_id: a.zoneId,
+          postal_code: a.postalCode || null,
           notes: a.notes || null,
         },
         _payment_method: paymentMethod,
@@ -130,8 +141,8 @@ function CheckoutPage() {
             full_name: a.fullName,
             phone: a.phone,
             address: a.address,
-            city: a.city,
-            postal_code: a.postalCode,
+            city: zone ? zoneLabel(zone, zones) : null,
+            postal_code: a.postalCode || null,
           })
           .eq("id", user.id);
       }
@@ -208,9 +219,13 @@ function CheckoutPage() {
   }[] = [
     { k: "fullName", label: "Nom complet", full: true, autoComplete: "name" },
     { k: "phone", label: "Téléphone", autoComplete: "tel", type: "tel" },
-    { k: "postalCode", label: "Code postal", autoComplete: "postal-code" },
-    { k: "address", label: "Adresse", full: true, autoComplete: "street-address" },
-    { k: "city", label: "Ville", full: true, autoComplete: "address-level2" },
+    { k: "postalCode", label: "Code postal (facultatif)", autoComplete: "postal-code" },
+    {
+      k: "address",
+      label: "Adresse (quartier, rue, point de repère)",
+      full: true,
+      autoComplete: "street-address",
+    },
   ];
 
   return (
@@ -234,15 +249,39 @@ function CheckoutPage() {
             {editingAddress ? (
               <div>
                 <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="sm:col-span-2">
+                    <span className="text-xs font-medium">Commune de livraison</span>
+                    <select
+                      value={address.zoneId}
+                      onChange={update("zoneId")}
+                      required
+                      className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                    >
+                      <option value="">Choisissez votre commune…</option>
+                      {groupByDepartment(zones).map(([dep, list]) => (
+                        <optgroup key={dep} label={`Département de ${dep}`}>
+                          {list.map((z) => (
+                            <option key={z.id} value={z.id}>
+                              {zoneLabel(z, zones)}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      Nous livrons dans {DELIVERY_AREA}. Votre village n'apparaît pas ? Choisissez
+                      sa commune (ex. Cap Skirring → Diembéring).
+                    </span>
+                  </label>
                   {fields.map((f) => (
                     <label key={f.k} className={f.full ? "sm:col-span-2" : ""}>
                       <span className="text-xs font-medium">{f.label}</span>
                       <input
                         type={f.type ?? "text"}
-                        value={address[f.k]}
+                        value={address[f.k] ?? ""}
                         onChange={update(f.k)}
                         autoComplete={f.autoComplete}
-                        required
+                        required={f.k !== "postalCode"}
                         className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
                       />
                     </label>
@@ -274,7 +313,8 @@ function CheckoutPage() {
                   <br />
                   {address.address}
                   <br />
-                  {address.postalCode} {address.city}
+                  {address.postalCode ? `${address.postalCode} ` : ""}
+                  {zone ? zoneLabel(zone, zones) : ""}
                   <br />
                   Tél. : {address.phone}
                 </address>

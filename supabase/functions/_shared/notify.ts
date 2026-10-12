@@ -214,7 +214,7 @@ function layout(title: string, body: string) {
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:8px;overflow:hidden">
         <tr><td style="background:#22c55e;padding:18px 24px;color:#ffffff;font-size:20px;font-weight:bold">MendyKounda</td></tr>
         <tr><td style="padding:24px;font-size:14px;line-height:1.5">${body}</td></tr>
-        <tr><td style="padding:16px 24px;background:#faf8f3;color:#888;font-size:12px">Ferme MendyKounda · Produits fermiers livrés au Sénégal</td></tr>
+        <tr><td style="padding:16px 24px;background:#faf8f3;color:#888;font-size:12px">Ferme MendyKounda · Produits fermiers livrés dans la région de Ziguinchor</td></tr>
       </table>
     </td></tr>
   </table>

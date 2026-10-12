@@ -41,6 +41,36 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_zones: {
+        Row: {
+          commune: string
+          created_at: string
+          department: string
+          id: string
+          is_active: boolean
+          region: string
+          sort_order: number
+        }
+        Insert: {
+          commune: string
+          created_at?: string
+          department: string
+          id?: string
+          is_active?: boolean
+          region?: string
+          sort_order?: number
+        }
+        Update: {
+          commune?: string
+          created_at?: string
+          department?: string
+          id?: string
+          is_active?: boolean
+          region?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -123,6 +153,7 @@ export type Database = {
           confirmation_email_sent_at: string | null
           confirmation_sms_sent_at: string | null
           created_at: string
+          delivery_zone_id: string | null
           id: string
           notes: string | null
           processing_at: string | null
@@ -148,6 +179,7 @@ export type Database = {
           confirmation_email_sent_at?: string | null
           confirmation_sms_sent_at?: string | null
           created_at?: string
+          delivery_zone_id?: string | null
           id?: string
           notes?: string | null
           processing_at?: string | null
@@ -173,6 +205,7 @@ export type Database = {
           confirmation_email_sent_at?: string | null
           confirmation_sms_sent_at?: string | null
           created_at?: string
+          delivery_zone_id?: string | null
           id?: string
           notes?: string | null
           processing_at?: string | null
