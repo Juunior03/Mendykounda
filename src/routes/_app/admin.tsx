@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/format";
-import { ORDER_STATUS_LABEL, type OrderStatus } from "@/lib/orders";
+import { ORDER_STATUS_LABEL, PAYMENT_METHOD_LABEL, type OrderStatus } from "@/lib/orders";
 import { ChatBox } from "@/components/chat-box";
 import { ImageCropDialog } from "@/components/image-crop-dialog";
 import { Button } from "@/components/ui/button";
@@ -539,7 +539,7 @@ function OrdersAdmin() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, created_at, total_amount, status, payment_status, shipping_full_name, shipping_city")
+        .select("id, created_at, total_amount, status, payment_status, payment_method, shipping_full_name, shipping_city")
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw error;
@@ -590,6 +590,9 @@ function OrdersAdmin() {
               <td className="p-3">
                 <span className={`rounded px-2 py-0.5 text-xs ${o.payment_status === "paid" ? "bg-primary/10 text-primary" : "bg-secondary"}`}>
                   {PAYMENT_STATUS_LABEL[o.payment_status] ?? o.payment_status}
+                </span>
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  {PAYMENT_METHOD_LABEL[o.payment_method] ?? o.payment_method}
                 </span>
               </td>
               <td className="p-3">

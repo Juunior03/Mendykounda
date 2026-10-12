@@ -1,1 +1,6 @@
 project_id = "mqngaphjmrcftnkcojnv"
+
+# Appelé par Wave (pas de jeton utilisateur) : l'authenticité est vérifiée
+# dans la fonction (secret / signature Wave).
+[functions.wave-webhook]
+verify_jwt = false

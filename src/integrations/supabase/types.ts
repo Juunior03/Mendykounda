@@ -125,6 +125,9 @@ export type Database = {
           notes: string | null
           processing_at: string | null
           shipped_at: string | null
+          paid_at: string | null
+          payment_method: string
+          payment_session_id: string | null
           payment_status: Database["public"]["Enums"]["payment_status"]
           shipping_address: string
           shipping_city: string
@@ -145,6 +148,9 @@ export type Database = {
           notes?: string | null
           processing_at?: string | null
           shipped_at?: string | null
+          paid_at?: string | null
+          payment_method?: string
+          payment_session_id?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           shipping_address: string
           shipping_city: string
@@ -165,6 +171,9 @@ export type Database = {
           notes?: string | null
           processing_at?: string | null
           shipped_at?: string | null
+          paid_at?: string | null
+          payment_method?: string
+          payment_session_id?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           shipping_address?: string
           shipping_city?: string
@@ -350,7 +359,7 @@ export type Database = {
         Returns: undefined
       }
       place_order: {
-        Args: { _items: Json; _shipping: Json }
+        Args: { _items: Json; _payment_method?: string; _shipping: Json }
         Returns: string
       }
     }
