@@ -313,3 +313,12 @@ Deno.test("brevo : requêtes e-mail et SMS conformes", async () => {
     await server.shutdown();
   }
 });
+
+Deno.test("e-mail client : ligne de livraison (payante ou offerte)", () => {
+  const paid = buildCustomerEmail(order({ total_amount: 5000, delivery_fee: 2000 }), SITE);
+  assertStringIncludes(paid.html, "Livraison");
+  assertStringIncludes(paid.html, "2 000 F CFA");
+  assertStringIncludes(paid.text, "Livraison : 2 000 F CFA");
+  const free = buildCustomerEmail(order(), SITE);
+  assertStringIncludes(free.text, "Livraison : offerte");
+});
