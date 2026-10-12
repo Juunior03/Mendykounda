@@ -23,6 +23,7 @@ import { hasPromo } from "@/lib/pricing";
 import { formatDeliveryWindow, formatLongDate, deliveryWindow } from "@/lib/delivery";
 import { ORDER_STATUS_LABEL, type OrderStatus } from "@/lib/orders";
 import { formatPrice } from "@/lib/format";
+import { DELIVERY_AREA } from "@/lib/zones";
 import hero from "@/assets/market-hero.jpg";
 
 export const Route = createFileRoute("/_app/")({
@@ -35,13 +36,13 @@ export const Route = createFileRoute("/_app/")({
   component: HomePage,
   head: () => ({
     meta: [
-      { title: "MendyKounda — Produits fermiers au Sénégal" },
+      { title: "MendyKounda — Produits fermiers en Casamance" },
       {
         name: "description",
         content:
-          "Volailles, œufs, lait et viandes fermières livrés directement du producteur au Sénégal.",
+          "Volailles, œufs, lait et viandes fermières livrés directement du producteur dans la région de Ziguinchor.",
       },
-      { property: "og:title", content: "MendyKounda — Produits fermiers au Sénégal" },
+      { property: "og:title", content: "MendyKounda — Produits fermiers en Casamance" },
       {
         property: "og:description",
         content: "Commandez des produits fermiers frais, locaux et soigneusement élevés.",
@@ -109,10 +110,11 @@ function HomePage() {
               Directement de notre ferme
             </p>
             <h1 className="text-balance text-3xl font-semibold leading-tight md:text-5xl">
-              Le frais du Sénégal, livré chez vous.
+              Le frais de la Casamance, livré chez vous.
             </h1>
             <p className="mt-3 max-w-md text-sm text-white/85 md:text-base">
-              Volailles, œufs, lait et viandes de la ferme. Livraison {formatDeliveryWindow()}.
+              Volailles, œufs, lait et viandes de la ferme, livrés dans {DELIVERY_AREA}{" "}
+              {formatDeliveryWindow()}.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
@@ -141,7 +143,7 @@ function HomePage() {
         <ul className="grid grid-cols-2 gap-2 rounded-lg bg-card p-3 shadow-soft md:grid-cols-4">
           {(
             [
-              [Truck, "Livraison en 1 à 3 jours", "Partout où nous livrons au Sénégal"],
+              [Truck, "Livraison en 1 à 3 jours", "Dans toute la région de Ziguinchor"],
               [Wallet, "Paiement à la livraison", "Vous payez à la réception"],
               [ShieldCheck, "Annulation gratuite", "Tant que ce n'est pas expédié"],
               [Clock3, "Direct producteur", "Sans intermédiaire"],

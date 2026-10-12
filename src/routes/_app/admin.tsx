@@ -18,6 +18,7 @@ import {
   type ProductsFilter,
 } from "@/components/admin/dashboard";
 import { ChatBox } from "@/components/chat-box";
+import { ZonesAdmin } from "@/components/admin/zones";
 import { ImageCropDialog } from "@/components/image-crop-dialog";
 import { Button } from "@/components/ui/button";
 
@@ -40,7 +41,7 @@ export const Route = createFileRoute("/_app/admin")({
   ] }),
 });
 
-type Tab = "overview" | "products" | "categories" | "orders" | "customers" | "messages";
+type Tab = "overview" | "products" | "categories" | "orders" | "customers" | "delivery" | "messages";
 
 function AdminPage() {
   const { isAdmin, loading, user } = useAuth();
@@ -85,7 +86,7 @@ function AdminPage() {
       <h1 className="mt-3 text-3xl font-medium tracking-tight md:text-4xl">Administration</h1>
 
       <div className="mt-8 flex gap-1 border-b border-border overflow-x-auto">
-        {(["overview", "products", "categories", "orders", "customers", "messages"] as Tab[]).map((t) => (
+        {(["overview", "products", "categories", "orders", "customers", "delivery", "messages"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => {
@@ -98,7 +99,7 @@ function AdminPage() {
               tab === t ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "overview" ? "Vue d'ensemble" : t === "products" ? "Produits" : t === "categories" ? "Catégories" : t === "orders" ? "Commandes" : t === "customers" ? "Clients" : "Messages"}
+            {t === "overview" ? "Vue d'ensemble" : t === "products" ? "Produits" : t === "categories" ? "Catégories" : t === "orders" ? "Commandes" : t === "customers" ? "Clients" : t === "delivery" ? "Livraison" : "Messages"}
           </button>
         ))}
       </div>
@@ -109,6 +110,7 @@ function AdminPage() {
         {tab === "categories" && <CategoriesAdmin />}
         {tab === "orders" && <OrdersAdmin filter={ordersFilter} onFilter={setOrdersFilter} />}
         {tab === "customers" && <CustomersAdmin />}
+        {tab === "delivery" && <ZonesAdmin />}
         {tab === "messages" && <MessagesAdmin />}
       </div>
     </div>

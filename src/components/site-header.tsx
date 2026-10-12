@@ -26,7 +26,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-border bg-card shadow-soft">
       <div className="hidden border-b border-border/70 bg-secondary/70 lg:block">
         <div className="container-market flex h-8 items-center justify-between text-xs text-muted-foreground">
-          <span>Produits fermiers frais, livrés au Sénégal</span>
+          <span>Produits fermiers frais, livrés dans la région de Ziguinchor</span>
           <div className="flex items-center gap-6"><Link to="/contact" className="hover:text-foreground">Aide & contact</Link><span>Livraison directe producteur</span></div>
         </div>
       </div>
