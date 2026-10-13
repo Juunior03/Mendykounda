@@ -34,8 +34,22 @@ export interface NotifyOrder {
 
 export type Channel = "email" | "sms";
 
+/** Infos de la ferme (Admin › Ferme) pour le pied des e-mails. */
+export interface FarmInfo {
+  name: string;
+  location: string;
+  phone?: string | null;
+}
+
+export const DEFAULT_FARM_INFO: FarmInfo = {
+  name: "Ferme MendyKounda",
+  location: "Région de Ziguinchor, Sénégal",
+};
+
 export interface NotifyRepo {
   getOrder(id: string): Promise<NotifyOrder | null>;
+  /** Facultatif : infos de la ferme (table farm_settings). */
+  getFarm?(): Promise<FarmInfo | null>;
   getUserEmail(userId: string): Promise<string | null>;
   /** Réserve l'envoi : true si personne ne l'a déjà fait (UPDATE … WHERE … IS NULL). */
   claim(orderId: string, channel: Channel): Promise<boolean>;
@@ -212,7 +226,7 @@ function itemsRows(order: NotifyOrder) {
     .join("");
 }
 
-function layout(title: string, body: string) {
+function layout(title: string, body: string, farm: FarmInfo = DEFAULT_FARM_INFO) {
   return `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title></head>
 <body style="margin:0;background:#f6f4ef;font-family:Arial,Helvetica,sans-serif;color:#222">
@@ -221,14 +235,18 @@ function layout(title: string, body: string) {
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:8px;overflow:hidden">
         <tr><td style="background:#14532d;padding:18px 24px;color:#ffffff;font-size:20px;font-weight:bold;letter-spacing:1px">MENDYKOUNDA<span style="display:block;margin-top:4px;color:#f6ad55;font-size:11px;letter-spacing:3px">CASAMANCE • ZIGUINCHOR</span></td></tr>
         <tr><td style="padding:24px;font-size:14px;line-height:1.5">${body}</td></tr>
-        <tr><td style="padding:16px 24px;background:#faf8f3;color:#888;font-size:12px">Ferme MendyKounda · Produits fermiers livrés dans la région de Ziguinchor</td></tr>
+        <tr><td style="padding:16px 24px;background:#faf8f3;color:#888;font-size:12px">${escapeHtml(farm.name)} · Produits fermiers livrés · ${escapeHtml(farm.location)}${farm.phone ? ` · ${escapeHtml(farm.phone)}` : ""}</td></tr>
       </table>
     </td></tr>
   </table>
 </body></html>`;
 }
 
-export function buildCustomerEmail(order: NotifyOrder, siteUrl: string) {
+export function buildCustomerEmail(
+  order: NotifyOrder,
+  siteUrl: string,
+  farm: FarmInfo = DEFAULT_FARM_INFO,
+) {
   const no = orderNumber(order.id);
   const { start, end } = deliveryWindow(order.created_at);
   const ordersUrl = `${siteUrl.replace(/\/$/, "")}/orders`;
@@ -268,6 +286,7 @@ export function buildCustomerEmail(order: NotifyOrder, siteUrl: string) {
        <a href="${escapeHtml(ordersUrl)}" style="display:inline-block;background:#d97706;color:#1a1a1a;text-decoration:none;padding:10px 20px;border-radius:999px;font-weight:bold">Suivre ma commande</a>
      </p>
      <p style="margin:16px 0 0;color:#888;font-size:12px">Vous pouvez annuler gratuitement depuis « Mes commandes » tant que la commande n'est pas expédiée.</p>`,
+    farm,
   );
 
   const text = [
@@ -290,7 +309,11 @@ export function buildCustomerEmail(order: NotifyOrder, siteUrl: string) {
   return { subject: `Commande ${no} confirmée — MendyKounda`, html, text };
 }
 
-export function buildAdminEmail(order: NotifyOrder, siteUrl: string) {
+export function buildAdminEmail(
+  order: NotifyOrder,
+  siteUrl: string,
+  farm: FarmInfo = DEFAULT_FARM_INFO,
+) {
   const no = orderNumber(order.id);
   const adminUrl = `${siteUrl.replace(/\/$/, "")}/admin`;
   const payment = PAYMENT_LABEL[order.payment_method] ?? order.payment_method;
@@ -311,6 +334,7 @@ export function buildAdminEmail(order: NotifyOrder, siteUrl: string) {
      <p style="margin:16px 0 0;color:#555">${payment}</p>
      ${order.notes ? `<p style="margin:8px 0 0;color:#555">Instructions : ${escapeHtml(order.notes)}</p>` : ""}
      <p style="margin:24px 0 0"><a href="${escapeHtml(adminUrl)}" style="color:#15803d;font-weight:bold">Ouvrir l'administration</a></p>`,
+    farm,
   );
   const text = `Nouvelle commande ${no} — ${order.shipping_full_name} (${order.shipping_phone}), ${order.shipping_city}. Total ${formatFcfa(order.total_amount)}. ${payment}. ${adminUrl}`;
   return { subject: `Nouvelle commande ${no} — ${formatFcfa(order.total_amount)}`, html, text };
@@ -354,12 +378,13 @@ export async function notifyOrder(
   const customerEmail = mailer && config.emailFrom ? await repo.getUserEmail(order.user_id) : null;
 
   const email = await send("email", !!(mailer && config.emailFrom && customerEmail), async () => {
-    const msg = buildCustomerEmail(order, config.siteUrl);
+    const farm = (await repo.getFarm?.().catch(() => null)) ?? DEFAULT_FARM_INFO;
+    const msg = buildCustomerEmail(order, config.siteUrl, farm);
     await mailer!.sendEmail({ to: customerEmail!, toName: order.shipping_full_name, ...msg });
     // Alerte ferme : envoyée avec la confirmation client, une seule fois.
     if (config.adminEmail) {
       await mailer!
-        .sendEmail({ to: config.adminEmail, ...buildAdminEmail(order, config.siteUrl) })
+        .sendEmail({ to: config.adminEmail, ...buildAdminEmail(order, config.siteUrl, farm) })
         .catch((err) => console.error("[order-notify] alerte admin:", err));
     }
   });

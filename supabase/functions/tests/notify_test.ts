@@ -322,3 +322,14 @@ Deno.test("e-mail client : ligne de livraison (payante ou offerte)", () => {
   const free = buildCustomerEmail(order(), SITE);
   assertStringIncludes(free.text, "Livraison : offerte");
 });
+
+Deno.test("e-mail : pied de page avec les infos de la ferme", () => {
+  const def = buildCustomerEmail(order(), SITE);
+  assertStringIncludes(def.html, "Ferme MendyKounda");
+  const custom = buildCustomerEmail(order(), SITE, {
+    name: "Ferme <Test>",
+    location: "Bignona",
+    phone: "77 000 00 00",
+  });
+  assertStringIncludes(custom.html, "Ferme &lt;Test&gt; · Produits fermiers livrés · Bignona · 77 000 00 00");
+});

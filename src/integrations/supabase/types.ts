@@ -98,6 +98,75 @@ export type Database = {
         }
         Relationships: []
       }
+      farm_settings: {
+        Row: {
+          about_body: string
+          about_eyebrow: string | null
+          about_image_url: string | null
+          about_title: string
+          address: string | null
+          description: string
+          email: string | null
+          facebook_url: string | null
+          hero_subtitle: string
+          hero_title: string
+          id: number
+          instagram_url: string | null
+          location: string
+          name: string
+          opening_hours: string | null
+          phone: string | null
+          tagline: string
+          tiktok_url: string | null
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          about_body?: string
+          about_eyebrow?: string | null
+          about_image_url?: string | null
+          about_title?: string
+          address?: string | null
+          description?: string
+          email?: string | null
+          facebook_url?: string | null
+          hero_subtitle?: string
+          hero_title?: string
+          id?: number
+          instagram_url?: string | null
+          location?: string
+          name?: string
+          opening_hours?: string | null
+          phone?: string | null
+          tagline?: string
+          tiktok_url?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          about_body?: string
+          about_eyebrow?: string | null
+          about_image_url?: string | null
+          about_title?: string
+          address?: string | null
+          description?: string
+          email?: string | null
+          facebook_url?: string | null
+          hero_subtitle?: string
+          hero_title?: string
+          id?: number
+          instagram_url?: string | null
+          location?: string
+          name?: string
+          opening_hours?: string | null
+          phone?: string | null
+          tagline?: string
+          tiktok_url?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string

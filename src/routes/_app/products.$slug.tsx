@@ -37,6 +37,7 @@ import { Stars } from "@/components/stars";
 import { effectivePrice, hasPromo, promoPercent, LOW_STOCK_THRESHOLD } from "@/lib/pricing";
 import { formatDeliveryWindow } from "@/lib/delivery";
 import { useAuth } from "@/lib/auth";
+import { useFarm } from "@/lib/farm";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/products/$slug")({
@@ -81,6 +82,7 @@ export const Route = createFileRoute("/_app/products/$slug")({
 });
 
 function ProductPage() {
+  const farm = useFarm();
   const product = Route.useLoaderData();
   const { data: reviews } = useSuspenseQuery(reviewsByProductQuery(product.id));
   const navigate = useNavigate();
@@ -148,7 +150,7 @@ function ProductPage() {
         {/* Informations */}
         <div className="min-w-0">
           <Link to="/about" className="text-sm text-primary hover:underline">
-            Ferme MendyKounda
+            {farm.name}
           </Link>
           <h1 className="mt-1 text-balance text-2xl font-medium leading-tight tracking-tight md:text-3xl">
             {product.name}
@@ -359,9 +361,9 @@ function ProductPage() {
 
           <dl className="mt-5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
             <dt className="text-muted-foreground">Expédié par</dt>
-            <dd>Ferme MendyKounda</dd>
+            <dd>{farm.name}</dd>
             <dt className="text-muted-foreground">Vendu par</dt>
-            <dd>Ferme MendyKounda</dd>
+            <dd>{farm.name}</dd>
             <dt className="text-muted-foreground">Paiement</dt>
             <dd>À la livraison</dd>
           </dl>

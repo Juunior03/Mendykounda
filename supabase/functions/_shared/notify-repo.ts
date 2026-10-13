@@ -27,6 +27,14 @@ export function notifyRepo(): NotifyRepo {
       };
       return { ...order, items: order_items ?? [] };
     },
+    async getFarm() {
+      const { data } = await db
+        .from("farm_settings")
+        .select("name, location, phone")
+        .eq("id", 1)
+        .maybeSingle();
+      return data ?? null;
+    },
     async getUserEmail(userId) {
       const { data, error } = await db.auth.admin.getUserById(userId);
       if (error) throw error;

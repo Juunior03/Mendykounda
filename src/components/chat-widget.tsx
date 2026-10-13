@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChatBox } from "@/components/chat-box";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { OPEN_CHAT_EVENT } from "@/lib/farm";
 
 export function ChatWidget() {
   const { user, isAdmin, loading } = useAuth();
@@ -40,8 +41,17 @@ export function ChatWidget() {
         () => qc.invalidateQueries({ queryKey: ["chat-unread", user.id] }),
       )
       .subscribe();
-    return () => { void supabase.removeChannel(channel); };
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, [user, isAdmin, qc]);
+
+  // Ouverture depuis un autre endroit du site (ex. page Contact).
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener(OPEN_CHAT_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_CHAT_EVENT, onOpen);
+  }, []);
 
   // Mark as read when opening
   useEffect(() => {
