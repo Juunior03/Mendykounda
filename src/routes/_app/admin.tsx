@@ -36,6 +36,17 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
 const TABS = ["overview", "products", "categories", "orders", "customers", "delivery", "slaughter", "messages"] as const;
 type Tab = (typeof TABS)[number];
 
+const TAB_LABEL: Record<Tab, string> = {
+  overview: "Vue d'ensemble",
+  products: "Produits",
+  categories: "Catégories",
+  orders: "Commandes",
+  customers: "Clients",
+  delivery: "Livraison",
+  slaughter: "Abattages",
+  messages: "Messages",
+};
+
 export const Route = createFileRoute("/_app/admin")({
   component: AdminPage,
   // ?tab=orders : retour depuis une fiche commande sur le bon onglet.
@@ -91,11 +102,32 @@ function AdminPage() {
   }
 
   return (
-    <div className="container-editorial py-12 md:py-16">
+    <div className="container-editorial py-6 md:py-16">
       <p className="editorial-eyebrow">Tableau de bord</p>
-      <h1 className="mt-3 text-3xl font-medium tracking-tight md:text-4xl">Administration</h1>
+      <h1 className="mt-2 text-2xl font-medium tracking-tight md:mt-3 md:text-4xl">Administration</h1>
 
-      <div className="mt-8 flex gap-1 border-b border-border overflow-x-auto">
+      {/* Mobile : menu déroulant (8 sections ne tiennent pas en onglets). */}
+      <label className="mt-6 block md:hidden">
+        <span className="sr-only">Section de l'administration</span>
+        <select
+          value={tab}
+          onChange={(e) => {
+            const t = e.target.value as Tab;
+            if (t === "orders") setOrdersFilter("all");
+            if (t === "products") setProductsFilter("all");
+            setTab(t);
+          }}
+          className="w-full rounded-md border border-border bg-card px-3 py-2.5 text-base font-medium shadow-soft"
+        >
+          {TABS.map((t) => (
+            <option key={t} value={t}>
+              {TAB_LABEL[t]}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <div className="mt-8 hidden gap-1 overflow-x-auto border-b border-border md:flex">
         {TABS.map((t) => (
           <button
             key={t}
@@ -109,12 +141,12 @@ function AdminPage() {
               tab === t ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "overview" ? "Vue d'ensemble" : t === "products" ? "Produits" : t === "categories" ? "Catégories" : t === "orders" ? "Commandes" : t === "customers" ? "Clients" : t === "delivery" ? "Livraison" : t === "slaughter" ? "Abattages" : "Messages"}
+            {TAB_LABEL[t]}
           </button>
         ))}
       </div>
 
-      <div className="mt-8">
+      <div className="mt-6 md:mt-8">
         {tab === "overview" && <AdminDashboard nav={nav} />}
         {tab === "products" && <ProductsAdmin filter={productsFilter} onFilter={setProductsFilter} />}
         {tab === "categories" && <CategoriesAdmin />}
@@ -305,7 +337,61 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-border">
+      {/* Mobile : une carte par produit. */}
+      <ul className="space-y-2 md:hidden">
+        {shownProducts?.map((p) => (
+          <li key={p.id} className="rounded-lg border border-border bg-card p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-medium">{p.name}</p>
+                <p className="text-sm tabular-nums">
+                  {formatPrice(Number(p.discount_price != null && Number(p.discount_price) < Number(p.price) ? p.discount_price : p.price))}
+                  <span className="text-xs text-muted-foreground"> / {p.unit}</span>
+                </p>
+                <span className="mt-1 flex flex-wrap gap-1 text-[11px]">
+                  {p.variant_label && <span className="rounded bg-secondary px-1.5 py-0.5">Format : {p.variant_label}</span>}
+                  {p.needs_slaughter && <span className="rounded bg-accent/15 px-1.5 py-0.5">À l'abattage</span>}
+                  {p.sold_by_weight && <span className="rounded bg-secondary px-1.5 py-0.5">Au poids réel</span>}
+                  {isSeasonal(p) && (
+                    <span className={`rounded px-1.5 py-0.5 ${inSeason(p) ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                      {inSeason(p) ? "De saison" : "Hors saison"}
+                    </span>
+                  )}
+                </span>
+              </div>
+              <button onClick={() => setEditing(p)} className="shrink-0 rounded-md border border-border px-3 py-1.5 text-sm">
+                Éditer
+              </button>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border pt-3 text-sm">
+              <label className="flex items-center gap-2">
+                <span className="text-muted-foreground">Stock</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  defaultValue={p.stock}
+                  onBlur={(e) => updateStock(p.id, Number(e.target.value))}
+                  className={`w-20 rounded border bg-background px-2 py-1.5 ${p.stock <= 0 ? "border-destructive" : "border-border"}`}
+                />
+              </label>
+              <label className="flex items-center gap-1.5">
+                <input type="checkbox" className="h-4 w-4" checked={p.is_active}
+                  onChange={(e) => toggle(p.id, "is_active", e.target.checked)} /> Actif
+              </label>
+              <label className="flex items-center gap-1.5">
+                <input type="checkbox" className="h-4 w-4" checked={p.is_featured}
+                  onChange={(e) => toggle(p.id, "is_featured", e.target.checked)} /> Vedette
+              </label>
+              <button onClick={() => remove(p.id)} className="ml-auto text-xs text-destructive">Supprimer</button>
+            </div>
+          </li>
+        ))}
+        {products?.length === 0 && (
+          <li className="rounded-lg border border-border p-8 text-center text-sm text-muted-foreground">Aucun produit. Créez-en un.</li>
+        )}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
         <table className="w-full text-sm">
           <thead className="bg-cream text-left text-xs uppercase tracking-wider text-muted-foreground">
             <tr>
@@ -699,7 +785,47 @@ function OrdersAdmin({ filter, onFilter }: { filter: OrdersFilter; onFilter: (f:
         chip("wave_unpaid", "Wave en attente"),
       ]}
     />
-    <div className="overflow-x-auto rounded-lg border border-border">
+    {/* Mobile : une carte par commande, qui ouvre la fiche. */}
+    <ul className="space-y-2 md:hidden">
+      {shownOrders?.map((o) => (
+        <li key={o.id}>
+          <Link
+            to="/admin/orders/$orderId"
+            params={{ orderId: o.id }}
+            className="block rounded-lg border border-border bg-card p-3 active:bg-secondary"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate font-medium">{o.shipping_full_name}</p>
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-mono">#{orderNumber(o.id)}</span> ·{" "}
+                  {new Date(o.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} ·{" "}
+                  {o.shipping_city}
+                </p>
+              </div>
+              <p className="shrink-0 font-semibold tabular-nums">{formatPrice(Number(o.total_amount))}</p>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+              <span className={`rounded px-2 py-0.5 ${o.status === "cancelled" ? "bg-destructive/10 text-destructive" : o.status === "delivered" || o.status === "shipped" ? "bg-primary/10 text-primary" : "bg-accent/15"}`}>
+                {ORDER_STATUS_LABEL[o.status as OrderStatus]}
+              </span>
+              <span className={`rounded px-2 py-0.5 ${o.payment_status === "paid" ? "bg-primary/10 text-primary" : "bg-secondary"}`}>
+                {PAYMENT_STATUS_LABEL[o.payment_status] ?? o.payment_status}
+              </span>
+              {o.slaughter_date && (
+                <span className="rounded bg-secondary px-2 py-0.5">Abattage {formatSlaughterDayShort(o.slaughter_date)}</span>
+              )}
+              <span className="ml-auto text-primary">Ouvrir →</span>
+            </div>
+          </Link>
+        </li>
+      ))}
+      {shownOrders?.length === 0 && (
+        <li className="rounded-lg border border-border p-8 text-center text-sm text-muted-foreground">Aucune commande pour le moment.</li>
+      )}
+    </ul>
+
+    <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
       <table className="w-full text-sm">
         <thead className="bg-cream text-left text-xs uppercase tracking-wider text-muted-foreground">
           <tr>

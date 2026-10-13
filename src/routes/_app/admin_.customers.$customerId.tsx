@@ -166,7 +166,7 @@ function CustomerPage() {
         Client depuis le {fmtDate(profile.created_at)}
       </p>
 
-      <dl className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="mt-6 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
         <Kpi
           label="Commandes"
           value={String(stats.orderCount)}
@@ -185,7 +185,7 @@ function CustomerPage() {
         />
       </dl>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-6">
           {topProducts.length > 0 && (
             <section className="rounded-lg bg-card p-5 shadow-soft">
@@ -304,9 +304,9 @@ function CustomerPage() {
 
 function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className="min-w-0 rounded-lg border border-border bg-card p-3 sm:p-4">
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="mt-1 text-xl font-semibold tabular-nums">{value}</dd>
+      <dd className="mt-1 text-base font-semibold tabular-nums sm:text-xl">{value}</dd>
       {hint && <dd className="text-xs text-muted-foreground">{hint}</dd>}
     </div>
   );
