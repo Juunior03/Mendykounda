@@ -1,0 +1,25 @@
+<svg id="svg-car-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 420" class="w-full max-w-[290px] h-auto">
+              <!-- Disque de fond blanc avec bordure épaisse pour ressortir sur n'importe quelle couleur de voiture -->
+              <circle cx="210" cy="210" r="190" fill="#ffffff" />
+              <circle class="color-primary" cx="210" cy="210" r="182" fill="none" stroke="#14532d" stroke-width="12" />
+              
+              <!-- Demi-cercle soleil & palmier minimaliste au centre -->
+              <path class="color-accent" d="M135 175 A75 75 0 0 1 285 175 Z" fill="#d97706" />
+              
+              <!-- Silhouette épurée de toit casamançais + feuille en négatif/contrasté -->
+              <path class="color-primary" d="M120 175 L210 110 L300 175 Z" fill="#14532d" />
+              <path d="M165 175 L210 142 L255 175 Z" fill="#ffffff" />
+              
+              <!-- Bandeau central fort pour le nom MENDYKOUNDA -->
+              <rect class="color-primary" x="22" y="185" width="376" height="68" rx="12" fill="#14532d" />
+              <text x="210" y="231" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="900" font-size="36" letter-spacing="1.5" fill="#ffffff">MENDYKOUNDA</text>
+
+              <!-- Texte bas : Produits fermiers & Ziguinchor -->
+              <text class="color-primary" x="210" y="288" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="800" font-size="18" letter-spacing="2" fill="#14532d">FERME &amp; TERROIR</text>
+              <text class="color-accent subtitle-text" x="210" y="316" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="800" font-size="15" letter-spacing="2.5" fill="#d97706">CASAMANCE • ZIGUINCHOR</text>
+
+              <!-- 3 points décoratifs en bas -->
+              <circle class="color-leaf" cx="185" cy="345" r="5" fill="#15803d" />
+              <circle class="color-accent" cx="210" cy="345" r="7" fill="#d97706" />
+              <circle class="color-leaf" cx="235" cy="345" r="5" fill="#15803d" />
+            </svg>

@@ -1,0 +1,15 @@
+<svg id="svg-ecom-header" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 200" class="w-full max-w-[340px] h-auto">
+              <!-- Même monogramme Option B placé à gauche -->
+              <g transform="translate(105, 100)">
+                <circle class="color-primary" cx="0" cy="0" r="72" fill="none" stroke="#14532d" stroke-width="8" />
+                <circle class="color-accent" cx="0" cy="-22" r="19" fill="#d97706" />
+                <path class="color-primary" d="M-40 34 L-22 -11 L0 17 L22 -11 L40 34" fill="none" stroke="#14532d" stroke-width="10.5" stroke-linecap="round" stroke-linejoin="round" />
+                <path class="color-leaf" d="M0 -45 C12 -60, 26 -49, 13 -36 C5 -30, 0 -38, 0 -45 Z" fill="#15803d" />
+              </g>
+
+              <!-- Texte aligné à droite pour le header du site -->
+              <text class="color-primary" x="205" y="98" font-family="Montserrat, sans-serif" font-weight="900" font-size="50" letter-spacing="1" fill="#14532d">MENDYKOUNDA</text>
+              <rect class="color-accent" x="208" y="114" width="55" height="5" rx="2.5" fill="#d97706" />
+              <text class="color-primary subtitle-text" x="276" y="122" font-family="Montserrat, sans-serif" font-weight="700" font-size="15" letter-spacing="3" fill="#14532d">CASAMANCE • ZIGUINCHOR</text>
+              <text class="color-leaf" x="208" y="148" font-family="Plus Jakarta Sans, sans-serif" font-weight="600" font-size="14" letter-spacing="1.5" fill="#15803d">PRODUITS FERMIERS &amp; TERROIR</text>
+            </svg>
