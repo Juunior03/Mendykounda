@@ -49,3 +49,26 @@ export const whatsappLink = (phone: string) => {
   if (digits.length === 9) digits = `221${digits}`;
   return digits.length >= 11 ? `https://wa.me/${digits}` : null;
 };
+
+/** Article d'une commande, éventuellement vendu au poids réel. */
+interface LineLike {
+  quantity: number;
+  unit_price: number | string;
+  sold_by_weight?: boolean;
+  actual_quantity?: number | string | null;
+}
+
+/** Quantité facturée : poids pesé s'il est saisi, sinon quantité commandée. */
+export const lineQuantity = (i: LineLike) =>
+  i.actual_quantity != null ? Number(i.actual_quantity) : i.quantity;
+
+/** Montant de la ligne, arrondi au franc comme en base (set_item_weight). */
+export const lineTotal = (i: LineLike) => Math.round(Number(i.unit_price) * lineQuantity(i));
+
+/** Article au poids pas encore pesé : montant estimé. */
+export const awaitingWeight = (i: LineLike) => !!i.sold_by_weight && i.actual_quantity == null;
+
+const weightFmt = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 3 });
+/** « 1,85 kg » */
+export const formatWeight = (kg: number | string, unit = "kg") =>
+  `${weightFmt.format(Number(kg))} ${unit}`;

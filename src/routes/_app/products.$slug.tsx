@@ -12,6 +12,7 @@ import {
   User as UserIcon,
   CalendarDays,
   Sprout,
+  Scale,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -180,6 +181,15 @@ function ProductPage() {
               </p>
             )}
             <p className="mt-2 text-xs text-muted-foreground">Paiement à la livraison · Prix TTC</p>
+            {product.sold_by_weight && (
+              <p className="mt-2 flex gap-2 rounded-md bg-secondary px-3 py-2 text-xs">
+                <Scale className="h-4 w-4 shrink-0 text-primary" />
+                <span>
+                  <span className="font-semibold">Prix au poids réel.</span> Choisissez une quantité
+                  estimée : le montant est ajusté selon le poids pesé avant la livraison.
+                </span>
+              </p>
+            )}
           </div>
 
           {variants && variants.length > 1 && (
@@ -308,7 +318,9 @@ function ProductPage() {
           {!outOfStock && (
             <>
               <label className="mt-4 flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">Quantité :</span>
+                <span className="text-muted-foreground">
+                  {product.sold_by_weight ? `Quantité (${product.unit}, estimée) :` : "Quantité :"}
+                </span>
                 <select
                   value={qty}
                   onChange={(e) => setQty(Number(e.target.value))}

@@ -23,6 +23,7 @@ interface LiveProduct {
   image_url: string | null;
   needs_slaughter: boolean;
   season_months: number[] | null;
+  sold_by_weight: boolean;
 }
 
 export interface CartLine {
@@ -47,7 +48,7 @@ export function useCartLines(items: CartItem[]) {
       const { data, error } = await supabase
         .from("products")
         .select(
-          "id, slug, name, price, discount_price, stock, is_active, unit, image_url, needs_slaughter, season_months",
+          "id, slug, name, price, discount_price, stock, is_active, unit, image_url, needs_slaughter, season_months, sold_by_weight",
         )
         .in("id", ids);
       if (error) throw error;
@@ -114,5 +115,9 @@ export function useCartLines(items: CartItem[]) {
     loading: isLoading && ids.length > 0,
     /** Prochain abattage si le panier contient de la viande à l'abattage. */
     slaughterDay,
+    /** Le panier contient des articles au poids réel : montant estimé. */
+    hasWeighed: (products ?? []).some(
+      (p) => p.sold_by_weight && items.some((i) => i.productId === p.id),
+    ),
   };
 }

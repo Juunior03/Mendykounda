@@ -35,6 +35,8 @@ export interface Product {
   needs_slaughter: boolean;
   /** Mois de disponibilité (1 à 12), null = toute l'année. */
   season_months: number[] | null;
+  /** Prix au kilo, montant final selon le poids pesé. */
+  sold_by_weight: boolean;
   /** Note moyenne et nombre d'avis (listes produits uniquement). */
   rating_avg?: number;
   rating_count?: number;

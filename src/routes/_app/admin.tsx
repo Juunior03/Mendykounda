@@ -181,13 +181,14 @@ interface ProductRow {
   variant_label: string | null;
   needs_slaughter: boolean;
   season_months: number[] | null;
+  sold_by_weight: boolean;
 }
 
 const emptyProduct: Partial<ProductRow> = {
   name: "", slug: "", description: "", price: 0, stock: 0, unit: "kg",
   image_url: "", is_active: true, is_featured: false, category_id: null,
   discount_price: null, discount_label: "",
-  variant_group: "", variant_label: "", needs_slaughter: false, season_months: null,
+  variant_group: "", variant_label: "", needs_slaughter: false, season_months: null, sold_by_weight: false,
 };
 
 /* ---------- Products admin ---------- */
@@ -206,7 +207,7 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, slug, description, price, stock, is_active, is_featured, unit, image_url, category_id, discount_price, discount_label, variant_group, variant_label, needs_slaughter, season_months")
+        .select("id, name, slug, description, price, stock, is_active, is_featured, unit, image_url, category_id, discount_price, discount_label, variant_group, variant_label, needs_slaughter, season_months, sold_by_weight")
         .order("name");
       if (error) throw error;
       return data as ProductRow[];
@@ -267,6 +268,7 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
       variant_group: editing.variant_group?.trim() ? slugify(editing.variant_group) : null,
       variant_label: editing.variant_label?.trim() ? editing.variant_label.trim() : null,
       needs_slaughter: !!editing.needs_slaughter,
+      sold_by_weight: !!editing.sold_by_weight,
       // Aucun mois ou les 12 cochés = toute l'année.
       season_months:
         editing.season_months?.length && editing.season_months.length < 12
@@ -319,13 +321,16 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
               <tr key={p.id} className="hover:bg-secondary/40">
                 <td className="p-3 font-medium">
                   {p.name}
-                  {(p.variant_label || p.needs_slaughter || isSeasonal(p)) && (
+                  {(p.variant_label || p.needs_slaughter || isSeasonal(p) || p.sold_by_weight) && (
                     <span className="mt-1 flex flex-wrap gap-1 text-[11px] font-normal">
                       {p.variant_label && (
                         <span className="rounded bg-secondary px-1.5 py-0.5">Format : {p.variant_label}</span>
                       )}
                       {p.needs_slaughter && (
                         <span className="rounded bg-accent/15 px-1.5 py-0.5">À l'abattage</span>
+                      )}
+                      {p.sold_by_weight && (
+                        <span className="rounded bg-secondary px-1.5 py-0.5">Au poids réel</span>
                       )}
                       {isSeasonal(p) && (
                         <span className={`rounded px-1.5 py-0.5 ${inSeason(p) ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
@@ -440,6 +445,16 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
                       onChange={(e) => setEditing({ ...editing, variant_label: e.target.value })} />
                   </Field>
                 </div>
+                <label className="mt-3 flex items-start gap-2 text-sm">
+                  <input type="checkbox" className="mt-1" checked={!!editing.sold_by_weight}
+                    onChange={(e) => setEditing({ ...editing, sold_by_weight: e.target.checked })} />
+                  <span>
+                    Vendu au poids réel
+                    <span className="block text-xs text-muted-foreground">
+                      Prix au kilo : le client commande une quantité estimée, vous saisissez le poids pesé dans la fiche commande et le montant est recalculé.
+                    </span>
+                  </span>
+                </label>
                 <label className="mt-3 flex items-start gap-2 text-sm">
                   <input type="checkbox" className="mt-1" checked={!!editing.needs_slaughter}
                     onChange={(e) => setEditing({ ...editing, needs_slaughter: e.target.checked })} />

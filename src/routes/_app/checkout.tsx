@@ -73,6 +73,7 @@ function CheckoutPage() {
     blocked,
     loading: linesLoading,
     slaughterDay,
+    hasWeighed,
   } = useCartLines(items);
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -462,7 +463,8 @@ function CheckoutPage() {
             <div className="mt-4 flex flex-col gap-3 rounded-md border border-border p-4 sm:flex-row sm:items-center">
               <div className="sm:w-56">{placeButton}</div>
               <p className="text-base font-semibold text-destructive">
-                Montant total : <span className="tabular-nums">{formatPrice(total)}</span>
+                {hasWeighed ? "Montant estimé" : "Montant total"} :{" "}
+                <span className="tabular-nums">{formatPrice(total)}</span>
               </p>
             </div>
           </Step>
@@ -502,9 +504,17 @@ function CheckoutPage() {
               <span>{paymentMethod === "wave" ? "Wave" : "À la livraison"}</span>
             </div>
             <div className="mt-3 flex justify-between gap-2 border-t border-border pt-3 text-base font-semibold text-destructive">
-              <span className="whitespace-nowrap">Montant total :</span>
+              <span className="whitespace-nowrap">
+                {hasWeighed ? "Montant estimé :" : "Montant total :"}
+              </span>
               <span className="tabular-nums">{formatPrice(total)}</span>
             </div>
+            {hasWeighed && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Articles au poids réel : le montant final est calculé après la pesée et vous est
+                indiqué dans « Mes commandes ».
+              </p>
+            )}
           </div>
         </aside>
       </form>

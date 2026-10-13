@@ -11,7 +11,7 @@ import { formatOrderDeliveryWindow } from "@/lib/delivery";
 import { formatSlaughterDay } from "@/lib/slaughter";
 import { resolveProductImage } from "@/lib/product-images";
 import { useAuth } from "@/lib/auth";
-import { PAYMENT_METHOD_LABEL } from "@/lib/orders";
+import { PAYMENT_METHOD_LABEL, awaitingWeight, lineTotal } from "@/lib/orders";
 import { WavePaymentStatusPanel } from "@/components/wave-payment";
 
 const searchSchema = z.object({
@@ -23,14 +23,19 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/_app/order-confirmation")({
   validateSearch: (s) => searchSchema.parse(s),
   component: OrderConfirmation,
-  head: () => ({ meta: [
-    { title: "Commande confirmée — MendyKounda" },
-    { name: "description", content: "Votre commande MendyKounda a bien été enregistrée." },
-    { property: "og:title", content: "Commande confirmée — MendyKounda" },
-    { property: "og:description", content: "Confirmation de votre commande de produits fermiers." },
-    { property: "og:type", content: "website" },
-    { name: "twitter:card", content: "summary" },
-  ] }),
+  head: () => ({
+    meta: [
+      { title: "Commande confirmée — MendyKounda" },
+      { name: "description", content: "Votre commande MendyKounda a bien été enregistrée." },
+      { property: "og:title", content: "Commande confirmée — MendyKounda" },
+      {
+        property: "og:description",
+        content: "Confirmation de votre commande de produits fermiers.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
 
 function OrderConfirmation() {
@@ -61,7 +66,10 @@ function OrderConfirmation() {
             Merci, votre commande a été passée.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Commande n° <span className="font-medium text-foreground tabular-nums">{id.slice(0, 8).toUpperCase()}</span>
+            Commande n°{" "}
+            <span className="font-medium text-foreground tabular-nums">
+              {id.slice(0, 8).toUpperCase()}
+            </span>
             {data && <> · {PAYMENT_METHOD_LABEL[data.payment_method] ?? data.payment_method}</>}
           </p>
 
@@ -85,14 +93,16 @@ function OrderConfirmation() {
                   <p className="mt-1 text-sm text-primary">{formatOrderDeliveryWindow(data)}</p>
                   {data.slaughter_date && (
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Viande préparée lors de l'abattage du {formatSlaughterDay(data.slaughter_date)}.
+                      Viande préparée lors de l'abattage du{" "}
+                      {formatSlaughterDay(data.slaughter_date)}.
                     </p>
                   )}
                 </div>
                 <div>
                   <p className="text-sm font-semibold">Livraison à</p>
                   <address className="mt-1 text-sm not-italic text-muted-foreground">
-                    {data.shipping_full_name}, {data.shipping_address}, {data.shipping_postal_code} {data.shipping_city}
+                    {data.shipping_full_name}, {data.shipping_address}, {data.shipping_postal_code}{" "}
+                    {data.shipping_city}
                   </address>
                 </div>
               </div>
@@ -103,12 +113,22 @@ function OrderConfirmation() {
                   return (
                     <li key={it.id} className="flex items-center gap-3 py-3 text-sm">
                       <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md bg-warm">
-                        {img && <img src={img} alt={it.product_name} className="h-full w-full object-contain" />}
+                        {img && (
+                          <img
+                            src={img}
+                            alt={it.product_name}
+                            className="h-full w-full object-contain"
+                          />
+                        )}
                       </div>
                       <span className="min-w-0 flex-1">
-                        {it.product_name} <span className="text-muted-foreground">× {it.quantity}</span>
+                        {it.product_name}{" "}
+                        <span className="text-muted-foreground">× {it.quantity}</span>
                       </span>
-                      <span className="tabular-nums">{formatPrice(Number(it.unit_price) * it.quantity)}</span>
+                      <span className="tabular-nums">
+                        {awaitingWeight(it) ? "≈ " : ""}
+                        {formatPrice(lineTotal(it))}
+                      </span>
                     </li>
                   );
                 })}
@@ -130,14 +150,22 @@ function OrderConfirmation() {
                 <div className="flex justify-between">
                   <span>Livraison</span>
                   <span className="tabular-nums">
-                    {Number(data.delivery_fee ?? 0) > 0 ? formatPrice(Number(data.delivery_fee)) : "Gratuite"}
+                    {Number(data.delivery_fee ?? 0) > 0
+                      ? formatPrice(Number(data.delivery_fee))
+                      : "Gratuite"}
                   </span>
                 </div>
               </div>
               <div className="flex justify-between text-lg font-semibold">
-                <span>Total</span>
+                <span>{data.order_items.some(awaitingWeight) ? "Total estimé" : "Total"}</span>
                 <span className="tabular-nums">{formatPrice(Number(data.total_amount))}</span>
               </div>
+              {data.order_items.some(awaitingWeight) && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Articles au poids réel : le montant final sera ajusté après la pesée, avant la
+                  livraison.
+                </p>
+              )}
               <p className="mt-1 text-xs text-muted-foreground">
                 {data.payment_status === "paid"
                   ? "Réglé"
