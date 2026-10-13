@@ -14,6 +14,7 @@ import {
   MessageCircle,
   Phone,
   Printer,
+  Scale,
   StickyNote,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -23,6 +24,10 @@ import { useAuth } from "@/lib/auth";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import {
   NEXT_STATUS,
+  awaitingWeight,
+  formatWeight,
+  lineQuantity,
+  lineTotal,
   ORDER_STATUS_LABEL,
   PAYMENT_METHOD_LABEL,
   orderNumber,
@@ -63,7 +68,7 @@ const orderQuery = (id: string) => ({
     const { data, error } = await supabase
       .from("orders")
       .select(
-        "*, order_items(id, product_id, product_name, quantity, unit_price, products(unit, image_url))",
+        "*, order_items(id, product_id, product_name, quantity, unit_price, sold_by_weight, actual_quantity, products(unit, image_url))",
       )
       .eq("id", id)
       .maybeSingle();
@@ -141,10 +146,13 @@ function OrderSheetPage() {
 
   const status = order.status as OrderStatus;
   const items = order.order_items ?? [];
-  const subtotal = items.reduce((s, i) => s + Number(i.unit_price) * i.quantity, 0);
+  const subtotal = items.reduce((s, i) => s + lineTotal(i), 0);
+  // Articles au poids pas encore pesés : le total reste une estimation.
+  const toWeigh = items.filter(awaitingWeight).length;
   const fee = Number(order.delivery_fee ?? 0);
   const total = Number(order.total_amount);
   const paid = order.payment_status === "paid";
+  const canWeigh = status !== "cancelled" && status !== "delivered" && !paid;
   const next = NEXT_STATUS[status];
   const wa = whatsappLink(order.shipping_phone);
   const preparedCount = items.filter((i) => done.includes(i.id)).length;
@@ -179,6 +187,14 @@ function OrderSheetPage() {
       preparedCount < items.length &&
       !window.confirm(
         `${items.length - preparedCount} article(s) ne sont pas cochés comme prêts. Expédier quand même ?`,
+      )
+    )
+      return;
+    if (
+      (to === "shipped" || to === "delivered") &&
+      toWeigh > 0 &&
+      !window.confirm(
+        `${toWeigh} article(s) au poids ne sont pas pesés : le montant restera l'estimation. Continuer ?`,
       )
     )
       return;
@@ -329,13 +345,26 @@ function OrderSheetPage() {
                       </span>
                       <span className="shrink-0 text-right">
                         <span className="block text-lg font-semibold tabular-nums">
-                          × {i.quantity}
+                          {i.actual_quantity != null
+                            ? formatWeight(lineQuantity(i), i.products?.unit ?? "kg")
+                            : `× ${i.quantity}`}
                         </span>
                         <span className="block text-sm tabular-nums text-muted-foreground">
-                          {formatPrice(Number(i.unit_price) * i.quantity)}
+                          {awaitingWeight(i) ? "≈ " : ""}
+                          {formatPrice(lineTotal(i))}
                         </span>
                       </span>
                     </button>
+                    {i.sold_by_weight && (
+                      <WeightInput
+                        itemId={i.id}
+                        ordered={i.quantity}
+                        unit={i.products?.unit ?? "kg"}
+                        actual={i.actual_quantity}
+                        disabled={!canWeigh}
+                        onSaved={refresh}
+                      />
+                    )}
                   </li>
                 );
               })}
@@ -349,8 +378,14 @@ function OrderSheetPage() {
                 <dt className="text-muted-foreground">Livraison</dt>
                 <dd className="tabular-nums">{fee > 0 ? formatPrice(fee) : "Gratuite"}</dd>
               </div>
+              {toWeigh > 0 && (
+                <p className="rounded-md bg-accent/15 px-3 py-2 text-xs">
+                  {toWeigh} article{toWeigh > 1 ? "s" : ""} à peser : le total sera recalculé après
+                  la saisie du poids.
+                </p>
+              )}
               <div className="flex justify-between pt-1 text-base font-semibold">
-                <dt>Total</dt>
+                <dt>{toWeigh > 0 ? "Total estimé" : "Total"}</dt>
                 <dd className="tabular-nums">{formatPrice(total)}</dd>
               </div>
             </dl>
@@ -477,7 +512,9 @@ function OrderSheetPage() {
               {PAYMENT_METHOD_LABEL[order.payment_method] ?? order.payment_method}
             </p>
             <p className="mt-2 rounded border-2 border-black p-2 text-base font-bold">
-              {paid ? "DÉJÀ PAYÉE" : `À ENCAISSER : ${formatPrice(total)}`}
+              {paid
+                ? "DÉJÀ PAYÉE"
+                : `À ENCAISSER : ${formatPrice(total)}${toWeigh > 0 ? " (estimé avant pesée)" : ""}`}
             </p>
           </div>
         </div>
@@ -517,10 +554,18 @@ function OrderSheetPage() {
                     <span className="text-gray-500"> ({i.products.unit})</span>
                   ) : null}
                 </td>
-                <td className="py-2 text-center font-semibold">{i.quantity}</td>
+                <td className="py-2 text-center font-semibold">
+                  {i.actual_quantity != null ? (
+                    formatWeight(lineQuantity(i), i.products?.unit ?? "kg")
+                  ) : i.sold_by_weight ? (
+                    <span className="font-normal">{i.quantity} estimé · pesé : ______</span>
+                  ) : (
+                    i.quantity
+                  )}
+                </td>
                 <td className="py-2 text-right">{formatPrice(Number(i.unit_price))}</td>
                 <td className="py-2 text-right">
-                  {formatPrice(Number(i.unit_price) * i.quantity)}
+                  {awaitingWeight(i) ? "à peser" : formatPrice(lineTotal(i))}
                 </td>
               </tr>
             ))}
@@ -540,7 +585,7 @@ function OrderSheetPage() {
             </tr>
             <tr className="text-base font-bold">
               <td colSpan={4} className="pt-1 text-right">
-                Total
+                {toWeigh > 0 ? "Total estimé (avant pesée)" : "Total"}
               </td>
               <td className="pt-1 text-right">{formatPrice(total)}</td>
             </tr>
@@ -558,5 +603,84 @@ function OrderSheetPage() {
         </p>
       </div>
     </>
+  );
+}
+
+/** Saisie du poids pesé d'un article vendu au poids (recalcule le total en base). */
+function WeightInput({
+  itemId,
+  ordered,
+  unit,
+  actual,
+  disabled,
+  onSaved,
+}: {
+  itemId: string;
+  ordered: number;
+  unit: string;
+  actual: number | null;
+  disabled: boolean;
+  onSaved: () => void;
+}) {
+  const [value, setValue] = useState(actual != null ? String(actual).replace(".", ",") : "");
+  const [saving, setSaving] = useState(false);
+  useEffect(() => setValue(actual != null ? String(actual).replace(".", ",") : ""), [actual]);
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const v = value.trim().replace(",", ".");
+    const weight = v === "" ? null : Number(v);
+    if (weight !== null && (!Number.isFinite(weight) || weight <= 0)) {
+      toast.error("Poids invalide");
+      return;
+    }
+    setSaving(true);
+    const { data, error } = await supabase.rpc("set_item_weight", {
+      _item_id: itemId,
+      _weight: weight,
+    });
+    setSaving(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success(
+        weight === null
+          ? "Poids effacé"
+          : `Poids enregistré · nouveau total ${formatPrice(Number(data))}`,
+      );
+      onSaved();
+    }
+  };
+
+  const changed = value.trim().replace(",", ".") !== (actual != null ? String(actual) : "");
+
+  return (
+    <form onSubmit={save} className="mb-3 ml-10 flex flex-wrap items-center gap-2 text-sm">
+      <Scale className="h-4 w-4 text-primary" />
+      <label htmlFor={`w-${itemId}`} className="text-muted-foreground">
+        Poids pesé :
+      </label>
+      <input
+        id={`w-${itemId}`}
+        inputMode="decimal"
+        value={value}
+        disabled={disabled || saving}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder={`≈ ${ordered}`}
+        aria-describedby={`wo-${itemId}`}
+        className="w-28 rounded-md border border-border bg-background px-2 py-1 tabular-nums disabled:opacity-60"
+      />
+      <span className="text-muted-foreground">{unit}</span>
+      <span id={`wo-${itemId}`} className="text-xs text-muted-foreground">
+        (commandé : {ordered} {unit})
+      </span>
+      {!disabled && (
+        <Button type="submit" size="sm" variant="outline" disabled={saving || !changed}>
+          Enregistrer
+        </Button>
+      )}
+      {disabled && actual == null && (
+        <span className="text-xs text-muted-foreground">Non pesé</span>
+      )}
+    </form>
   );
 }

@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/format";
-import { ORDER_STATUS_LABEL, orderNumber, type OrderStatus } from "@/lib/orders";
+import { ORDER_STATUS_LABEL, lineTotal, orderNumber, type OrderStatus } from "@/lib/orders";
 import { LOW_STOCK_THRESHOLD } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
@@ -61,6 +61,7 @@ interface DashOrder {
     product_name: string;
     quantity: number;
     unit_price: number;
+    actual_quantity: number | null;
   }[];
 }
 
@@ -94,7 +95,7 @@ function useDashboard(period: Period) {
         supabase
           .from("orders")
           .select(
-            "id, created_at, total_amount, status, payment_status, shipping_full_name, order_items(product_id, product_name, quantity, unit_price)",
+            "id, created_at, total_amount, status, payment_status, shipping_full_name, order_items(product_id, product_name, quantity, unit_price, actual_quantity)",
           )
           .gte("created_at", prevStart.toISOString())
           .then((r) => {
@@ -228,7 +229,7 @@ export function AdminDashboard({ nav }: { nav: DashboardNav }) {
         const key = it.product_id ?? it.product_name;
         const row = byProduct.get(key) ?? { name: it.product_name, qty: 0, revenue: 0 };
         row.qty += it.quantity;
-        row.revenue += it.quantity * Number(it.unit_price);
+        row.revenue += lineTotal(it);
         byProduct.set(key, row);
       }
     }

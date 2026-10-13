@@ -105,7 +105,10 @@ export function ProductCard({ product }: { product: Product }) {
         >
           {formatPrice(price)}
         </span>
-        <span className="text-[11px] text-muted-foreground">/ {product.unit}</span>
+        <span className="text-[11px] text-muted-foreground">
+          / {product.unit}
+          {product.sold_by_weight && " · au poids réel"}
+        </span>
       </div>
       {promo && (
         <p className="text-[11px] text-muted-foreground">

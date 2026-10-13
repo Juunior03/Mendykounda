@@ -32,7 +32,7 @@ export const Route = createFileRoute("/_app/cart")({
 
 function CartPage() {
   const items = useCart();
-  const { lines, subtotal, itemCount, blocked, slaughterDay } = useCartLines(items);
+  const { lines, subtotal, itemCount, blocked, slaughterDay, hasWeighed } = useCartLines(items);
   const navigate = useNavigate();
 
   if (items.length === 0) {
@@ -166,6 +166,11 @@ function CartPage() {
                 ? `Votre panier contient de la viande de l'abattage du ${formatSlaughterDay(slaughterDay.day)} : livraison à partir de ce jour.`
                 : `Livraison estimée ${formatDeliveryWindow()}.`}
             </p>
+            {hasWeighed && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Montant estimé : les articles au poids réel sont ajustés après la pesée.
+              </p>
+            )}
             <button
               onClick={() => void navigate({ to: "/checkout" })}
               disabled={blocked || itemCount === 0}

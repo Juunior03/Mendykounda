@@ -109,15 +109,18 @@ export type Database = {
       }
       order_items: {
         Row: {
+          actual_quantity: number | null
           created_at: string
           id: string
           order_id: string
           product_id: string | null
           product_name: string
           quantity: number
+          sold_by_weight: boolean
           unit_price: number
         }
         Insert: {
+          actual_quantity?: number | null
           created_at?: string
           id?: string
           order_id: string
@@ -127,12 +130,14 @@ export type Database = {
           unit_price: number
         }
         Update: {
+          actual_quantity?: number | null
           created_at?: string
           id?: string
           order_id?: string
           product_id?: string | null
           product_name?: string
           quantity?: number
+          sold_by_weight?: boolean
           unit_price?: number
         }
         Relationships: [
@@ -258,6 +263,7 @@ export type Database = {
           updated_at: string
           needs_slaughter: boolean
           season_months: number[] | null
+          sold_by_weight: boolean
           variant_group: string | null
           variant_label: string | null
         }
@@ -279,6 +285,7 @@ export type Database = {
           updated_at?: string
           needs_slaughter?: boolean
           season_months?: number[] | null
+          sold_by_weight?: boolean
           variant_group?: string | null
           variant_label?: string | null
         }
@@ -300,6 +307,7 @@ export type Database = {
           updated_at?: string
           needs_slaughter?: boolean
           season_months?: number[] | null
+          sold_by_weight?: boolean
           variant_group?: string | null
           variant_label?: string | null
         }
@@ -436,6 +444,10 @@ export type Database = {
     Functions: {
       delivery_fee: {
         Args: { _subtotal: number; _zone_id: string }
+        Returns: number
+      }
+      set_item_weight: {
+        Args: { _item_id: string; _weight: number | null }
         Returns: number
       }
       has_role: {

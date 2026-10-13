@@ -10,6 +10,8 @@ export interface NotifyItem {
   product_name: string;
   quantity: number;
   unit_price: number | string;
+  /** Vendu au poids réel : montant ajusté après la pesée. */
+  sold_by_weight?: boolean;
 }
 
 export interface NotifyOrder {
@@ -203,8 +205,8 @@ function itemsRows(order: NotifyOrder) {
   return order.items
     .map(
       (it) => `<tr>
-          <td style="padding:8px 0;border-bottom:1px solid #eee">${escapeHtml(it.product_name)} <span style="color:#777">× ${it.quantity}</span></td>
-          <td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;white-space:nowrap">${formatFcfa(Number(it.unit_price) * it.quantity)}</td>
+          <td style="padding:8px 0;border-bottom:1px solid #eee">${escapeHtml(it.product_name)} <span style="color:#777">× ${it.quantity}${it.sold_by_weight ? " (estimé)" : ""}</span></td>
+          <td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;white-space:nowrap">${it.sold_by_weight ? "≈ " : ""}${formatFcfa(Number(it.unit_price) * it.quantity)}</td>
         </tr>`,
     )
     .join("");
@@ -236,6 +238,7 @@ export function buildCustomerEmail(order: NotifyOrder, siteUrl: string) {
       ? "Si le paiement Wave n'a pas abouti, vous pouvez le relancer depuis « Mes commandes »."
       : "Vous réglerez à la réception de votre commande.";
   const name = firstName(order.shipping_full_name);
+  const weighed = order.items.some((it) => it.sold_by_weight);
 
   const html = layout(
     `Commande ${no} confirmée`,
@@ -252,11 +255,12 @@ export function buildCustomerEmail(order: NotifyOrder, siteUrl: string) {
          <td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;white-space:nowrap">${deliveryLabel(order)}</td>
        </tr>
        <tr>
-         <td style="padding:12px 0 0;font-weight:bold">Total</td>
+         <td style="padding:12px 0 0;font-weight:bold">${weighed ? "Total estimé" : "Total"}</td>
          <td style="padding:12px 0 0;text-align:right;font-weight:bold;white-space:nowrap">${formatFcfa(order.total_amount)}</td>
        </tr>
      </table>
 
+     ${weighed ? `<p style="margin:12px 0 0;color:#555">Articles au poids réel : le montant final sera ajusté après la pesée, avant la livraison.</p>` : ""}
      <p style="margin:16px 0 0;color:#555">${payment}. ${paymentNote}</p>
      ${order.notes ? `<p style="margin:8px 0 0;color:#555">Instructions : ${escapeHtml(order.notes)}</p>` : ""}
 

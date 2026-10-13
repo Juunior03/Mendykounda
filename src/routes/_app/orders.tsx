@@ -19,6 +19,9 @@ import {
   PAYMENT_METHOD_LABEL,
   canCustomerCancel,
   canPayWithWave,
+  awaitingWeight,
+  formatWeight,
+  lineQuantity,
   type OrderStatus,
 } from "@/lib/orders";
 import { WavePayButton } from "@/components/wave-payment";
@@ -176,7 +179,9 @@ function OrderCard({ order: o }: { order: Order }) {
           <p className="mt-0.5 text-sm">{formatDate(o.created_at)}</p>
         </div>
         <div>
-          <p className="uppercase text-muted-foreground">Total</p>
+          <p className="uppercase text-muted-foreground">
+            {o.order_items.some(awaitingWeight) ? "Total estimé" : "Total"}
+          </p>
           <p className="mt-0.5 text-sm tabular-nums">{formatPrice(Number(o.total_amount))}</p>
           <p className="text-[11px] text-muted-foreground">
             {Number(o.delivery_fee) > 0
@@ -342,7 +347,23 @@ function OrderLine({
           <p className="line-clamp-2">{item.product_name}</p>
         )}
         <p className="text-xs text-muted-foreground">
-          Quantité : {item.quantity} · {formatPrice(Number(item.unit_price))} l'unité
+          {item.sold_by_weight ? (
+            item.actual_quantity != null ? (
+              <>
+                Poids réel : {formatWeight(lineQuantity(item), product?.unit ?? "kg")} (commandé :{" "}
+                {item.quantity}) · {formatPrice(Number(item.unit_price))} le {product?.unit ?? "kg"}
+              </>
+            ) : (
+              <>
+                Quantité estimée : {item.quantity} · {formatPrice(Number(item.unit_price))} le{" "}
+                {product?.unit ?? "kg"} · montant ajusté après la pesée
+              </>
+            )
+          ) : (
+            <>
+              Quantité : {item.quantity} · {formatPrice(Number(item.unit_price))} l'unité
+            </>
+          )}
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
           {canBuyAgain ? (
