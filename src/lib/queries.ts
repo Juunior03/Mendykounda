@@ -33,6 +33,8 @@ export interface Product {
   variant_label: string | null;
   /** Viande livrée à partir du prochain jour d'abattage. */
   needs_slaughter: boolean;
+  /** Mois de disponibilité (1 à 12), null = toute l'année. */
+  season_months: number[] | null;
   /** Note moyenne et nombre d'avis (listes produits uniquement). */
   rating_avg?: number;
   rating_count?: number;

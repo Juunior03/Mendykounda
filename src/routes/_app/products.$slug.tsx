@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   User as UserIcon,
   CalendarDays,
+  Sprout,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -20,6 +21,14 @@ import {
   reviewsByProductQuery,
 } from "@/lib/queries";
 import { formatDeadline, formatSlaughterDay, upcomingSlaughterQuery } from "@/lib/slaughter";
+import {
+  MONTHS,
+  backInLabel,
+  formatSeason,
+  inSeason,
+  isSeasonal,
+  seasonEndMonth,
+} from "@/lib/season";
 import { resolveProductImage } from "@/lib/product-images";
 import { formatPrice, formatDate } from "@/lib/format";
 import { cartStore } from "@/lib/cart";
@@ -89,7 +98,9 @@ function ProductPage() {
   const slaughter = product.needs_slaughter ? (upcoming?.[0] ?? null) : null;
   // Viande à l'abattage sans abattage programmé : pas commandable.
   const noSlaughter = product.needs_slaughter && upcoming !== undefined && !slaughter;
-  const outOfStock = product.stock <= 0 || noSlaughter;
+  const offSeason = !inSeason(product);
+  const seasonEnd = seasonEndMonth(product);
+  const outOfStock = product.stock <= 0 || noSlaughter || offSeason;
   const maxQty = Math.max(1, Math.min(product.stock, 10));
 
   const avg = reviews.length
@@ -204,6 +215,23 @@ function ProductPage() {
             </div>
           )}
 
+          {isSeasonal(product) && (
+            <div className="mt-5 flex gap-3 rounded-md border border-border bg-cream p-4 text-sm">
+              <Sprout className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <div>
+                <p className="font-semibold">
+                  {offSeason
+                    ? `Hors saison${backInLabel(product) ? `, ${backInLabel(product)}` : ""}`
+                    : `De saison${seasonEnd ? ` jusqu'en ${MONTHS[seasonEnd - 1]}` : ""}`}
+                </p>
+                <p className="mt-1 text-muted-foreground">
+                  Disponible à la ferme de {formatSeason(product.season_months)}.
+                  {offSeason ? " Revenez pendant la saison pour le commander." : ""}
+                </p>
+              </div>
+            </div>
+          )}
+
           {product.needs_slaughter && (
             <div className="mt-5 flex gap-3 rounded-md border border-border bg-cream p-4 text-sm">
               <CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
@@ -266,13 +294,15 @@ function ProductPage() {
               outOfStock ? "text-destructive" : product.stock <= LOW_STOCK_THRESHOLD ? "text-destructive" : "text-primary"
             }`}
           >
-            {noSlaughter
-              ? "Bientôt disponible"
-              : outOfStock
-                ? "Actuellement indisponible"
-                : product.stock <= LOW_STOCK_THRESHOLD
-                  ? `Plus que ${product.stock} en stock`
-                  : "En stock"}
+            {offSeason
+              ? "Hors saison"
+              : noSlaughter
+                ? "Bientôt disponible"
+                : outOfStock
+                  ? "Actuellement indisponible"
+                  : product.stock <= LOW_STOCK_THRESHOLD
+                    ? `Plus que ${product.stock} en stock`
+                    : "En stock"}
           </p>
 
           {!outOfStock && (

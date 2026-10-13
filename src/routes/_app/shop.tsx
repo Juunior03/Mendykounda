@@ -17,6 +17,7 @@ import { formatPrice } from "@/lib/format";
 import { formatDeliveryWindow } from "@/lib/delivery";
 import { DELIVERY_AREA } from "@/lib/zones";
 import { cn } from "@/lib/utils";
+import { inSeason, isSeasonal } from "@/lib/season";
 
 const SORTS = {
   relevance: "Pertinence",
@@ -36,6 +37,7 @@ const searchSchema = z.object({
   rating: z.coerce.number().int().min(1).max(4).optional(),
   stock: z.coerce.boolean().optional(),
   promo: z.coerce.boolean().optional(),
+  season: z.coerce.boolean().optional(),
   sort: z.enum(Object.keys(SORTS) as [SortKey, ...SortKey[]]).optional(),
 });
 type Search = z.infer<typeof searchSchema>;
@@ -55,7 +57,7 @@ export const Route = createFileRoute("/_app/shop")({
       {
         name: "description",
         content:
-          "Légumes, fruits de saison, volailles, porcs sur pied ou en viande, œufs, lait et jus de la ferme, livrés dans la région de Ziguinchor.",
+          "Légumes, fruits de saison, volailles vivantes ou au kilo, porcs sur pied ou en viande, œufs, lait et jus de la ferme, livrés dans la région de Ziguinchor.",
       },
       { property: "og:title", content: "Boutique fermière — MendyKounda" },
       {
@@ -125,8 +127,9 @@ function applyFilters(
       if (s.min != null && price < s.min) return false;
       if (s.max != null && price > s.max) return false;
       if (s.rating && (p.rating_avg ?? 0) < s.rating) return false;
-      if (s.stock && p.stock <= 0) return false;
+      if (s.stock && (p.stock <= 0 || !inSeason(p))) return false;
       if (s.promo && !hasPromo(p)) return false;
+      if (s.season && !(isSeasonal(p) && inSeason(p))) return false;
       return true;
     });
 }
@@ -147,7 +150,7 @@ function ShopPage() {
 
   const results = useMemo(() => {
     const rows = applyFilters(products, search, catNameBySlug);
-    const inStock = (p: Product) => Number(p.stock > 0);
+    const inStock = (p: Product) => Number(p.stock > 0 && inSeason(p));
     rows.sort((a, b) => {
       switch (sort) {
         case "price_asc":
@@ -206,6 +209,7 @@ function ShopPage() {
     chips.push({ label: `${search.rating} étoiles et plus`, clear: { rating: undefined } });
   if (search.stock) chips.push({ label: "En stock", clear: { stock: undefined } });
   if (search.promo) chips.push({ label: "En promotion", clear: { promo: undefined } });
+  if (search.season) chips.push({ label: "De saison", clear: { season: undefined } });
   const filterCount = chips.filter((c) => !("q" in c.clear)).length;
 
   const title = search.q
@@ -492,6 +496,15 @@ function Filters({
             className="h-4 w-4 accent-[var(--primary)]"
           />
           En promotion
+        </label>
+        <label className="flex cursor-pointer items-center gap-2 px-2 py-1.5 text-sm">
+          <input
+            type="checkbox"
+            checked={!!search.season}
+            onChange={(e) => update({ season: e.target.checked || undefined })}
+            className="h-4 w-4 accent-[var(--primary)]"
+          />
+          De saison en ce moment
         </label>
       </FilterGroup>
     </div>

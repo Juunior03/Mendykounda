@@ -31,6 +31,7 @@ import { ORDER_STATUS_LABEL, type OrderStatus } from "@/lib/orders";
 import { formatPrice } from "@/lib/format";
 import { DELIVERY_AREA } from "@/lib/zones";
 import hero from "@/assets/market-hero.jpg";
+import { inSeason, isSeasonal } from "@/lib/season";
 
 export const Route = createFileRoute("/_app/")({
   loader: async ({ context }) => {
@@ -68,7 +69,10 @@ function HomePage() {
   const { data: products } = useSuspenseQuery(productsQuery({}));
   const { data: categories } = useSuspenseQuery(categoriesQuery());
 
-  const inStockFirst = (a: Product, b: Product) => Number(b.stock > 0) - Number(a.stock > 0);
+  const available = (p: Product) => p.stock > 0 && inSeason(p);
+  const inStockFirst = (a: Product, b: Product) => Number(available(b)) - Number(available(a));
+  // Produits à saison limitée disponibles ce mois-ci.
+  const seasonal = products.filter((p) => isSeasonal(p) && available(p));
   const promos = products.filter(hasPromo).sort(inStockFirst);
   const featured = products.filter((p) => p.is_featured).sort(inStockFirst);
   const topRated = products
@@ -119,8 +123,8 @@ function HomePage() {
               Le frais de la Casamance, livré chez vous.
             </h1>
             <p className="mt-3 max-w-md text-sm text-white/85 md:text-base">
-              Légumes, fruits de saison, volailles, porcs, viandes, jus… tout vient de la ferme, livré dans {DELIVERY_AREA}{" "}
-              {formatDeliveryWindow()}.
+              Légumes, fruits de saison, volailles, porcs, viandes, jus… tout vient de la ferme,
+              livré dans {DELIVERY_AREA} {formatDeliveryWindow()}.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
@@ -206,6 +210,13 @@ function HomePage() {
         )}
 
         <BuyAgainRail products={products} />
+
+        <ProductRail
+          title="De saison en ce moment"
+          subtitle="Fruits et légumes du moment, tant que la saison dure"
+          products={seasonal}
+          seeAll={{ search: { season: "true" } }}
+        />
 
         <div id="promotions" className="scroll-mt-40">
           <ProductRail

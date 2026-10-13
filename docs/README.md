@@ -1,6 +1,6 @@
 # MendyKounda — Documentation
 
-Plateforme e-commerce premium pour la ferme MendyKounda (légumes, fruits de saison, volailles, œufs, porcs sur pied ou en viande, produits laitiers, jus…).
+Plateforme e-commerce premium pour la ferme MendyKounda (légumes, fruits de saison, volailles vivantes ou au kilo, œufs, porcs sur pied ou en viande, produits laitiers, jus…).
 
 ## 🛠 Stack
 
