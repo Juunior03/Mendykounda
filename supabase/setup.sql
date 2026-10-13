@@ -2121,6 +2121,23 @@ CREATE POLICY "Admins update farm settings" ON public.farm_settings
 GRANT SELECT ON public.farm_settings TO anon, authenticated;
 GRANT UPDATE ON public.farm_settings TO authenticated;
 
+
+-- ---------- 20261024090000_orders_realtime.sql ----------
+-- =========================================================
+-- Temps réel sur les commandes : la pastille « Admin » s'allume dès
+-- qu'une commande arrive (sans recharger la page). Les règles RLS
+-- s'appliquent : un client ne reçoit que ses propres commandes.
+-- =========================================================
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'orders'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
+  END IF;
+END $$;
+
 -- =========================================================
 -- APRÈS avoir créé ton propre compte sur le site, donne-toi le rôle admin
 -- (remplace l'email puis exécute uniquement ces lignes) :

@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth";
 import { useFarm } from "@/lib/farm";
+import { ADMIN_ALERTS_KEY } from "@/lib/admin-alerts";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import {
   NEXT_STATUS,
@@ -163,6 +164,7 @@ function OrderSheetPage() {
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ["admin-order", orderId] });
     void qc.invalidateQueries({ queryKey: ["admin-orders"] });
+    void qc.invalidateQueries({ queryKey: ADMIN_ALERTS_KEY });
     void qc.invalidateQueries({ queryKey: ["admin-products"] });
     void qc.invalidateQueries({ queryKey: ["products"] });
   };
