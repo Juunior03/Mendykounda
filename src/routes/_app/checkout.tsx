@@ -60,7 +60,6 @@ const shippingSchema = z.object({
     .refine(isValidPhone, "Numéro de téléphone invalide (ex. +221 77 123 45 67)"),
   address: z.string().trim().min(4, "Adresse requise").max(200),
   zoneId: z.string().uuid("Choisissez votre commune de livraison"),
-  postalCode: z.string().trim().max(20).optional(),
   notes: z.string().max(500).optional(),
 });
 
@@ -68,7 +67,7 @@ const shippingSchema = z.object({
 const WAVE_ENABLED = import.meta.env.VITE_WAVE_ENABLED === "true";
 
 type Address = Omit<z.infer<typeof shippingSchema>, "notes">;
-const EMPTY_ADDRESS: Address = { fullName: "", phone: "", address: "", zoneId: "", postalCode: "" };
+const EMPTY_ADDRESS: Address = { fullName: "", phone: "", address: "", zoneId: "" };
 
 function CheckoutPage() {
   const farm = useFarm();
@@ -109,7 +108,7 @@ function CheckoutPage() {
     if (!user || zones.length === 0) return;
     void supabase
       .from("profiles")
-      .select("full_name, phone, address, city, postal_code")
+      .select("full_name, phone, address, city")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {
@@ -119,7 +118,6 @@ function CheckoutPage() {
           phone: normalizePhone(data.phone),
           address: data.address ?? "",
           zoneId: matchZone(data.city, zones)?.id ?? "",
-          postalCode: data.postal_code ?? "",
         };
         setAddress(saved);
         // Adresse complète : on affiche le résumé au lieu du formulaire.
@@ -150,7 +148,6 @@ function CheckoutPage() {
           phone: a.phone,
           address: a.address,
           zone_id: a.zoneId,
-          postal_code: a.postalCode || null,
           notes: a.notes || null,
         },
         _payment_method: paymentMethod,
@@ -165,7 +162,6 @@ function CheckoutPage() {
             phone: a.phone,
             address: a.address,
             city: zone ? zoneLabel(zone, zones) : null,
-            postal_code: a.postalCode || null,
           })
           .eq("id", user.id);
       }
@@ -242,7 +238,6 @@ function CheckoutPage() {
   }[] = [
     { k: "fullName", label: "Nom complet", full: true, autoComplete: "name" },
     { k: "phone", label: "Téléphone", autoComplete: "tel", type: "tel" },
-    { k: "postalCode", label: "Code postal (facultatif)", autoComplete: "postal-code" },
     {
       k: "address",
       label: "Adresse (quartier, rue, point de repère)",
@@ -307,7 +302,7 @@ function CheckoutPage() {
                   </label>
                   {fields.map((f) =>
                     f.k === "phone" ? (
-                      <div key={f.k}>
+                      <div key={f.k} className="sm:col-span-2 sm:max-w-sm">
                         <label htmlFor="checkout-phone" className="text-xs font-medium">
                           {f.label}
                         </label>
@@ -326,7 +321,7 @@ function CheckoutPage() {
                           value={address[f.k] ?? ""}
                           onChange={update(f.k)}
                           autoComplete={f.autoComplete}
-                          required={f.k !== "postalCode"}
+                          required
                           className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
                         />
                       </label>
@@ -359,7 +354,6 @@ function CheckoutPage() {
                   <br />
                   {address.address}
                   <br />
-                  {address.postalCode ? `${address.postalCode} ` : ""}
                   {zone ? zoneLabel(zone, zones) : ""}
                   <br />
                   Tél. : {address.phone}

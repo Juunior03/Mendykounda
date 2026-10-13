@@ -193,7 +193,7 @@ function OrderCard({ order: o }: { order: Order }) {
           <p className="uppercase text-muted-foreground">Livraison à</p>
           <p
             className="mt-0.5 truncate text-sm"
-            title={`${o.shipping_address}, ${o.shipping_postal_code} ${o.shipping_city}`}
+            title={`${o.shipping_address}, ${o.shipping_city}`}
           >
             {o.shipping_full_name}, {o.shipping_city}
           </p>

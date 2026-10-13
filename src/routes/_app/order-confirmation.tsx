@@ -101,8 +101,7 @@ function OrderConfirmation() {
                 <div>
                   <p className="text-sm font-semibold">Livraison à</p>
                   <address className="mt-1 text-sm not-italic text-muted-foreground">
-                    {data.shipping_full_name}, {data.shipping_address}, {data.shipping_postal_code}{" "}
-                    {data.shipping_city}
+                    {data.shipping_full_name}, {data.shipping_address}, {data.shipping_city}
                   </address>
                 </div>
               </div>

@@ -55,7 +55,6 @@ function AccountPage() {
     phone: "",
     address: "",
     city: "",
-    postal_code: "",
   });
   useEffect(() => {
     if (profile) {
@@ -64,7 +63,6 @@ function AccountPage() {
         phone: normalizePhone(profile.phone),
         address: profile.address ?? "",
         city: profile.city ?? "",
-        postal_code: profile.postal_code ?? "",
       });
     }
   }, [profile]);
@@ -113,7 +111,6 @@ function AccountPage() {
               { k: "phone", label: "Téléphone" },
               { k: "address", label: "Adresse (quartier, rue, point de repère)" },
               { k: "city", label: "Commune de livraison" },
-              { k: "postal_code", label: "Code postal (facultatif)" },
             ].map((f) =>
               f.k === "phone" ? (
                 <div key={f.k}>
