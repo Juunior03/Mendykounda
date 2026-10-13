@@ -217,7 +217,7 @@ function layout(title: string, body: string) {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f4ef;padding:24px 12px">
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:8px;overflow:hidden">
-        <tr><td style="background:#22c55e;padding:18px 24px;color:#ffffff;font-size:20px;font-weight:bold">MendyKounda</td></tr>
+        <tr><td style="background:#14532d;padding:18px 24px;color:#ffffff;font-size:20px;font-weight:bold;letter-spacing:1px">MENDYKOUNDA<span style="display:block;margin-top:4px;color:#f6ad55;font-size:11px;letter-spacing:3px">CASAMANCE • ZIGUINCHOR</span></td></tr>
         <tr><td style="padding:24px;font-size:14px;line-height:1.5">${body}</td></tr>
         <tr><td style="padding:16px 24px;background:#faf8f3;color:#888;font-size:12px">Ferme MendyKounda · Produits fermiers livrés dans la région de Ziguinchor</td></tr>
       </table>
@@ -242,7 +242,7 @@ export function buildCustomerEmail(order: NotifyOrder, siteUrl: string) {
     `<h1 style="margin:0 0 8px;font-size:20px">Merci${name ? ` ${escapeHtml(name)}` : ""}, votre commande est confirmée.</h1>
      <p style="margin:0 0 16px;color:#555">Commande n° <strong>${no}</strong></p>
 
-     <p style="margin:0 0 4px;font-weight:bold;color:#16a34a">Livraison prévue entre ${longDate(start)} et ${longDate(end)}</p>
+     <p style="margin:0 0 4px;font-weight:bold;color:#15803d">Livraison prévue entre ${longDate(start)} et ${longDate(end)}</p>
      <p style="margin:0 0 20px;color:#555">${escapeHtml(order.shipping_full_name)}, ${escapeHtml(order.shipping_address)}, ${escapeHtml(order.shipping_postal_code)} ${escapeHtml(order.shipping_city)} · Tél. ${escapeHtml(order.shipping_phone)}</p>
 
      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
@@ -261,7 +261,7 @@ export function buildCustomerEmail(order: NotifyOrder, siteUrl: string) {
      ${order.notes ? `<p style="margin:8px 0 0;color:#555">Instructions : ${escapeHtml(order.notes)}</p>` : ""}
 
      <p style="margin:24px 0 0">
-       <a href="${escapeHtml(ordersUrl)}" style="display:inline-block;background:#f59e0b;color:#1a1a1a;text-decoration:none;padding:10px 20px;border-radius:999px;font-weight:bold">Suivre ma commande</a>
+       <a href="${escapeHtml(ordersUrl)}" style="display:inline-block;background:#d97706;color:#1a1a1a;text-decoration:none;padding:10px 20px;border-radius:999px;font-weight:bold">Suivre ma commande</a>
      </p>
      <p style="margin:16px 0 0;color:#888;font-size:12px">Vous pouvez annuler gratuitement depuis « Mes commandes » tant que la commande n'est pas expédiée.</p>`,
   );
@@ -306,7 +306,7 @@ export function buildAdminEmail(order: NotifyOrder, siteUrl: string) {
      </table>
      <p style="margin:16px 0 0;color:#555">${payment}</p>
      ${order.notes ? `<p style="margin:8px 0 0;color:#555">Instructions : ${escapeHtml(order.notes)}</p>` : ""}
-     <p style="margin:24px 0 0"><a href="${escapeHtml(adminUrl)}" style="color:#16a34a;font-weight:bold">Ouvrir l'administration</a></p>`,
+     <p style="margin:24px 0 0"><a href="${escapeHtml(adminUrl)}" style="color:#15803d;font-weight:bold">Ouvrir l'administration</a></p>`,
   );
   const text = `Nouvelle commande ${no} — ${order.shipping_full_name} (${order.shipping_phone}), ${order.shipping_city}. Total ${formatFcfa(order.total_amount)}. ${payment}. ${adminUrl}`;
   return { subject: `Nouvelle commande ${no} — ${formatFcfa(order.total_amount)}`, html, text };
