@@ -49,3 +49,6 @@ Réparé : `npm ci` fonctionne sur une installation neuve et `npm audit` ne sign
 - Nitro (outil de construction du serveur) mis à jour : corrige les failles de `undici`, `sharp` et `miniflare`. `seroval` est aussi à jour.
 - Un seul fichier de verrouillage, `package-lock.json` : l'ancien `bun.lockb`, périmé, est supprimé.
 - Node.js 20.19 ou plus récent est requis (à choisir chez l'hébergeur).
+
+### Mise en ligne
+Suivre [HEBERGEMENT.md](HEBERGEMENT.md) : Cloudflare, nom de domaine, réglages Supabase pour l'adresse définitive (Site URL, SMTP Brevo, `SITE_URL`) et parcours de vérification final.
