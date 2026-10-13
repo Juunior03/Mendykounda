@@ -55,7 +55,7 @@ export const Route = createFileRoute("/_app/shop")({
       {
         name: "description",
         content:
-          "Achetez volailles, œufs, produits laitiers et viandes fermières, livrés dans la région de Ziguinchor.",
+          "Légumes, fruits de saison, volailles, porcs sur pied ou en viande, œufs, lait et jus de la ferme, livrés dans la région de Ziguinchor.",
       },
       { property: "og:title", content: "Boutique fermière — MendyKounda" },
       {

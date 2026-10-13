@@ -4,7 +4,7 @@ import { BrandLogo } from "@/components/brand-logo";
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border bg-primary text-primary-foreground">
+    <footer className="print:hidden border-t border-border bg-primary text-primary-foreground">
       <div className="container-market grid gap-8 py-10 sm:grid-cols-2 lg:grid-cols-4">
         <div><BrandLogo inverted /><p className="mt-4 max-w-xs text-sm text-primary-foreground/75">La ferme en ligne qui rapproche les produits locaux des familles de la région de Ziguinchor.</p><p className="mt-4 flex items-center gap-2 text-sm text-primary-foreground/75"><MapPin className="h-4 w-4" /> Région de Ziguinchor, Sénégal</p></div>
         <div><p className="mb-4 font-semibold">Besoin d’aide ?</p><ul className="space-y-3 text-sm text-primary-foreground/75"><li><Link to="/contact" className="hover:text-primary-foreground">Contactez-nous</Link></li><li><Link to="/orders" className="hover:text-primary-foreground">Suivre mes commandes</Link></li><li><Link to="/cart" className="hover:text-primary-foreground">Mon panier</Link></li></ul></div>
