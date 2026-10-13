@@ -250,7 +250,6 @@ function CustomerPage() {
               </ul>
             )}
           </section>
-
         </div>
 
         <div className="space-y-6">
