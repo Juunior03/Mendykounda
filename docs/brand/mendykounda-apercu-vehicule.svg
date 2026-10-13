@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360"><defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0f2fe"/><stop offset="1" stop-color="#e2e8f0"/></linearGradient></defs><rect width="600" height="360" fill="url(#sky)"/>
+              <!-- Route -->
+              <rect x="0" y="290" width="600" height="70" fill="#334155" />
+              <line x1="20" y1="325" x2="120" y2="325" stroke="#fbbf24" stroke-width="4" stroke-dasharray="20 15" />
+              <line x1="240" y1="325" x2="580" y2="325" stroke="#fbbf24" stroke-width="4" stroke-dasharray="20 15" />
+
+              <!-- Carrosserie du véhicule (Pick-up / Fourgon blanc) -->
+              <path d="M50 260 L50 140 L140 65 L480 65 L540 140 L560 260 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="3" />
+              <!-- Bas de caisse -->
+              <rect x="45" y="245" width="515" height="22" rx="6" fill="#1e293b" />
+              <!-- Bande décorative verte et ocre sur le véhicule -->
+              <path class="color-primary" d="M52 225 L555 225 L558 238 L50 238 Z" fill="#14532d" />
+              <path class="color-accent" d="M52 218 L554 218 L555 225 L52 225 Z" fill="#d97706" />
+
+              <!-- Fenêtre avant -->
+              <path d="M150 78 L285 78 L285 142 L95 142 Z" fill="#1e293b" />
+              <!-- Cadre de portière -->
+              <line x1="295" y1="68" x2="295" y2="245" stroke="#cbd5e1" stroke-width="3" />
+              <!-- Poignée de porte -->
+              <rect x="255" y="158" width="28" height="8" rx="4" fill="#64748b" />
+
+              <!-- Roues -->
+              <circle cx="135" cy="265" r="42" fill="#0f172a" />
+              <circle cx="135" cy="265" r="22" fill="#94a3b8" />
+              <circle cx="465" cy="265" r="42" fill="#0f172a" />
+              <circle cx="465" cy="265" r="22" fill="#94a3b8" />
+
+              <!-- LE MACARON ROND VALIDÉ APPLIQUÉ SUR LA PORTIÈRE AVANT -->
+              <g transform="translate(195, 182) scale(0.19)">
+                <circle cx="0" cy="0" r="190" fill="#ffffff" />
+                <circle class="color-primary" cx="0" cy="0" r="182" fill="none" stroke="#14532d" stroke-width="14" />
+                <path class="color-accent" d="M-75 -35 A75 75 0 0 1 75 -35 Z" fill="#d97706" />
+                <path class="color-primary" d="M-90 -35 L0 -100 L90 -35 Z" fill="#14532d" />
+                <path d="M-45 -35 L0 -68 L45 -35 Z" fill="#ffffff" />
+                <rect class="color-primary" x="-188" y="-25" width="376" height="68" rx="12" fill="#14532d" />
+                <text x="0" y="21" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="900" font-size="36" letter-spacing="1.5" fill="#ffffff">MENDYKOUNDA</text>
+                <text class="color-primary" x="0" y="78" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="800" font-size="18" letter-spacing="2" fill="#14532d">FERME &amp; TERROIR</text>
+                <text class="color-accent subtitle-text" x="0" y="106" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="800" font-size="15" letter-spacing="2.5" fill="#d97706">CASAMANCE • ZIGUINCHOR</text>
+              </g>
+
+              <!-- Rappel sur le panneau arrière du véhicule -->
+              <g transform="translate(320, 118)">
+                <text class="color-primary" x="0" y="25" font-family="Montserrat, sans-serif" font-weight="900" font-size="22" fill="#14532d">MENDYKOUNDA</text>
+                <text class="color-accent subtitle-text" x="0" y="43" font-family="Montserrat, sans-serif" font-weight="800" font-size="10.5" letter-spacing="1.5" fill="#d97706">CASAMANCE • ZIGUINCHOR</text>
+                <text class="color-leaf" x="0" y="60" font-family="Plus Jakarta Sans, sans-serif" font-weight="700" font-size="10.5" fill="#15803d">LIVRAISON PRODUITS FERMIERS</text>
+              </g>
+            </svg>

@@ -1,0 +1,12 @@
+<svg id="svg-ecom-main" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 320" class="w-full max-w-[320px] h-auto">
+              <!-- Cercle minimaliste avec M-Feuille et Soleil -->
+              <g transform="translate(250, 115)">
+                <circle class="color-primary" cx="0" cy="0" r="76" fill="none" stroke="#14532d" stroke-width="8" />
+                <circle class="color-accent" cx="0" cy="-24" r="20" fill="#d97706" />
+                <path class="color-primary" d="M-42 36 L-24 -12 L0 18 L24 -12 L42 36" fill="none" stroke="#14532d" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
+                <path class="color-leaf" d="M0 -48 C12 -64, 28 -52, 14 -38 C6 -32, 0 -40, 0 -48 Z" fill="#15803d" />
+              </g>
+              <!-- Nom centré en dessous -->
+              <text class="color-primary" x="250" y="238" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="900" font-size="40" letter-spacing="1.5" fill="#14532d">MENDYKOUNDA</text>
+              <text class="color-accent subtitle-text" x="250" y="265" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="700" font-size="14" letter-spacing="4" fill="#d97706">CASAMANCE • ZIGUINCHOR</text>
+            </svg>

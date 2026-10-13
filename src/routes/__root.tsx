@@ -10,6 +10,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/lib/auth";
 import appCss from "../styles.css?url";
+import { BrandLogoStacked } from "@/components/brand-logo";
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -19,6 +20,7 @@ function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
+        <BrandLogoStacked className="mb-8" />
         <p className="editorial-eyebrow mb-3">404</p>
         <h1 className="text-4xl font-medium tracking-tight">Page introuvable</h1>
         <p className="mt-3 text-sm text-muted-foreground">
@@ -49,6 +51,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
           "Volailles, œufs, lait et viandes fermières issus de notre élevage. Direct producteur, livraison soignée.",
       },
       { name: "author", content: "MendyKounda" },
+      { name: "theme-color", content: "#14532d" },
       { property: "og:title", content: "MendyKounda — Ferme d'élevage premium" },
       { property: "og:description", content: "Direct producteur. Volailles, œufs, lait, viandes." },
       { property: "og:type", content: "website" },
@@ -56,6 +59,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32.png" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       { rel: "stylesheet", href: appCss },
       {
         rel: "preconnect",
@@ -63,7 +68,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;900&display=swap",
       },
     ],
   }),

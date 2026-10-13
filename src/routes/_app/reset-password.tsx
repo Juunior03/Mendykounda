@@ -3,6 +3,7 @@
  * Supabase auto-creates a recovery session in URL hash; updateUser sets new password.
  */
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { BrandLogoStacked } from "@/components/brand-logo";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +41,9 @@ function ResetPasswordPage() {
   return (
     <div className="container-editorial flex min-h-[80vh] items-center justify-center py-16">
       <div className="w-full max-w-sm">
+        <Link to="/" className="mb-8 flex justify-center" aria-label="MendyKounda — accueil">
+          <BrandLogoStacked />
+        </Link>
         <p className="editorial-eyebrow text-center">Sécurité</p>
         <h1 className="mt-3 text-center text-3xl font-medium tracking-tight">Nouveau mot de passe</h1>
         <form onSubmit={submit} className="mt-8 space-y-4">

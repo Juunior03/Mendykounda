@@ -2,6 +2,7 @@
  * Auth page — email/password sign-in & sign-up + Google OAuth.
  */
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { BrandLogoStacked } from "@/components/brand-logo";
 import { useState, useEffect } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -90,6 +91,9 @@ function AuthPage() {
   return (
     <div className="container-editorial flex min-h-[80vh] items-center justify-center py-16">
       <div className="w-full max-w-sm">
+        <Link to="/" className="mb-8 flex justify-center" aria-label="MendyKounda — accueil">
+          <BrandLogoStacked />
+        </Link>
         <p className="editorial-eyebrow text-center">Espace client</p>
         <h1 className="mt-3 text-center text-3xl font-medium tracking-tight">
           {mode === "login" ? "Bon retour" : mode === "signup" ? "Créez votre compte" : "Mot de passe oublié"}
