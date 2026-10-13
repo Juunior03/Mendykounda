@@ -15,6 +15,7 @@ import { effectivePrice, hasPromo, promoPercent, LOW_STOCK_THRESHOLD } from "@/l
 import { useQuery } from "@tanstack/react-query";
 import { deliveryWindow, formatLongDate } from "@/lib/delivery";
 import { formatSlaughterDay, upcomingSlaughterQuery } from "@/lib/slaughter";
+import { backInLabel, inSeason, isSeasonal } from "@/lib/season";
 
 export function ProductCard({ product }: { product: Product }) {
   const img = resolveProductImage(product.image_url);
@@ -26,7 +27,8 @@ export function ProductCard({ product }: { product: Product }) {
   });
   const slaughter = product.needs_slaughter ? (upcoming?.[0] ?? null) : null;
   const noSlaughter = product.needs_slaughter && upcoming !== undefined && !slaughter;
-  const outOfStock = product.stock <= 0 || noSlaughter;
+  const offSeason = !inSeason(product);
+  const outOfStock = product.stock <= 0 || noSlaughter || offSeason;
   const ratingCount = product.rating_count ?? 0;
 
   const add = () => {
@@ -61,6 +63,11 @@ export function ProductCard({ product }: { product: Product }) {
           {product.is_featured && (
             <span className="absolute left-2 top-2 rounded-sm bg-background/90 px-2 py-1 text-[9px] font-semibold uppercase backdrop-blur">
               Coup de cœur
+            </span>
+          )}
+          {isSeasonal(product) && !offSeason && (
+            <span className="absolute bottom-2 left-2 rounded-sm bg-primary px-2 py-1 text-[10px] font-semibold text-primary-foreground">
+              De saison
             </span>
           )}
           {promo && (
@@ -111,7 +118,11 @@ export function ProductCard({ product }: { product: Product }) {
       )}
 
       <div className="mt-1.5 text-[11px] leading-4">
-        {noSlaughter ? (
+        {offSeason ? (
+          <p className="font-medium text-muted-foreground">
+            Hors saison{backInLabel(product) ? ` · ${backInLabel(product)}` : ""}
+          </p>
+        ) : noSlaughter ? (
           <p className="font-medium text-muted-foreground">Prochain abattage bientôt programmé</p>
         ) : outOfStock ? (
           <p className="font-medium text-destructive">Actuellement indisponible</p>
@@ -141,7 +152,13 @@ export function ProductCard({ product }: { product: Product }) {
         onClick={add}
       >
         <ShoppingCart />{" "}
-        {noSlaughter ? "Bientôt disponible" : outOfStock ? "Épuisé" : "Ajouter au panier"}
+        {offSeason
+          ? "Hors saison"
+          : noSlaughter
+            ? "Bientôt disponible"
+            : outOfStock
+              ? "Épuisé"
+              : "Ajouter au panier"}
       </Button>
     </article>
   );

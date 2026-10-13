@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cartStore, type CartItem } from "@/lib/cart";
 import { effectivePrice } from "@/lib/pricing";
 import { upcomingSlaughterQuery, type SlaughterDay } from "@/lib/slaughter";
+import { backInLabel, inSeason } from "@/lib/season";
 
 interface LiveProduct {
   id: string;
@@ -21,6 +22,7 @@ interface LiveProduct {
   unit: string;
   image_url: string | null;
   needs_slaughter: boolean;
+  season_months: number[] | null;
 }
 
 export interface CartLine {
@@ -45,7 +47,7 @@ export function useCartLines(items: CartItem[]) {
       const { data, error } = await supabase
         .from("products")
         .select(
-          "id, slug, name, price, discount_price, stock, is_active, unit, image_url, needs_slaughter",
+          "id, slug, name, price, discount_price, stock, is_active, unit, image_url, needs_slaughter, season_months",
         )
         .in("id", ids);
       if (error) throw error;
@@ -75,7 +77,9 @@ export function useCartLines(items: CartItem[]) {
     }
     const price = effectivePrice(product);
     let issue: string | null = null;
-    if (product.stock <= 0) issue = "Actuellement indisponible.";
+    if (!inSeason(product))
+      issue = `Hors saison${backInLabel(product) ? `, ${backInLabel(product)}` : ""} : retirez cet article.`;
+    else if (product.stock <= 0) issue = "Actuellement indisponible.";
     else if (item.quantity > product.stock)
       issue = `Plus que ${product.stock} en stock : réduisez la quantité.`;
     else if (product.needs_slaughter && upcoming && upcoming.length === 0)

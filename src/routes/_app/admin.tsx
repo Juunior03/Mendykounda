@@ -12,6 +12,7 @@ import { formatPrice } from "@/lib/format";
 import { ORDER_STATUS_LABEL, PAYMENT_METHOD_LABEL, orderNumber, type OrderStatus } from "@/lib/orders";
 import { LOW_STOCK_THRESHOLD } from "@/lib/pricing";
 import { formatSlaughterDayShort } from "@/lib/slaughter";
+import { MONTHS_SHORT, formatSeason, inSeason, isSeasonal } from "@/lib/season";
 import {
   AdminDashboard,
   type DashboardNav,
@@ -179,13 +180,14 @@ interface ProductRow {
   variant_group: string | null;
   variant_label: string | null;
   needs_slaughter: boolean;
+  season_months: number[] | null;
 }
 
 const emptyProduct: Partial<ProductRow> = {
   name: "", slug: "", description: "", price: 0, stock: 0, unit: "kg",
   image_url: "", is_active: true, is_featured: false, category_id: null,
   discount_price: null, discount_label: "",
-  variant_group: "", variant_label: "", needs_slaughter: false,
+  variant_group: "", variant_label: "", needs_slaughter: false, season_months: null,
 };
 
 /* ---------- Products admin ---------- */
@@ -204,7 +206,7 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, slug, description, price, stock, is_active, is_featured, unit, image_url, category_id, discount_price, discount_label, variant_group, variant_label, needs_slaughter")
+        .select("id, name, slug, description, price, stock, is_active, is_featured, unit, image_url, category_id, discount_price, discount_label, variant_group, variant_label, needs_slaughter, season_months")
         .order("name");
       if (error) throw error;
       return data as ProductRow[];
@@ -265,6 +267,11 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
       variant_group: editing.variant_group?.trim() ? slugify(editing.variant_group) : null,
       variant_label: editing.variant_label?.trim() ? editing.variant_label.trim() : null,
       needs_slaughter: !!editing.needs_slaughter,
+      // Aucun mois ou les 12 cochés = toute l'année.
+      season_months:
+        editing.season_months?.length && editing.season_months.length < 12
+          ? [...editing.season_months].sort((a, b) => a - b)
+          : null,
     };
     if (!payload.name) { toast.error("Nom requis"); return; }
 
@@ -312,13 +319,18 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
               <tr key={p.id} className="hover:bg-secondary/40">
                 <td className="p-3 font-medium">
                   {p.name}
-                  {(p.variant_label || p.needs_slaughter) && (
+                  {(p.variant_label || p.needs_slaughter || isSeasonal(p)) && (
                     <span className="mt-1 flex flex-wrap gap-1 text-[11px] font-normal">
                       {p.variant_label && (
                         <span className="rounded bg-secondary px-1.5 py-0.5">Format : {p.variant_label}</span>
                       )}
                       {p.needs_slaughter && (
                         <span className="rounded bg-accent/15 px-1.5 py-0.5">À l'abattage</span>
+                      )}
+                      {isSeasonal(p) && (
+                        <span className={`rounded px-1.5 py-0.5 ${inSeason(p) ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                          {inSeason(p) ? "De saison" : "Hors saison"} : {formatSeason(p.season_months)}
+                        </span>
                       )}
                     </span>
                   )}
@@ -409,12 +421,12 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
                 <p className="text-xs font-medium">Formats (facultatif)</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   Donnez le même groupe à plusieurs produits pour les proposer sur une seule fiche,
-                  par exemple groupe « cochon-de-lait » : « Sur pied » et « En viande ».
+                  par exemple groupe « poulet » : « Vivant » et « Au kg, déplumé, vidé, emballé ».
                 </p>
                 <div className="mt-2 grid gap-3 sm:grid-cols-2">
                   <Field label="Groupe">
                     <input className="input" list="variant-groups" value={editing.variant_group ?? ""}
-                      placeholder="cochon-de-lait"
+                      placeholder="poulet, cochon-de-lait…"
                       onChange={(e) => setEditing({ ...editing, variant_group: e.target.value })} />
                     <datalist id="variant-groups">
                       {[...new Set((products ?? []).map((p) => p.variant_group).filter(Boolean))].map((g) => (
@@ -424,7 +436,7 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
                   </Field>
                   <Field label="Nom du format">
                     <input className="input" value={editing.variant_label ?? ""}
-                      placeholder="Sur pied, En viande, Demi-porc…"
+                      placeholder="Sur pied, Vivant, En viande, Au kg…"
                       onChange={(e) => setEditing({ ...editing, variant_label: e.target.value })} />
                   </Field>
                 </div>
@@ -438,6 +450,36 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
                     </span>
                   </span>
                 </label>
+              </div>
+              <div className="rounded-md border border-border p-3 sm:col-span-2">
+                <p className="text-xs font-medium">Saison (facultatif)</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Cochez les mois où le produit est disponible. Hors saison, il reste visible mais ne peut
+                  pas être commandé. Aucun mois coché = toute l'année.
+                </p>
+                <div className="mt-2 grid grid-cols-4 gap-1.5 sm:grid-cols-6">
+                  {MONTHS_SHORT.map((label, i) => {
+                    const m = i + 1;
+                    const on = !!editing.season_months?.includes(m);
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => {
+                          const cur = editing.season_months ?? [];
+                          setEditing({ ...editing, season_months: on ? cur.filter((x) => x !== m) : [...cur, m] });
+                        }}
+                        className={`rounded-md border px-2 py-1.5 text-xs ${on ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-secondary"}`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Disponible : {formatSeason(editing.season_months)}
+                </p>
               </div>
               <Field label="Image" className="sm:col-span-2">
                 <ImagePicker

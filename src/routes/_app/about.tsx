@@ -35,7 +35,8 @@ function AboutPage() {
           </p>
           <p>
             Nous cultivons des légumes et des fruits au fil des saisons, et nos volailles et nos
-            porcs sont élevés au grand air. Les cochons, de lait ou adultes, se vendent sur pied
+            porcs sont élevés au grand air. Les volailles se vendent vivantes ou en poulet de chair
+            au kilo, déplumé, vidé et emballé. Les cochons, de lait ou adultes, se vendent sur pied
             ou en viande selon les jours d'abattage. Nos œufs sont ramassés chaque matin, et nous
             préparons aussi du lait et des jus.
           </p>

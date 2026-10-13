@@ -257,6 +257,7 @@ export type Database = {
           unit: string
           updated_at: string
           needs_slaughter: boolean
+          season_months: number[] | null
           variant_group: string | null
           variant_label: string | null
         }
@@ -277,6 +278,7 @@ export type Database = {
           unit?: string
           updated_at?: string
           needs_slaughter?: boolean
+          season_months?: number[] | null
           variant_group?: string | null
           variant_label?: string | null
         }
@@ -297,6 +299,7 @@ export type Database = {
           unit?: string
           updated_at?: string
           needs_slaughter?: boolean
+          season_months?: number[] | null
           variant_group?: string | null
           variant_label?: string | null
         }
