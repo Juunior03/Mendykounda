@@ -102,6 +102,7 @@ export function ChatBox({ userId, asAdmin = false }: { userId: string; asAdmin?:
       <div className="flex gap-2 border-t border-border p-3">
         <textarea
           value={text}
+          maxLength={2000}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {

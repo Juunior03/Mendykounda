@@ -99,7 +99,7 @@ function CheckoutPage() {
   const total = subtotal + fee;
 
   useEffect(() => {
-    if (!loading && !user) void navigate({ to: "/auth" });
+    if (!loading && !user) void navigate({ to: "/auth", search: { redirect: "/checkout" } });
   }, [loading, user, navigate]);
 
   // Préremplir avec l'adresse enregistrée du profil (la ville doit

@@ -56,7 +56,9 @@ export const Route = createFileRoute("/_app/products/$slug")({
   ),
   errorComponent: ({ error }) => (
     <div className="container-editorial py-32 text-center">
-      <p className="text-sm text-destructive">{error.message}</p>
+      <p className="text-sm text-destructive">
+        {error instanceof Error ? error.message : "Une erreur est survenue."}
+      </p>
     </div>
   ),
   component: ProductPage,
@@ -451,11 +453,37 @@ function ReviewForm({ productId }: { productId: string }) {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
+  // Avis réservés aux clients qui ont reçu ce produit (vérifié aussi en base).
+  const { data: canReview, isLoading: checking } = useQuery({
+    queryKey: ["can-review", productId, user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("can_review", { _product_id: productId });
+      if (error) return false;
+      return !!data;
+    },
+  });
 
   if (!user) {
     return (
       <p className="mt-4 text-sm text-muted-foreground">
-        <Link to="/auth" className="underline-grow text-foreground">Connectez-vous</Link> pour laisser un avis.
+        <Link
+          to="/auth"
+          search={{ redirect: typeof window === "undefined" ? undefined : window.location.pathname }}
+          className="underline-grow text-foreground"
+        >
+          Connectez-vous
+        </Link> pour laisser un avis.
+      </p>
+    );
+  }
+
+  if (checking) return null;
+  if (!canReview) {
+    return (
+      <p className="mt-4 text-sm text-muted-foreground">
+        Les avis sont réservés aux clients qui ont reçu ce produit : vous pourrez donner le vôtre
+        après la livraison de votre commande.
       </p>
     );
   }
@@ -497,6 +525,7 @@ function ReviewForm({ productId }: { productId: string }) {
         value={comment}
         onChange={(e) => setComment(e.target.value)}
         placeholder="Partagez votre expérience…"
+        maxLength={2000}
         rows={3}
         className="mt-4 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
       />

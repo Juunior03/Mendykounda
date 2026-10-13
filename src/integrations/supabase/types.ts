@@ -536,6 +536,10 @@ export type Database = {
         Args: { _subtotal: number; _zone_id: string }
         Returns: number
       }
+      can_review: {
+        Args: { _product_id: string }
+        Returns: boolean
+      }
       set_item_weight: {
         Args: { _item_id: string; _weight: number | null }
         Returns: number

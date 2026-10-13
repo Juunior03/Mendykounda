@@ -76,7 +76,7 @@ function OrdersPage() {
   const [filter, setFilter] = useState<Filter>("all");
 
   useEffect(() => {
-    if (!loading && !user) void navigate({ to: "/auth" });
+    if (!loading && !user) void navigate({ to: "/auth", search: { redirect: "/orders" } });
   }, [user, loading, navigate]);
 
   const { data: orders, isLoading } = useQuery({
