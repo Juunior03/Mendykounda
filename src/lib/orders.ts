@@ -31,3 +31,21 @@ export const canPayWithWave = (o: {
   payment_status: string;
   status: string;
 }) => o.payment_method === "wave" && o.payment_status !== "paid" && o.status !== "cancelled";
+
+/** Numéro court affiché au client et sur les bons (8 premiers caractères de l'id). */
+export const orderNumber = (id: string) => id.slice(0, 8).toUpperCase();
+
+/** Étape suivante du traitement côté ferme (null une fois livrée ou annulée). */
+export const NEXT_STATUS: Partial<Record<OrderStatus, { to: OrderStatus; label: string }>> = {
+  pending: { to: "processing", label: "Commencer la préparation" },
+  processing: { to: "shipped", label: "Marquer comme expédiée" },
+  shipped: { to: "delivered", label: "Marquer comme livrée" },
+};
+
+/** Lien WhatsApp à partir d'un numéro saisi librement (indicatif +221 ajouté si absent). */
+export const whatsappLink = (phone: string) => {
+  let digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (digits.length === 9) digits = `221${digits}`;
+  return digits.length >= 11 ? `https://wa.me/${digits}` : null;
+};

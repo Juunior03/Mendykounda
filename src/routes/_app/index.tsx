@@ -40,12 +40,12 @@ export const Route = createFileRoute("/_app/")({
       {
         name: "description",
         content:
-          "Volailles, œufs, lait et viandes fermières livrés directement du producteur dans la région de Ziguinchor.",
+          "Légumes, fruits de saison, volailles, porcs, viandes, œufs, lait et jus livrés directement par la ferme dans la région de Ziguinchor.",
       },
       { property: "og:title", content: "MendyKounda — Produits fermiers en Casamance" },
       {
         property: "og:description",
-        content: "Commandez des produits fermiers frais, locaux et soigneusement élevés.",
+        content: "Commandez des produits fermiers frais et locaux, cultivés et élevés à la ferme.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -113,7 +113,7 @@ function HomePage() {
               Le frais de la Casamance, livré chez vous.
             </h1>
             <p className="mt-3 max-w-md text-sm text-white/85 md:text-base">
-              Volailles, œufs, lait et viandes de la ferme, livrés dans {DELIVERY_AREA}{" "}
+              Légumes, fruits de saison, volailles, porcs, viandes, jus… tout vient de la ferme, livré dans {DELIVERY_AREA}{" "}
               {formatDeliveryWindow()}.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">

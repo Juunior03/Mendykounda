@@ -23,6 +23,7 @@ import { Route as AppAdminRouteImport } from './routes/_app/admin'
 import { Route as AppAccountRouteImport } from './routes/_app/account'
 import { Route as AppAboutRouteImport } from './routes/_app/about'
 import { Route as AppProductsSlugRouteImport } from './routes/_app/products.$slug'
+import { Route as AppAdminOrdersOrderIdRouteImport } from './routes/_app/admin_.orders.$orderId'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -93,6 +94,11 @@ const AppProductsSlugRoute = AppProductsSlugRouteImport.update({
   path: '/products/$slug',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminOrdersOrderIdRoute = AppAdminOrdersOrderIdRouteImport.update({
+  id: '/admin_/orders/$orderId',
+  path: '/admin/orders/$orderId',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof AppResetPasswordRoute
   '/shop': typeof AppShopRoute
   '/products/$slug': typeof AppProductsSlugRoute
+  '/admin/orders/$orderId': typeof AppAdminOrdersOrderIdRoute
 }
 export interface FileRoutesByTo {
   '/about': typeof AppAboutRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/shop': typeof AppShopRoute
   '/': typeof AppIndexRoute
   '/products/$slug': typeof AppProductsSlugRoute
+  '/admin/orders/$orderId': typeof AppAdminOrdersOrderIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/_app/shop': typeof AppShopRoute
   '/_app/': typeof AppIndexRoute
   '/_app/products/$slug': typeof AppProductsSlugRoute
+  '/_app/admin_/orders/$orderId': typeof AppAdminOrdersOrderIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/shop'
     | '/products/$slug'
+    | '/admin/orders/$orderId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/about'
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/'
     | '/products/$slug'
+    | '/admin/orders/$orderId'
   id:
     | '__root__'
     | '/_app'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/_app/shop'
     | '/_app/'
     | '/_app/products/$slug'
+    | '/_app/admin_/orders/$orderId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -294,6 +306,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProductsSlugRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin_/orders/$orderId': {
+      id: '/_app/admin_/orders/$orderId'
+      path: '/admin/orders/$orderId'
+      fullPath: '/admin/orders/$orderId'
+      preLoaderRoute: typeof AppAdminOrdersOrderIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -311,6 +330,7 @@ interface AppRouteChildren {
   AppShopRoute: typeof AppShopRoute
   AppIndexRoute: typeof AppIndexRoute
   AppProductsSlugRoute: typeof AppProductsSlugRoute
+  AppAdminOrdersOrderIdRoute: typeof AppAdminOrdersOrderIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -327,6 +347,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppShopRoute: AppShopRoute,
   AppIndexRoute: AppIndexRoute,
   AppProductsSlugRoute: AppProductsSlugRoute,
+  AppAdminOrdersOrderIdRoute: AppAdminOrdersOrderIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

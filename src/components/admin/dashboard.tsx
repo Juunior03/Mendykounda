@@ -4,6 +4,7 @@
  */
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import {
   AlertTriangle,
@@ -20,7 +21,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/format";
-import { ORDER_STATUS_LABEL, type OrderStatus } from "@/lib/orders";
+import { ORDER_STATUS_LABEL, orderNumber, type OrderStatus } from "@/lib/orders";
 import { LOW_STOCK_THRESHOLD } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
@@ -445,14 +446,15 @@ export function AdminDashboard({ nav }: { nav: DashboardNav }) {
             )}
             {data?.recent.map((o) => (
               <li key={o.id}>
-                <button
-                  onClick={() => nav.orders(o.status as OrderStatus)}
+                <Link
+                  to="/admin/orders/$orderId"
+                  params={{ orderId: o.id }}
                   className="flex w-full items-center gap-3 py-2.5 text-left text-sm hover:bg-secondary/50"
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium">{o.shipping_full_name}</span>
                     <span className="block text-xs text-muted-foreground">
-                      #{o.id.slice(0, 8).toUpperCase()} ·{" "}
+                      #{orderNumber(o.id)} ·{" "}
                       {new Date(o.created_at).toLocaleDateString("fr-FR", {
                         day: "numeric",
                         month: "short",
@@ -463,7 +465,7 @@ export function AdminDashboard({ nav }: { nav: DashboardNav }) {
                   <span className="w-24 shrink-0 text-right tabular-nums">
                     {formatPrice(Number(o.total_amount))}
                   </span>
-                </button>
+                </Link>
               </li>
             ))}
           </ul>

@@ -44,16 +44,16 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "MendyKounda — Ferme d'élevage premium" },
+      { title: "MendyKounda — Produits de la ferme en Casamance" },
       {
         name: "description",
         content:
-          "Volailles, œufs, lait et viandes fermières issus de notre élevage. Direct producteur, livraison soignée.",
+          "Légumes, fruits de saison, volailles, œufs, porcs, viandes, lait et jus de la ferme MendyKounda. Direct producteur, livré dans la région de Ziguinchor.",
       },
       { name: "author", content: "MendyKounda" },
       { name: "theme-color", content: "#14532d" },
-      { property: "og:title", content: "MendyKounda — Ferme d'élevage premium" },
-      { property: "og:description", content: "Direct producteur. Volailles, œufs, lait, viandes." },
+      { property: "og:title", content: "MendyKounda — Produits de la ferme en Casamance" },
+      { property: "og:description", content: "Direct producteur. Légumes, fruits, volailles, porcs, viandes, jus…" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],

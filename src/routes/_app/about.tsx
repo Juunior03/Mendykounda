@@ -5,7 +5,7 @@ export const Route = createFileRoute("/_app/about")({
   component: AboutPage,
   head: () => ({ meta: [
     { title: "Notre ferme — MendyKounda" },
-    { name: "description", content: "Découvrez l'histoire, les valeurs et l'élevage responsable de la ferme MendyKounda." },
+    { name: "description", content: "Découvrez l'histoire, les cultures et l'élevage de la ferme MendyKounda." },
     { property: "og:title", content: "Notre ferme — MendyKounda" },
     { property: "og:description", content: "Une ferme familiale engagée pour des produits locaux de qualité au Sénégal." },
     { property: "og:type", content: "website" },
@@ -34,12 +34,13 @@ function AboutPage() {
             toujours chacun de nos gestes.
           </p>
           <p>
-            Nos volailles, nos vaches et nos brebis vivent au grand air, sur des parcours herbeux.
-            Nos œufs sont ramassés chaque matin, notre lait livré le jour même, nos viandes
-            maturées avec patience.
+            Nous cultivons des légumes et des fruits au fil des saisons, et nos volailles et nos
+            porcs sont élevés au grand air. Les cochons, de lait ou adultes, se vendent sur pied
+            ou en viande selon les jours d'abattage. Nos œufs sont ramassés chaque matin, et nous
+            préparons aussi du lait et des jus.
           </p>
           <p>
-            Pas d'intermédiaire, pas de circuit long. Du pré à votre table, tout simplement.
+            Pas d'intermédiaire, pas de circuit long. Du champ et de l'élevage à votre table, tout simplement.
           </p>
         </div>
         <div className="mt-12 text-center">

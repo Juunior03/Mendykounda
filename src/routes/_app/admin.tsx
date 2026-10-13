@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/format";
-import { ORDER_STATUS_LABEL, PAYMENT_METHOD_LABEL, type OrderStatus } from "@/lib/orders";
+import { ORDER_STATUS_LABEL, PAYMENT_METHOD_LABEL, orderNumber, type OrderStatus } from "@/lib/orders";
 import { LOW_STOCK_THRESHOLD } from "@/lib/pricing";
 import {
   AdminDashboard,
@@ -29,8 +29,14 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   failed: "Échec",
 };
 
+const TABS = ["overview", "products", "categories", "orders", "customers", "delivery", "messages"] as const;
+type Tab = (typeof TABS)[number];
+
 export const Route = createFileRoute("/_app/admin")({
   component: AdminPage,
+  // ?tab=orders : retour depuis une fiche commande sur le bon onglet.
+  validateSearch: (search: Record<string, unknown>): { tab?: Tab } =>
+    TABS.includes(search.tab as Tab) ? { tab: search.tab as Tab } : {},
   head: () => ({ meta: [
     { title: "Administration — MendyKounda" },
     { name: "description", content: "Console vendeur sécurisée de MendyKounda." },
@@ -41,12 +47,12 @@ export const Route = createFileRoute("/_app/admin")({
   ] }),
 });
 
-type Tab = "overview" | "products" | "categories" | "orders" | "customers" | "delivery" | "messages";
 
 function AdminPage() {
   const { isAdmin, loading, user } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("overview");
+  const search = Route.useSearch();
+  const [tab, setTab] = useState<Tab>(search.tab ?? "overview");
   const [ordersFilter, setOrdersFilter] = useState<OrdersFilter>("all");
   const [productsFilter, setProductsFilter] = useState<ProductsFilter>("all");
   const nav: DashboardNav = {
@@ -86,7 +92,7 @@ function AdminPage() {
       <h1 className="mt-3 text-3xl font-medium tracking-tight md:text-4xl">Administration</h1>
 
       <div className="mt-8 flex gap-1 border-b border-border overflow-x-auto">
-        {(["overview", "products", "categories", "orders", "customers", "delivery", "messages"] as Tab[]).map((t) => (
+        {TABS.map((t) => (
           <button
             key={t}
             onClick={() => {
@@ -329,7 +335,7 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
               </tr>
             ))}
             {products?.length === 0 && (
-              <tr><td colSpan={6} className="p-8 text-center text-sm text-muted-foreground">Aucun produit. Créez-en un.</td></tr>
+              <tr><td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">Aucun produit. Créez-en un.</td></tr>
             )}
           </tbody>
         </table>
@@ -589,6 +595,7 @@ function OrdersAdmin({ filter, onFilter }: { filter: OrdersFilter; onFilter: (f:
             <th className="p-3">Total</th>
             <th className="p-3">Paiement</th>
             <th className="p-3">Statut</th>
+            <th className="p-3" />
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -596,10 +603,18 @@ function OrdersAdmin({ filter, onFilter }: { filter: OrdersFilter; onFilter: (f:
             <tr key={o.id} className="hover:bg-secondary/40">
               <td className="p-3 text-xs text-muted-foreground">
                 {new Date(o.created_at).toLocaleDateString("fr-FR")}
-                <span className="block font-mono">#{o.id.slice(0, 8).toUpperCase()}</span>
+                <Link
+                  to="/admin/orders/$orderId"
+                  params={{ orderId: o.id }}
+                  className="block font-mono font-medium text-primary hover:underline"
+                >
+                  #{orderNumber(o.id)}
+                </Link>
               </td>
               <td className="p-3">
-                {o.shipping_full_name}
+                <Link to="/admin/orders/$orderId" params={{ orderId: o.id }} className="font-medium hover:underline">
+                  {o.shipping_full_name}
+                </Link>
                 <span className="mt-1 block text-xs text-muted-foreground">
                   {/* Confirmations envoyées au client */}
                   E-mail {o.confirmation_email_sent_at ? "✓" : "—"} · SMS {o.confirmation_sms_sent_at ? "✓" : "—"}
@@ -624,10 +639,19 @@ function OrdersAdmin({ filter, onFilter }: { filter: OrdersFilter; onFilter: (f:
                   {statuses.map((s) => <option key={s} value={s}>{ORDER_STATUS_LABEL[s]}</option>)}
                 </select>
               </td>
+              <td className="p-3 text-right">
+                <Link
+                  to="/admin/orders/$orderId"
+                  params={{ orderId: o.id }}
+                  className="whitespace-nowrap text-xs font-medium text-primary hover:underline"
+                >
+                  Ouvrir la fiche →
+                </Link>
+              </td>
             </tr>
           ))}
           {shownOrders?.length === 0 && (
-            <tr><td colSpan={6} className="p-8 text-center text-sm text-muted-foreground">Aucune commande pour le moment.</td></tr>
+            <tr><td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">Aucune commande pour le moment.</td></tr>
           )}
         </tbody>
       </table>

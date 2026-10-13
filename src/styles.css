@@ -230,3 +230,9 @@
     box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 20%, transparent);
   }
 }
+
+/* Impression (bon de livraison) : page blanche, marges A4. */
+@media print {
+  @page { margin: 12mm; }
+  :root { --background: #fff; }
+}
