@@ -60,7 +60,7 @@ src/
 
 ### Enums
 - `app_role` : `customer`, `admin`
-- `order_status` : `pending`, `processing`, `shipped`, `delivered`, `cancelled`
+- `order_status` : `pending`, `processing`, `ready`, `shipped`, `delivered`, `cancelled`
 - `payment_status` : `unpaid`, `paid`, `refunded`, `failed`
 
 ## 🔐 Sécurité
@@ -90,7 +90,7 @@ ON CONFLICT DO NOTHING;
 2. `/cart` → édition quantités.
 3. `/checkout` → formulaire livraison (préremplit depuis `profiles`) + insert `orders` + `order_items`.
 4. `/order-confirmation?id=…` → récap.
-5. **Paiement Stripe** : à brancher (server function + webhook). Tant que c'est manquant, la commande passe en statut `pending` et un admin la traite à la main.
+5. **Paiement** : à la livraison ou par Wave (voir [PAIEMENT-WAVE.md](PAIEMENT-WAVE.md)).
 
 ## 🎨 Design system
 
@@ -100,11 +100,8 @@ ON CONFLICT DO NOTHING;
 
 ## 🚀 Déploiement
 
-Auto via Lovable. Les edge functions sont déployées automatiquement.
+Le site est hébergé sur Cloudflare Workers et se republie à chaque fusion dans `main` : voir [HEBERGEMENT.md](HEBERGEMENT.md). Les migrations Supabase s'exécutent à la main avant la fusion. Les fonctions Supabase se déploient avec `supabase functions deploy` (voir [PAIEMENT-WAVE.md](PAIEMENT-WAVE.md) et [NOTIFICATIONS.md](NOTIFICATIONS.md)).
 
 ## ✅ Roadmap restante
 
-- Brancher Stripe (server function `create-checkout-session` + webhook `stripe-webhook`).
-- Email transactionnel de confirmation de commande.
 - Filtres avancés (multi-catégories, slider prix).
-- Page legal (CGV / mentions).
