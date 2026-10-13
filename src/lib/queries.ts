@@ -28,6 +28,11 @@ export interface Product {
   created_at: string;
   discount_price: number | null;
   discount_label: string | null;
+  /** Formats d'un même produit (ex. groupe « cochon-de-lait » : « Sur pied » / « En viande »). */
+  variant_group: string | null;
+  variant_label: string | null;
+  /** Viande livrée à partir du prochain jour d'abattage. */
+  needs_slaughter: boolean;
   /** Note moyenne et nombre d'avis (listes produits uniquement). */
   rating_avg?: number;
   rating_count?: number;
@@ -41,6 +46,10 @@ export interface Review {
   comment: string | null;
   created_at: string;
 }
+
+/** Nom affiché avec le format, ex. « Cochon de lait — Sur pied » (comme dans place_order). */
+export const productDisplayName = (p: Pick<Product, "name" | "variant_label">) =>
+  p.variant_label ? `${p.name} — ${p.variant_label}` : p.name;
 
 /* ----- Categories ----- */
 export const categoriesQuery = () =>
@@ -125,6 +134,22 @@ export const productBySlugQuery = (slug: string) =>
         .maybeSingle();
       if (error) throw error;
       return data as Product | null;
+    },
+  });
+
+/** Les formats actifs d'un même groupe, pour le sélecteur de la fiche produit. */
+export const productVariantsQuery = (group: string) =>
+  queryOptions({
+    queryKey: ["product-variants", group],
+    queryFn: async (): Promise<Product[]> => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("variant_group", group)
+        .eq("is_active", true)
+        .order("price");
+      if (error) throw error;
+      return (data ?? []) as Product[];
     },
   });
 

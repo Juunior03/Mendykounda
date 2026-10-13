@@ -14,6 +14,7 @@ import { useCartLines } from "@/lib/cart-live";
 import { useAuth } from "@/lib/auth";
 import { formatPrice } from "@/lib/format";
 import { formatDeliveryWindow } from "@/lib/delivery";
+import { formatDeadline, formatSlaughterDay } from "@/lib/slaughter";
 import { resolveProductImage } from "@/lib/product-images";
 import { supabase } from "@/integrations/supabase/client";
 import { startWavePayment } from "@/lib/wave";
@@ -65,7 +66,14 @@ const EMPTY_ADDRESS: Address = { fullName: "", phone: "", address: "", zoneId: "
 
 function CheckoutPage() {
   const items = useCart();
-  const { lines, subtotal, itemCount, blocked, loading: linesLoading } = useCartLines(items);
+  const {
+    lines,
+    subtotal,
+    itemCount,
+    blocked,
+    loading: linesLoading,
+    slaughterDay,
+  } = useCartLines(items);
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -393,8 +401,16 @@ function CheckoutPage() {
             <div className="rounded-md border border-border p-4">
               <p className="flex items-center gap-2 text-base font-semibold text-primary">
                 <Truck className="h-5 w-5" />
-                Livraison estimée {formatDeliveryWindow()}
+                {slaughterDay
+                  ? `Livraison à partir du ${formatSlaughterDay(slaughterDay.day)}`
+                  : `Livraison estimée ${formatDeliveryWindow()}`}
               </p>
+              {slaughterDay && (
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Viande préparée lors de l'abattage du {formatSlaughterDay(slaughterDay.day)} ·
+                  commande possible jusqu'au {formatDeadline(slaughterDay.order_deadline)}
+                </p>
+              )}
               <p className="mt-0.5 text-xs text-muted-foreground">
                 Expédié et vendu par Ferme MendyKounda
               </p>

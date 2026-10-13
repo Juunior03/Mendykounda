@@ -2,11 +2,24 @@
  * Fiche produit — image, informations, encart d'achat, avis clients.
  */
 import { createFileRoute, notFound, Link, useNavigate } from "@tanstack/react-router";
-import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Star, ChevronRight, Truck, ShieldCheck, User as UserIcon } from "lucide-react";
+import {
+  Star,
+  ChevronRight,
+  Truck,
+  ShieldCheck,
+  User as UserIcon,
+  CalendarDays,
+} from "lucide-react";
 import { toast } from "sonner";
-import { productBySlugQuery, reviewsByProductQuery } from "@/lib/queries";
+import {
+  productBySlugQuery,
+  productDisplayName,
+  productVariantsQuery,
+  reviewsByProductQuery,
+} from "@/lib/queries";
+import { formatDeadline, formatSlaughterDay, upcomingSlaughterQuery } from "@/lib/slaughter";
 import { resolveProductImage } from "@/lib/product-images";
 import { formatPrice, formatDate } from "@/lib/format";
 import { cartStore } from "@/lib/cart";
@@ -65,7 +78,18 @@ function ProductPage() {
   const img = resolveProductImage(product.image_url);
   const promo = hasPromo(product);
   const price = effectivePrice(product);
-  const outOfStock = product.stock <= 0;
+  const { data: variants } = useQuery({
+    ...productVariantsQuery(product.variant_group ?? ""),
+    enabled: !!product.variant_group,
+  });
+  const { data: upcoming } = useQuery({
+    ...upcomingSlaughterQuery(),
+    enabled: product.needs_slaughter,
+  });
+  const slaughter = product.needs_slaughter ? (upcoming?.[0] ?? null) : null;
+  // Viande à l'abattage sans abattage programmé : pas commandable.
+  const noSlaughter = product.needs_slaughter && upcoming !== undefined && !slaughter;
+  const outOfStock = product.stock <= 0 || noSlaughter;
   const maxQty = Math.max(1, Math.min(product.stock, 10));
 
   const avg = reviews.length
@@ -76,7 +100,7 @@ function ProductPage() {
     cartStore.add(
       {
         productId: product.id,
-        name: product.name,
+        name: productDisplayName(product),
         price,
         unit: product.unit,
         imageUrl: product.image_url,
@@ -147,6 +171,66 @@ function ProductPage() {
             <p className="mt-2 text-xs text-muted-foreground">Paiement à la livraison · Prix TTC</p>
           </div>
 
+          {variants && variants.length > 1 && (
+            <div className="mt-5">
+              <p className="text-sm">
+                Format :{" "}
+                <span className="font-semibold">{product.variant_label ?? product.name}</span>
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {variants.map((v) => {
+                  const current = v.id === product.id;
+                  return (
+                    <Link
+                      key={v.id}
+                      to="/products/$slug"
+                      params={{ slug: v.slug }}
+                      replace
+                      aria-current={current ? "page" : undefined}
+                      className={`min-w-28 rounded-md border px-3 py-2 text-sm transition-colors ${
+                        current
+                          ? "border-primary bg-primary/5 ring-1 ring-primary"
+                          : "border-border hover:border-foreground/40"
+                      }`}
+                    >
+                      <span className="block font-medium">{v.variant_label ?? v.name}</span>
+                      <span className="block text-xs tabular-nums text-muted-foreground">
+                        {formatPrice(effectivePrice(v))} / {v.unit}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {product.needs_slaughter && (
+            <div className="mt-5 flex gap-3 rounded-md border border-border bg-cream p-4 text-sm">
+              <CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              {slaughter ? (
+                <div>
+                  <p className="font-semibold">
+                    Prochain abattage : {formatSlaughterDay(slaughter.day)}
+                  </p>
+                  <p className="mt-1 text-muted-foreground">
+                    Viande fraîche, préparée le jour de l'abattage. Commandez avant le{" "}
+                    {formatDeadline(slaughter.order_deadline)} pour être livré à partir du{" "}
+                    {formatSlaughterDay(slaughter.day)}.
+                  </p>
+                  {slaughter.note && <p className="mt-1 text-muted-foreground">{slaughter.note}</p>}
+                </div>
+              ) : (
+                <div>
+                  <p className="font-semibold">Prochain abattage pas encore programmé</p>
+                  <p className="mt-1 text-muted-foreground">
+                    Cette viande est préparée uniquement les jours d'abattage. Revenez bientôt
+                    {variants && variants.length > 1 ? " ou choisissez un autre format" : ""}.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {product.description && (
             <div className="mt-6 border-t border-border pt-6">
               <h2 className="text-base font-semibold">À propos de ce produit</h2>
@@ -164,7 +248,16 @@ function ProductPage() {
           {!outOfStock && (
             <p className="mt-3 text-sm">
               <Truck className="mr-1.5 inline h-4 w-4 -translate-y-px text-primary" />
-              Livraison <span className="font-semibold">{formatDeliveryWindow()}</span>
+              {slaughter ? (
+                <>
+                  Livraison à partir du{" "}
+                  <span className="font-semibold">{formatSlaughterDay(slaughter.day)}</span>
+                </>
+              ) : (
+                <>
+                  Livraison <span className="font-semibold">{formatDeliveryWindow()}</span>
+                </>
+              )}
             </p>
           )}
 
@@ -173,11 +266,13 @@ function ProductPage() {
               outOfStock ? "text-destructive" : product.stock <= LOW_STOCK_THRESHOLD ? "text-destructive" : "text-primary"
             }`}
           >
-            {outOfStock
-              ? "Actuellement indisponible"
-              : product.stock <= LOW_STOCK_THRESHOLD
-                ? `Plus que ${product.stock} en stock`
-                : "En stock"}
+            {noSlaughter
+              ? "Bientôt disponible"
+              : outOfStock
+                ? "Actuellement indisponible"
+                : product.stock <= LOW_STOCK_THRESHOLD
+                  ? `Plus que ${product.stock} en stock`
+                  : "En stock"}
           </p>
 
           {!outOfStock && (

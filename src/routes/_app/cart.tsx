@@ -9,6 +9,7 @@ import { resolveProductImage } from "@/lib/product-images";
 import { formatPrice } from "@/lib/format";
 import { LOW_STOCK_THRESHOLD } from "@/lib/pricing";
 import { formatDeliveryWindow } from "@/lib/delivery";
+import { formatSlaughterDay } from "@/lib/slaughter";
 import { useQuery } from "@tanstack/react-query";
 import { deliveryZonesQuery } from "@/lib/zones";
 
@@ -31,7 +32,7 @@ export const Route = createFileRoute("/_app/cart")({
 
 function CartPage() {
   const items = useCart();
-  const { lines, subtotal, itemCount, blocked } = useCartLines(items);
+  const { lines, subtotal, itemCount, blocked, slaughterDay } = useCartLines(items);
   const navigate = useNavigate();
 
   if (items.length === 0) {
@@ -161,7 +162,9 @@ function CartPage() {
             <p className="text-lg">{subtotalLabel}</p>
             <DeliveryInfo subtotal={subtotal} />
             <p className="mt-2 text-xs text-muted-foreground">
-              Livraison estimée {formatDeliveryWindow()}.
+              {slaughterDay
+                ? `Votre panier contient de la viande de l'abattage du ${formatSlaughterDay(slaughterDay.day)} : livraison à partir de ce jour.`
+                : `Livraison estimée ${formatDeliveryWindow()}.`}
             </p>
             <button
               onClick={() => void navigate({ to: "/checkout" })}

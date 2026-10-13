@@ -27,3 +27,21 @@ export const formatDeliveryWindow = (from: Date | string = new Date()) => {
 };
 
 export const formatLongDate = (d: Date | string) => fmt(new Date(d));
+
+/**
+ * Fenêtre de livraison d'une commande : à partir du jour d'abattage si elle
+ * contient de la viande à l'abattage, sinon selon la date de commande.
+ */
+export const orderDeliveryWindow = (o: { created_at: string; slaughter_date?: string | null }) => {
+  if (!o.slaughter_date) return deliveryWindow(o.created_at);
+  const start = new Date(`${o.slaughter_date}T12:00:00`);
+  return { start, end: addDays(start, MAX_DAYS - MIN_DAYS) };
+};
+
+export const formatOrderDeliveryWindow = (o: {
+  created_at: string;
+  slaughter_date?: string | null;
+}) => {
+  const { start, end } = orderDeliveryWindow(o);
+  return `entre ${fmt(start)} et ${fmt(end)}`;
+};

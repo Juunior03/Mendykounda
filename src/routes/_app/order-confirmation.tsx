@@ -7,7 +7,8 @@ import { z } from "zod";
 import { CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/format";
-import { formatDeliveryWindow } from "@/lib/delivery";
+import { formatOrderDeliveryWindow } from "@/lib/delivery";
+import { formatSlaughterDay } from "@/lib/slaughter";
 import { resolveProductImage } from "@/lib/product-images";
 import { useAuth } from "@/lib/auth";
 import { PAYMENT_METHOD_LABEL } from "@/lib/orders";
@@ -81,7 +82,12 @@ function OrderConfirmation() {
               <div className="mt-5 grid gap-4 rounded-md border border-border p-4 sm:grid-cols-2">
                 <div>
                   <p className="text-sm font-semibold">Livraison estimée</p>
-                  <p className="mt-1 text-sm text-primary">{formatDeliveryWindow(data.created_at)}</p>
+                  <p className="mt-1 text-sm text-primary">{formatOrderDeliveryWindow(data)}</p>
+                  {data.slaughter_date && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Viande préparée lors de l'abattage du {formatSlaughterDay(data.slaughter_date)}.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm font-semibold">Livraison à</p>

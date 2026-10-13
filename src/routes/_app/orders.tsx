@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { cartStore } from "@/lib/cart";
 import { formatDate, formatPrice } from "@/lib/format";
-import { deliveryWindow, formatDeliveryWindow, formatLongDate } from "@/lib/delivery";
+import { formatLongDate, formatOrderDeliveryWindow, orderDeliveryWindow } from "@/lib/delivery";
 import { effectivePrice } from "@/lib/pricing";
 import { resolveProductImage } from "@/lib/product-images";
 import {
@@ -157,8 +157,8 @@ function OrderCard({ order: o }: { order: Order }) {
   const status = o.status as OrderStatus;
 
   // Fenêtre estimée ; si elle est dépassée sans livraison, on reste vague.
-  const late = deliveryWindow(o.created_at).end.getTime() < Date.now();
-  const eta = late ? "Livraison imminente" : `Arrivée prévue ${formatDeliveryWindow(o.created_at)}`;
+  const late = orderDeliveryWindow(o).end.getTime() < Date.now();
+  const eta = late ? "Livraison imminente" : `Arrivée prévue ${formatOrderDeliveryWindow(o)}`;
   const headline =
     status === "delivered"
       ? `Livrée le ${formatLongDate(o.delivered_at ?? o.updated_at)}`
@@ -314,7 +314,7 @@ function OrderLine({
     if (!product) return;
     cartStore.add({
       productId: item.product_id!,
-      name: product.name,
+      name: item.product_name,
       price: effectivePrice(product),
       unit: product.unit,
       imageUrl: product.image_url,
