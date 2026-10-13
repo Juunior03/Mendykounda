@@ -7,12 +7,16 @@ import { useState } from "react";
 import { useCart, cartTotals } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { AlertBadge } from "@/components/alert-badge";
+import { useAdminAlerts, useAdminAlertsSync } from "@/lib/admin-alerts";
 import { BrandLogo } from "@/components/brand-logo";
 
 export function SiteHeader() {
   const cart = useCart();
   const { itemCount } = cartTotals(cart);
   const { user, isAdmin } = useAuth();
+  const alerts = useAdminAlerts();
+  useAdminAlertsSync();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
@@ -32,7 +36,10 @@ export function SiteHeader() {
         </div>
       </div>
       <div className="container-market grid min-h-16 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 py-2 lg:min-h-20 lg:gap-8">
-        <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen((v) => !v)} aria-label="Menu">{open ? <X /> : <Menu />}</Button>
+        <Button variant="ghost" size="icon" className="relative lg:hidden" onClick={() => setOpen((v) => !v)} aria-label={alerts.total ? `Menu, ${alerts.total} nouveautés dans l'admin` : "Menu"}>
+          {open ? <X /> : <Menu />}
+          {!open && alerts.total > 0 && <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-card" aria-hidden />}
+        </Button>
         <Link to="/" className="min-w-0 lg:hidden" aria-label="MendyKounda — accueil"><BrandLogo compact /></Link>
         <Link to="/" className="hidden lg:flex" aria-label="MendyKounda — accueil"><BrandLogo /></Link>
         <form className="col-span-3 row-start-2 flex min-w-0 lg:col-span-1 lg:row-start-auto" onSubmit={(event) => { event.preventDefault(); navigate({ to: "/shop", search: query.trim() ? { q: query.trim() } : {} }); }}>
@@ -43,9 +50,11 @@ export function SiteHeader() {
           {isAdmin && (
             <Link
               to="/admin"
-              className="hidden rounded-md border border-border px-3 py-2 text-xs font-medium text-foreground/80 hover:text-foreground xl:inline-block"
+              className="relative hidden items-center gap-1.5 rounded-md border border-border px-3 py-2 text-xs font-medium text-foreground/80 hover:text-foreground lg:inline-flex"
+              title={alerts.total ? `${alerts.orders} commande(s) à préparer · ${alerts.messages} message(s) non lu(s)` : undefined}
             >
               Admin
+              <AlertBadge count={alerts.total} label="nouveautés dans l'admin" className="absolute -right-2 -top-2" />
             </Link>
           )}
           <Link
@@ -99,8 +108,9 @@ export function SiteHeader() {
               </Link>
             )}
             {isAdmin && (
-              <Link to="/admin" onClick={() => setOpen(false)} className="py-2 text-sm">
+              <Link to="/admin" onClick={() => setOpen(false)} className="flex items-center gap-2 py-2 text-sm">
                 Admin
+                <AlertBadge count={alerts.total} label="nouveautés dans l'admin" />
               </Link>
             )}
           </nav>

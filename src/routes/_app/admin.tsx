@@ -23,6 +23,8 @@ import { ZonesAdmin } from "@/components/admin/zones";
 import { SlaughterAdmin } from "@/components/admin/slaughter";
 import { CustomersAdmin } from "@/components/admin/customers";
 import { FarmAdmin } from "@/components/admin/farm";
+import { AlertBadge } from "@/components/alert-badge";
+import { ADMIN_ALERTS_KEY, useAdminAlerts } from "@/lib/admin-alerts";
 import { ImagePicker } from "@/components/admin/image-picker";
 
 const PAYMENT_STATUS_LABEL: Record<string, string> = {
@@ -70,6 +72,7 @@ function AdminPage() {
   const [tab, setTab] = useState<Tab>(search.tab ?? "overview");
   const [ordersFilter, setOrdersFilter] = useState<OrdersFilter>("all");
   const [productsFilter, setProductsFilter] = useState<ProductsFilter>("all");
+  const alerts = useAdminAlerts();
   const nav: DashboardNav = {
     orders: (f) => {
       setOrdersFilter(f);
@@ -106,14 +109,37 @@ function AdminPage() {
       <p className="editorial-eyebrow">Tableau de bord</p>
       <h1 className="mt-2 text-2xl font-medium tracking-tight md:mt-3 md:text-4xl">Administration</h1>
 
-      {/* Mobile : menu déroulant (8 sections ne tiennent pas en onglets). */}
+      {/* Mobile : menu déroulant (les sections ne tiennent pas en onglets). */}
+      {alerts.total > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2 md:hidden">
+          {alerts.orders > 0 && (
+            <button
+              onClick={() => {
+                setOrdersFilter("pending");
+                setTab("orders");
+              }}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs"
+            >
+              <AlertBadge count={alerts.orders} label="" /> commande{alerts.orders > 1 ? "s" : ""} à préparer
+            </button>
+          )}
+          {alerts.messages > 0 && (
+            <button
+              onClick={() => setTab("messages")}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs"
+            >
+              <AlertBadge count={alerts.messages} label="" /> message{alerts.messages > 1 ? "s" : ""} non lu{alerts.messages > 1 ? "s" : ""}
+            </button>
+          )}
+        </div>
+      )}
       <label className="mt-6 block md:hidden">
         <span className="sr-only">Section de l'administration</span>
         <select
           value={tab}
           onChange={(e) => {
             const t = e.target.value as Tab;
-            if (t === "orders") setOrdersFilter("all");
+            if (t === "orders") setOrdersFilter(alerts.orders ? "pending" : "all");
             if (t === "products") setProductsFilter("all");
             setTab(t);
           }}
@@ -122,6 +148,8 @@ function AdminPage() {
           {TABS.map((t) => (
             <option key={t} value={t}>
               {TAB_LABEL[t]}
+              {t === "orders" && alerts.orders ? ` · ${alerts.orders} à préparer` : ""}
+              {t === "messages" && alerts.messages ? ` · ${alerts.messages} non lu${alerts.messages > 1 ? "s" : ""}` : ""}
             </option>
           ))}
         </select>
@@ -132,8 +160,9 @@ function AdminPage() {
           <button
             key={t}
             onClick={() => {
-              // Un clic direct sur l'onglet repart de la liste complète.
-              if (t === "orders") setOrdersFilter("all");
+              // Un clic direct sur l'onglet repart de la liste complète
+              // (ou des commandes à préparer s'il y en a de nouvelles).
+              if (t === "orders") setOrdersFilter(alerts.orders ? "pending" : "all");
               if (t === "products") setProductsFilter("all");
               setTab(t);
             }}
@@ -141,7 +170,11 @@ function AdminPage() {
               tab === t ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {TAB_LABEL[t]}
+            <span className="inline-flex items-center gap-1.5">
+              {TAB_LABEL[t]}
+              {t === "orders" && <AlertBadge count={alerts.orders} label="commandes à préparer" />}
+              {t === "messages" && <AlertBadge count={alerts.messages} label="messages non lus" />}
+            </span>
           </button>
         ))}
       </div>
@@ -753,6 +786,7 @@ function OrdersAdmin({ filter, onFilter }: { filter: OrdersFilter; onFilter: (f:
     else {
       toast.success("Statut mis à jour");
       void qc.invalidateQueries({ queryKey: ["admin-orders"] });
+      void qc.invalidateQueries({ queryKey: ADMIN_ALERTS_KEY });
       void qc.invalidateQueries({ queryKey: ["admin-products"] });
       void qc.invalidateQueries({ queryKey: ["products"] });
     }
@@ -960,7 +994,10 @@ function MessagesAdmin() {
       .eq("user_id", selected)
       .eq("is_from_admin", false)
       .is("read_at", null)
-      .then(() => qc.invalidateQueries({ queryKey: ["admin-message-threads"] }));
+      .then(() => {
+        void qc.invalidateQueries({ queryKey: ["admin-message-threads"] });
+        void qc.invalidateQueries({ queryKey: ADMIN_ALERTS_KEY });
+      });
   }, [selected, qc]);
 
   const deleteThread = async (userId: string) => {
