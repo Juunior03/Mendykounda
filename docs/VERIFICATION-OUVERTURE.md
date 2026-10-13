@@ -43,7 +43,9 @@ Les pages **Conditions générales de vente** (`/cgv`) et **Politique de confide
 - **Admin › Pages légales** : renseigner la raison sociale, le NINEA et le RCCM, puis relire les deux textes et les adapter si besoin.
 - Déclarer le fichier clients auprès de la CDP (cdp.sn).
 
-### Dépendances (à traiter avant l'hébergement)
-- Sur une **installation neuve**, `npm install` et `npm ci` échouent : TanStack Start déclare une dépendance optionnelle à Vite 8 alors que le projet utilise Vite 7. Un hébergeur qui construit le site planterait.
-- `npm audit` signale des failles corrigées dans des versions plus récentes. La plus sérieuse concerne `seroval`, utilisé par le routeur côté serveur. La plupart des autres touchent les outils de développement.
-- La mise à jour automatique casse le build : elle doit être faite et testée à part, en même temps que la mise en ligne.
+### Dépendances
+Réparé : `npm ci` fonctionne sur une installation neuve et `npm audit` ne signale plus aucune faille.
+- TanStack Start est bloqué sur la version 1.168, la dernière compatible avec Vite 7.
+- Nitro (outil de construction du serveur) mis à jour : corrige les failles de `undici`, `sharp` et `miniflare`. `seroval` est aussi à jour.
+- Un seul fichier de verrouillage, `package-lock.json` : l'ancien `bun.lockb`, périmé, est supprimé.
+- Node.js 20.19 ou plus récent est requis (à choisir chez l'hébergeur).

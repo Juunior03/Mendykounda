@@ -2,7 +2,7 @@ import { createRouter, useRouter } from "@tanstack/react-router";
 import { QueryClient } from "@tanstack/react-query";
 import { routeTree } from "./routeTree.gen";
 
-function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function DefaultErrorComponent({ error, reset }: { error: unknown; reset: () => void }) {
   const router = useRouter();
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -11,7 +11,7 @@ function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => vo
         <h1 className="text-3xl font-medium tracking-tight text-foreground">
           Quelque chose s'est mal passé
         </h1>
-        <p className="mt-3 text-sm text-muted-foreground">{error.message}</p>
+        <p className="mt-3 text-sm text-muted-foreground">{error instanceof Error ? error.message : String(error)}</p>
         <div className="mt-6 flex items-center justify-center gap-3">
           <button
             onClick={() => { router.invalidate(); reset(); }}
