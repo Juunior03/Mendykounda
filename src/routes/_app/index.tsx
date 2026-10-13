@@ -31,6 +31,7 @@ import { ORDER_STATUS_LABEL, type OrderStatus } from "@/lib/orders";
 import { formatPrice } from "@/lib/format";
 import { DELIVERY_AREA } from "@/lib/zones";
 import hero from "@/assets/market-hero.jpg";
+import { LiveHeroImage } from "@/components/live-hero-image";
 import { inSeason, isSeasonal } from "@/lib/season";
 import { useFarm } from "@/lib/farm";
 
@@ -109,12 +110,11 @@ function HomePage() {
       {/* Bannière + espace personnel */}
       <section className="container-market grid gap-4 pt-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="relative isolate min-h-[300px] overflow-hidden rounded-lg md:min-h-[380px]">
-          <img
+          <LiveHeroImage
             src={hero}
             alt="Poules élevées en plein air à la ferme MendyKounda"
             width={1600}
             height={900}
-            className="absolute inset-0 h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/40 to-black/10 md:bg-gradient-to-r md:from-black/65 md:via-black/35 md:to-transparent" />
           <div className="relative flex min-h-[300px] max-w-xl flex-col justify-end p-6 text-white md:min-h-[380px] md:p-10">
