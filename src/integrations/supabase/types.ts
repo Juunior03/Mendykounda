@@ -41,6 +41,27 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_notes: {
+        Row: {
+          note: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          note?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          note?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       delivery_zones: {
         Row: {
           commune: string

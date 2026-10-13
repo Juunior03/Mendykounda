@@ -396,6 +396,13 @@ function OrderSheetPage() {
             <section className="rounded-lg bg-card p-5 shadow-soft">
               <h2 className="text-lg font-semibold">Client et livraison</h2>
               <p className="mt-3 font-medium">{order.shipping_full_name}</p>
+              <Link
+                to="/admin/customers/$customerId"
+                params={{ customerId: order.user_id }}
+                className="text-xs text-primary hover:underline"
+              >
+                Voir la fiche client et son historique →
+              </Link>
               <p className="mt-1 flex items-start gap-2 text-sm text-muted-foreground">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>

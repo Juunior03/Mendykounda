@@ -24,6 +24,7 @@ import { Route as AppAccountRouteImport } from './routes/_app/account'
 import { Route as AppAboutRouteImport } from './routes/_app/about'
 import { Route as AppProductsSlugRouteImport } from './routes/_app/products.$slug'
 import { Route as AppAdminOrdersOrderIdRouteImport } from './routes/_app/admin_.orders.$orderId'
+import { Route as AppAdminCustomersCustomerIdRouteImport } from './routes/_app/admin_.customers.$customerId'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -99,6 +100,12 @@ const AppAdminOrdersOrderIdRoute = AppAdminOrdersOrderIdRouteImport.update({
   path: '/admin/orders/$orderId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminCustomersCustomerIdRoute =
+  AppAdminCustomersCustomerIdRouteImport.update({
+    id: '/admin_/customers/$customerId',
+    path: '/admin/customers/$customerId',
+    getParentRoute: () => AppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -114,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof AppResetPasswordRoute
   '/shop': typeof AppShopRoute
   '/products/$slug': typeof AppProductsSlugRoute
+  '/admin/customers/$customerId': typeof AppAdminCustomersCustomerIdRoute
   '/admin/orders/$orderId': typeof AppAdminOrdersOrderIdRoute
 }
 export interface FileRoutesByTo {
@@ -130,6 +138,7 @@ export interface FileRoutesByTo {
   '/shop': typeof AppShopRoute
   '/': typeof AppIndexRoute
   '/products/$slug': typeof AppProductsSlugRoute
+  '/admin/customers/$customerId': typeof AppAdminCustomersCustomerIdRoute
   '/admin/orders/$orderId': typeof AppAdminOrdersOrderIdRoute
 }
 export interface FileRoutesById {
@@ -148,6 +157,7 @@ export interface FileRoutesById {
   '/_app/shop': typeof AppShopRoute
   '/_app/': typeof AppIndexRoute
   '/_app/products/$slug': typeof AppProductsSlugRoute
+  '/_app/admin_/customers/$customerId': typeof AppAdminCustomersCustomerIdRoute
   '/_app/admin_/orders/$orderId': typeof AppAdminOrdersOrderIdRoute
 }
 export interface FileRouteTypes {
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/shop'
     | '/products/$slug'
+    | '/admin/customers/$customerId'
     | '/admin/orders/$orderId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -182,6 +193,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/'
     | '/products/$slug'
+    | '/admin/customers/$customerId'
     | '/admin/orders/$orderId'
   id:
     | '__root__'
@@ -199,6 +211,7 @@ export interface FileRouteTypes {
     | '/_app/shop'
     | '/_app/'
     | '/_app/products/$slug'
+    | '/_app/admin_/customers/$customerId'
     | '/_app/admin_/orders/$orderId'
   fileRoutesById: FileRoutesById
 }
@@ -313,6 +326,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminOrdersOrderIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin_/customers/$customerId': {
+      id: '/_app/admin_/customers/$customerId'
+      path: '/admin/customers/$customerId'
+      fullPath: '/admin/customers/$customerId'
+      preLoaderRoute: typeof AppAdminCustomersCustomerIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -330,6 +350,7 @@ interface AppRouteChildren {
   AppShopRoute: typeof AppShopRoute
   AppIndexRoute: typeof AppIndexRoute
   AppProductsSlugRoute: typeof AppProductsSlugRoute
+  AppAdminCustomersCustomerIdRoute: typeof AppAdminCustomersCustomerIdRoute
   AppAdminOrdersOrderIdRoute: typeof AppAdminOrdersOrderIdRoute
 }
 
@@ -347,6 +368,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppShopRoute: AppShopRoute,
   AppIndexRoute: AppIndexRoute,
   AppProductsSlugRoute: AppProductsSlugRoute,
+  AppAdminCustomersCustomerIdRoute: AppAdminCustomersCustomerIdRoute,
   AppAdminOrdersOrderIdRoute: AppAdminOrdersOrderIdRoute,
 }
 
