@@ -156,7 +156,7 @@ function HomePage() {
             [
               [Truck, "Livraison en 1 à 3 jours", "Dans toute la région de Ziguinchor"],
               [Wallet, "Paiement à la livraison", "Vous payez à la réception"],
-              [ShieldCheck, "Annulation gratuite", "Tant que ce n'est pas expédié"],
+              [ShieldCheck, "Annulation gratuite", "Tant que la préparation n'a pas commencé"],
               [Clock3, "Direct producteur", "Sans intermédiaire"],
             ] as const
           ).map(([Icon, title, text]) => (
