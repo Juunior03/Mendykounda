@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth";
+import { useFarm } from "@/lib/farm";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import {
   NEXT_STATUS,
@@ -102,6 +103,7 @@ function usePrepChecklist(orderId: string) {
 }
 
 function OrderSheetPage() {
+  const farm = useFarm();
   const { orderId } = Route.useParams();
   const { isAdmin, loading, user } = useAuth();
   const navigate = useNavigate();
@@ -634,7 +636,8 @@ function OrderSheetPage() {
           </div>
         </div>
         <p className="mt-6 text-center text-xs text-gray-500">
-          Ferme MendyKounda · Casamance, Ziguinchor · Merci de votre confiance !
+          {farm.name} · {farm.location}
+          {farm.phone ? ` · ${farm.phone}` : ""} · Merci de votre confiance !
         </p>
       </div>
     </>

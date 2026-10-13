@@ -12,6 +12,7 @@ import { Lock, Truck } from "lucide-react";
 import { useCart, cartStore } from "@/lib/cart";
 import { useCartLines } from "@/lib/cart-live";
 import { useAuth } from "@/lib/auth";
+import { useFarm } from "@/lib/farm";
 import { formatPrice } from "@/lib/format";
 import { formatDeliveryWindow } from "@/lib/delivery";
 import { formatDeadline, formatSlaughterDay } from "@/lib/slaughter";
@@ -65,6 +66,7 @@ type Address = Omit<z.infer<typeof shippingSchema>, "notes">;
 const EMPTY_ADDRESS: Address = { fullName: "", phone: "", address: "", zoneId: "", postalCode: "" };
 
 function CheckoutPage() {
+  const farm = useFarm();
   const items = useCart();
   const {
     lines,
@@ -413,7 +415,7 @@ function CheckoutPage() {
                 </p>
               )}
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Expédié et vendu par Ferme MendyKounda
+                Expédié et vendu par {farm.name}
               </p>
 
               <ul className="mt-4 divide-y divide-border">

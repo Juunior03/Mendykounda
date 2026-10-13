@@ -32,6 +32,7 @@ import { formatPrice } from "@/lib/format";
 import { DELIVERY_AREA } from "@/lib/zones";
 import hero from "@/assets/market-hero.jpg";
 import { inSeason, isSeasonal } from "@/lib/season";
+import { useFarm } from "@/lib/farm";
 
 export const Route = createFileRoute("/_app/")({
   loader: async ({ context }) => {
@@ -66,6 +67,7 @@ const MIN_RAIL = 3;
 type WithCategory = Product & { categories?: { slug: string } | null };
 
 function HomePage() {
+  const farm = useFarm();
   const { data: products } = useSuspenseQuery(productsQuery({}));
   const { data: categories } = useSuspenseQuery(categoriesQuery());
 
@@ -117,14 +119,13 @@ function HomePage() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/40 to-black/10 md:bg-gradient-to-r md:from-black/65 md:via-black/35 md:to-transparent" />
           <div className="relative flex min-h-[300px] max-w-xl flex-col justify-end p-6 text-white md:min-h-[380px] md:p-10">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/80">
-              Directement de notre ferme
+              {farm.tagline}
             </p>
             <h1 className="text-balance text-3xl font-semibold leading-tight md:text-5xl">
-              Le frais de la Casamance, livré chez vous.
+              {farm.hero_title}
             </h1>
             <p className="mt-3 max-w-md text-sm text-white/85 md:text-base">
-              Légumes, fruits de saison, volailles, porcs, viandes, jus… tout vient de la ferme,
-              livré dans {DELIVERY_AREA} {formatDeliveryWindow()}.
+              {farm.hero_subtitle} Livraison dans {DELIVERY_AREA} {formatDeliveryWindow()}.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
