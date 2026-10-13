@@ -13,6 +13,8 @@ import { useCart, cartStore } from "@/lib/cart";
 import { useCartLines } from "@/lib/cart-live";
 import { useAuth } from "@/lib/auth";
 import { useFarm } from "@/lib/farm";
+import { isValidPhone, normalizePhone } from "@/lib/phone";
+import { PhoneInput } from "@/components/phone-input";
 import { formatPrice } from "@/lib/format";
 import { formatDeliveryWindow } from "@/lib/delivery";
 import { formatDeadline, formatSlaughterDay } from "@/lib/slaughter";
@@ -52,7 +54,10 @@ export const Route = createFileRoute("/_app/checkout")({
 
 const shippingSchema = z.object({
   fullName: z.string().trim().min(2, "Nom requis").max(120),
-  phone: z.string().trim().min(6, "Téléphone requis").max(30),
+  phone: z
+    .string()
+    .trim()
+    .refine(isValidPhone, "Numéro de téléphone invalide (ex. +221 77 123 45 67)"),
   address: z.string().trim().min(4, "Adresse requise").max(200),
   zoneId: z.string().uuid("Choisissez votre commune de livraison"),
   postalCode: z.string().trim().max(20).optional(),
@@ -111,7 +116,7 @@ function CheckoutPage() {
         if (!data) return;
         const saved: Address = {
           fullName: data.full_name ?? "",
-          phone: data.phone ?? "",
+          phone: normalizePhone(data.phone),
           address: data.address ?? "",
           zoneId: matchZone(data.city, zones)?.id ?? "",
           postalCode: data.postal_code ?? "",
@@ -300,19 +305,33 @@ function CheckoutPage() {
                       )}
                     </span>
                   </label>
-                  {fields.map((f) => (
-                    <label key={f.k} className={f.full ? "sm:col-span-2" : ""}>
-                      <span className="text-xs font-medium">{f.label}</span>
-                      <input
-                        type={f.type ?? "text"}
-                        value={address[f.k] ?? ""}
-                        onChange={update(f.k)}
-                        autoComplete={f.autoComplete}
-                        required={f.k !== "postalCode"}
-                        className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
-                      />
-                    </label>
-                  ))}
+                  {fields.map((f) =>
+                    f.k === "phone" ? (
+                      <div key={f.k}>
+                        <label htmlFor="checkout-phone" className="text-xs font-medium">
+                          {f.label}
+                        </label>
+                        <PhoneInput
+                          id="checkout-phone"
+                          value={address.phone}
+                          onChange={(phone) => setAddress((a) => ({ ...a, phone }))}
+                          required
+                        />
+                      </div>
+                    ) : (
+                      <label key={f.k} className={f.full ? "sm:col-span-2" : ""}>
+                        <span className="text-xs font-medium">{f.label}</span>
+                        <input
+                          type={f.type ?? "text"}
+                          value={address[f.k] ?? ""}
+                          onChange={update(f.k)}
+                          autoComplete={f.autoComplete}
+                          required={f.k !== "postalCode"}
+                          className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                        />
+                      </label>
+                    ),
+                  )}
                 </div>
                 <label className="mt-4 flex items-center gap-2 text-sm">
                   <input

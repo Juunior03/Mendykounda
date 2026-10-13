@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Package, ShoppingBag } from "lucide-react";
 import { deliveryZonesQuery, groupByDepartment, matchZone, zoneLabel } from "@/lib/zones";
+import { isValidPhone, normalizePhone } from "@/lib/phone";
+import { PhoneInput } from "@/components/phone-input";
 
 export const Route = createFileRoute("/_app/account")({
   component: AccountPage,
@@ -59,7 +61,7 @@ function AccountPage() {
     if (profile) {
       setForm({
         full_name: profile.full_name ?? "",
-        phone: profile.phone ?? "",
+        phone: normalizePhone(profile.phone),
         address: profile.address ?? "",
         city: profile.city ?? "",
         postal_code: profile.postal_code ?? "",
@@ -70,7 +72,14 @@ function AccountPage() {
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    const { error } = await supabase.from("profiles").update(form).eq("id", user.id);
+    if (form.phone && !isValidPhone(form.phone)) {
+      toast.error("Numéro de téléphone invalide (ex. +221 77 123 45 67)");
+      return;
+    }
+    const { error } = await supabase
+      .from("profiles")
+      .update({ ...form, phone: form.phone || null })
+      .eq("id", user.id);
     if (error) {
       toast.error("Erreur");
       return;
@@ -106,7 +115,18 @@ function AccountPage() {
               { k: "city", label: "Commune de livraison" },
               { k: "postal_code", label: "Code postal (facultatif)" },
             ].map((f) =>
-              f.k === "city" ? (
+              f.k === "phone" ? (
+                <div key={f.k}>
+                  <label htmlFor="account-phone" className="text-xs text-muted-foreground">
+                    {f.label}
+                  </label>
+                  <PhoneInput
+                    id="account-phone"
+                    value={form.phone}
+                    onChange={(phone) => setForm((v) => ({ ...v, phone }))}
+                  />
+                </div>
+              ) : f.k === "city" ? (
                 <div key={f.k}>
                   <label className="text-xs text-muted-foreground">{f.label}</label>
                   <select

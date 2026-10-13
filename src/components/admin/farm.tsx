@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DEFAULT_FARM, farmSettingsQuery, type FarmSettings } from "@/lib/farm";
 import { ImagePicker } from "@/components/admin/image-picker";
+import { PhoneInput } from "@/components/phone-input";
+import { isValidPhone } from "@/lib/phone";
 import { Button } from "@/components/ui/button";
 
 type Key = keyof FarmSettings;
@@ -59,7 +61,7 @@ const SECTIONS: { title: string; help?: string; fields: FieldDef[] }[] = [
         label: "WhatsApp",
         type: "tel",
         placeholder: "77 123 45 67",
-        help: "L'indicatif +221 est ajouté automatiquement.",
+        help: "Numéro utilisé pour le bouton WhatsApp de la page Contact.",
       },
       { key: "email", label: "E-mail", type: "email", placeholder: "contact@exemple.sn" },
       {
@@ -146,6 +148,14 @@ export function FarmAdmin() {
         return;
       }
     }
+    for (const k of ["phone", "whatsapp"] as const) {
+      if (form[k] && !isValidPhone(form[k])) {
+        toast.error(
+          `${k === "phone" ? "Téléphone" : "WhatsApp"} : numéro invalide (ex. +221 77 123 45 67)`,
+        );
+        return;
+      }
+    }
     // Champs facultatifs vides : enregistrés comme absents (non affichés).
     const values = Object.fromEntries(
       Object.entries(form).map(([k, v]) => [k, typeof v === "string" ? v.trim() || null : v]),
@@ -194,34 +204,53 @@ export function FarmAdmin() {
           <legend className="px-1 text-base font-semibold">{section.title}</legend>
           {section.help && <p className="text-xs text-muted-foreground">{section.help}</p>}
           <div className="mt-3 grid gap-4 md:grid-cols-2">
-            {section.fields.map((f) => (
-              <label key={f.key} className={`block text-sm ${f.multiline ? "md:col-span-2" : ""}`}>
-                <span className="font-medium">
-                  {f.label}
-                  {f.required && <span className="text-destructive"> *</span>}
-                </span>
-                {f.multiline ? (
-                  <textarea
-                    rows={f.multiline}
-                    value={form[f.key] ?? ""}
-                    placeholder={f.placeholder}
-                    onChange={(e) => set(f.key, e.target.value)}
-                    className="input mt-1"
+            {section.fields.map((f) =>
+              f.type === "tel" ? (
+                <div key={f.key} className="text-sm">
+                  <label htmlFor={`farm-${f.key}`} className="font-medium">
+                    {f.label}
+                  </label>
+                  <PhoneInput
+                    id={`farm-${f.key}`}
+                    value={form[f.key]}
+                    onChange={(v) => set(f.key, v)}
                   />
-                ) : (
-                  <input
-                    type={f.type ?? "text"}
-                    value={form[f.key] ?? ""}
-                    placeholder={f.placeholder}
-                    onChange={(e) => set(f.key, e.target.value)}
-                    className="input mt-1"
-                  />
-                )}
-                {f.help && (
-                  <span className="mt-1 block text-xs text-muted-foreground">{f.help}</span>
-                )}
-              </label>
-            ))}
+                  {f.help && (
+                    <span className="mt-1 block text-xs text-muted-foreground">{f.help}</span>
+                  )}
+                </div>
+              ) : (
+                <label
+                  key={f.key}
+                  className={`block text-sm ${f.multiline ? "md:col-span-2" : ""}`}
+                >
+                  <span className="font-medium">
+                    {f.label}
+                    {f.required && <span className="text-destructive"> *</span>}
+                  </span>
+                  {f.multiline ? (
+                    <textarea
+                      rows={f.multiline}
+                      value={form[f.key] ?? ""}
+                      placeholder={f.placeholder}
+                      onChange={(e) => set(f.key, e.target.value)}
+                      className="input mt-1"
+                    />
+                  ) : (
+                    <input
+                      type={f.type ?? "text"}
+                      value={form[f.key] ?? ""}
+                      placeholder={f.placeholder}
+                      onChange={(e) => set(f.key, e.target.value)}
+                      className="input mt-1"
+                    />
+                  )}
+                  {f.help && (
+                    <span className="mt-1 block text-xs text-muted-foreground">{f.help}</span>
+                  )}
+                </label>
+              ),
+            )}
             {section.title === "Page « Notre ferme »" && (
               <div className="text-sm md:col-span-2">
                 <span className="font-medium">Photo de la page</span>
