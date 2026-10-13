@@ -259,6 +259,9 @@ export type Database = {
           id: string
           notes: string | null
           processing_at: string | null
+          ready_at: string | null
+          cancel_reason: string | null
+          cancelled_by: string | null
           shipped_at: string | null
           paid_at: string | null
           payment_method: string
@@ -287,6 +290,9 @@ export type Database = {
           id?: string
           notes?: string | null
           processing_at?: string | null
+          ready_at?: string | null
+          cancel_reason?: string | null
+          cancelled_by?: string | null
           shipped_at?: string | null
           paid_at?: string | null
           payment_method?: string
@@ -315,6 +321,9 @@ export type Database = {
           id?: string
           notes?: string | null
           processing_at?: string | null
+          ready_at?: string | null
+          cancel_reason?: string | null
+          cancelled_by?: string | null
           shipped_at?: string | null
           paid_at?: string | null
           payment_method?: string
@@ -552,7 +561,7 @@ export type Database = {
         Returns: boolean
       }
       cancel_order: {
-        Args: { _order_id: string }
+        Args: { _order_id: string; _reason?: string }
         Returns: undefined
       }
       place_order: {
@@ -565,6 +574,7 @@ export type Database = {
       order_status:
         | "pending"
         | "processing"
+        | "ready"
         | "shipped"
         | "delivered"
         | "cancelled"
@@ -700,6 +710,7 @@ export const Constants = {
       order_status: [
         "pending",
         "processing",
+        "ready",
         "shipped",
         "delivered",
         "cancelled",

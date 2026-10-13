@@ -7,8 +7,16 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { formatPrice } from "@/lib/format";
-import { ORDER_STATUS_LABEL, PAYMENT_METHOD_LABEL, orderNumber, type OrderStatus } from "@/lib/orders";
+import {
+  ALLOWED_TRANSITIONS,
+  ORDER_STATUS_LABEL,
+  ORDER_STATUS_TONE,
+  PAYMENT_METHOD_LABEL,
+  orderNumber,
+  type OrderStatus,
+} from "@/lib/orders";
 import { LOW_STOCK_THRESHOLD } from "@/lib/pricing";
 import { formatSlaughterDayShort } from "@/lib/slaughter";
 import { MONTHS_SHORT, formatSeason, inSeason, isSeasonal } from "@/lib/season";
@@ -26,6 +34,7 @@ import { FarmAdmin } from "@/components/admin/farm";
 import { AlertBadge } from "@/components/alert-badge";
 import { ADMIN_ALERTS_KEY, useAdminAlerts } from "@/lib/admin-alerts";
 import { ImagePicker } from "@/components/admin/image-picker";
+import { CancelOrderDialog, DeliverOrderDialog } from "@/components/admin/order-status-dialogs";
 
 const PAYMENT_STATUS_LABEL: Record<string, string> = {
   unpaid: "Non payée",
@@ -774,27 +783,34 @@ function OrdersAdmin({ filter, onFilter }: { filter: OrdersFilter; onFilter: (f:
     },
   });
 
-  const statuses: OrderStatus[] = ["pending", "processing", "shipped", "delivered", "cancelled"];
+  // Demande en attente de confirmation (annulation ou livraison).
+  const [pending, setPending] = useState<{ id: string; to: "cancelled" | "delivered" } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const pendingOrder = orders?.find((o) => o.id === pending?.id);
 
-  const updateStatus = async (id: string, status: OrderStatus) => {
-    // Annuler remet les articles en stock ; réactiver une commande annulée les reprend.
-    if (status === "cancelled" && !window.confirm("Annuler cette commande ? Les articles seront remis en stock.")) {
-      return;
-    }
-    const { error } = await supabase.from("orders").update({ status }).eq("id", id);
+  const saveStatus = async (id: string, values: TablesUpdate<"orders">) => {
+    setBusy(true);
+    const { error } = await supabase.from("orders").update(values).eq("id", id);
+    setBusy(false);
+    setPending(null);
     if (error) toast.error(error.message);
-    else {
-      toast.success("Statut mis à jour");
-      void qc.invalidateQueries({ queryKey: ["admin-orders"] });
-      void qc.invalidateQueries({ queryKey: ADMIN_ALERTS_KEY });
-      void qc.invalidateQueries({ queryKey: ["admin-products"] });
-      void qc.invalidateQueries({ queryKey: ["products"] });
-    }
+    else toast.success("Statut mis à jour");
+    void qc.invalidateQueries({ queryKey: ["admin-orders"] });
+    void qc.invalidateQueries({ queryKey: ADMIN_ALERTS_KEY });
+    void qc.invalidateQueries({ queryKey: ["admin-products"] });
+    void qc.invalidateQueries({ queryKey: ["products"] });
   };
 
+  const updateStatus = (id: string, status: OrderStatus) => {
+    // Annuler (motif) et livrer (encaissement) passent par une confirmation.
+    if (status === "cancelled" || status === "delivered") setPending({ id, to: status });
+    else void saveStatus(id, { status });
+  };
   const matches = (o: NonNullable<typeof orders>[number], f: OrdersFilter) =>
     f === "all"
       ? true
+      : f === "refund_due"
+        ? o.status === "cancelled" && o.payment_status === "paid"
       : f === "wave_unpaid"
         ? o.payment_method === "wave" && o.payment_status !== "paid" && o.status !== "cancelled"
         : o.status === f;
@@ -814,10 +830,12 @@ function OrdersAdmin({ filter, onFilter }: { filter: OrdersFilter; onFilter: (f:
         chip("all", "Toutes"),
         chip("pending", "À préparer"),
         chip("processing", "En préparation"),
-        chip("shipped", "Expédiées"),
+        chip("ready", "Prêtes"),
+        chip("shipped", "En livraison"),
         chip("delivered", "Livrées"),
         chip("cancelled", "Annulées"),
         chip("wave_unpaid", "Wave en attente"),
+        chip("refund_due", "À rembourser"),
       ]}
     />
     {/* Mobile : une carte par commande, qui ouvre la fiche. */}
@@ -841,7 +859,7 @@ function OrdersAdmin({ filter, onFilter }: { filter: OrdersFilter; onFilter: (f:
               <p className="shrink-0 font-semibold tabular-nums">{formatPrice(Number(o.total_amount))}</p>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
-              <span className={`rounded px-2 py-0.5 ${o.status === "cancelled" ? "bg-destructive/10 text-destructive" : o.status === "delivered" || o.status === "shipped" ? "bg-primary/10 text-primary" : "bg-accent/15"}`}>
+              <span className={`rounded px-2 py-0.5 ${ORDER_STATUS_TONE[o.status as OrderStatus]}`}>
                 {ORDER_STATUS_LABEL[o.status as OrderStatus]}
               </span>
               <span className={`rounded px-2 py-0.5 ${o.payment_status === "paid" ? "bg-primary/10 text-primary" : "bg-secondary"}`}>
@@ -918,7 +936,10 @@ function OrdersAdmin({ filter, onFilter }: { filter: OrdersFilter; onFilter: (f:
                   onChange={(e) => updateStatus(o.id, e.target.value as OrderStatus)}
                   className="rounded border border-border bg-background px-2 py-1 text-xs"
                 >
-                  {statuses.map((s) => <option key={s} value={s}>{ORDER_STATUS_LABEL[s]}</option>)}
+                  {/* Seuls les passages autorisés depuis le statut actuel sont proposés. */}
+                  {[o.status as OrderStatus, ...ALLOWED_TRANSITIONS[o.status as OrderStatus]].map((s) => (
+                    <option key={s} value={s}>{s === o.status ? ORDER_STATUS_LABEL[s] : `→ ${ORDER_STATUS_LABEL[s]}`}</option>
+                  ))}
                 </select>
               </td>
               <td className="p-3 text-right">
@@ -938,6 +959,29 @@ function OrdersAdmin({ filter, onFilter }: { filter: OrdersFilter; onFilter: (f:
         </tbody>
       </table>
     </div>
+    <CancelOrderDialog
+      open={pending?.to === "cancelled"}
+      onOpenChange={(open) => !open && setPending(null)}
+      paid={pendingOrder?.payment_status === "paid"}
+      busy={busy}
+      onConfirm={(reason) =>
+        pending && void saveStatus(pending.id, { status: "cancelled", cancel_reason: reason, cancelled_by: "farm" })
+      }
+    />
+    <DeliverOrderDialog
+      open={pending?.to === "delivered"}
+      onOpenChange={(open) => !open && setPending(null)}
+      amount={Number(pendingOrder?.total_amount ?? 0)}
+      toCollect={pendingOrder?.payment_status !== "paid" && pendingOrder?.payment_method === "cash_on_delivery"}
+      busy={busy}
+      onConfirm={(collected) =>
+        pending &&
+        void saveStatus(pending.id, {
+          status: "delivered",
+          ...(collected ? { payment_status: "paid", paid_at: new Date().toISOString() } : {}),
+        })
+      }
+    />
     </div>
   );
 }

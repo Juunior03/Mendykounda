@@ -1,22 +1,89 @@
 /**
- * Statuts de commande : libellés et étapes du suivi.
+ * Statuts de commande : libellés, étapes du suivi et passages autorisés.
+ * Les passages sont aussi contrôlés par la base (orders_on_status_change).
  */
-export type OrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+export type OrderStatus =
+  | "pending"
+  | "processing"
+  | "ready"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
 
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   pending: "Commandée",
   processing: "En préparation",
-  shipped: "Expédiée",
+  ready: "Prête",
+  shipped: "En livraison",
   delivered: "Livrée",
   cancelled: "Annulée",
 };
 
-/** Étapes affichées dans la barre de suivi (hors annulation). */
-export const ORDER_STEPS: OrderStatus[] = ["pending", "processing", "shipped", "delivered"];
+/** Explication courte de chaque statut (admin et client). */
+export const ORDER_STATUS_HELP: Record<OrderStatus, string> = {
+  pending: "Reçue, pas encore préparée",
+  processing: "Récolte, abattage ou emballage en cours",
+  ready: "Emballée, prête à partir",
+  shipped: "Le livreur est en route",
+  delivered: "Remise au client",
+  cancelled: "Ne sera pas livrée",
+};
 
-/** Le client peut annuler tant que la commande n'est pas expédiée. */
+/** Couleur de la pastille de statut. */
+export const ORDER_STATUS_TONE: Record<OrderStatus, string> = {
+  pending: "bg-accent/15 text-foreground",
+  processing: "bg-accent/15 text-foreground",
+  ready: "bg-ring/15 text-ring font-semibold",
+  shipped: "bg-primary/10 text-primary",
+  delivered: "bg-primary/10 text-primary",
+  cancelled: "bg-destructive/10 text-destructive",
+};
+
+/** Étapes affichées dans la barre de suivi (hors annulation). */
+export const ORDER_STEPS: OrderStatus[] = [
+  "pending",
+  "processing",
+  "ready",
+  "shipped",
+  "delivered",
+];
+
+/** Passages autorisés depuis chaque statut (identiques à la base). */
+export const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  pending: ["processing", "cancelled"],
+  processing: ["ready", "pending", "cancelled"],
+  ready: ["shipped", "delivered", "processing", "cancelled"],
+  shipped: ["delivered", "ready", "cancelled"],
+  delivered: ["shipped"],
+  cancelled: ["pending"],
+};
+
+/** Le client peut annuler seul tant que la préparation n'a pas commencé. */
 export const canCustomerCancel = (status: string, paymentStatus: string) =>
-  (status === "pending" || status === "processing") && paymentStatus !== "paid";
+  status === "pending" && paymentStatus !== "paid";
+
+/** Motifs d'annulation proposés à la ferme. */
+export const FARM_CANCEL_REASONS = [
+  "Produit en rupture de stock",
+  "Client injoignable",
+  "Annulée à la demande du client",
+  "Adresse ou zone non desservie",
+  "Commande en double",
+];
+
+/** Motifs d'annulation proposés au client. */
+export const CUSTOMER_CANCEL_REASONS = [
+  "Je me suis trompé dans ma commande",
+  "Le délai de livraison ne me convient pas",
+  "J'ai trouvé ailleurs",
+  "Je n'en ai plus besoin",
+];
+
+export const CANCELLED_BY_LABEL: Record<string, string> = {
+  customer: "par vous",
+  farm: "par la ferme",
+  system: "automatiquement",
+};
 
 export type PaymentMethod = "cash_on_delivery" | "wave";
 
@@ -38,8 +105,17 @@ export const orderNumber = (id: string) => id.slice(0, 8).toUpperCase();
 /** Étape suivante du traitement côté ferme (null une fois livrée ou annulée). */
 export const NEXT_STATUS: Partial<Record<OrderStatus, { to: OrderStatus; label: string }>> = {
   pending: { to: "processing", label: "Commencer la préparation" },
-  processing: { to: "shipped", label: "Marquer comme expédiée" },
+  processing: { to: "ready", label: "Marquer comme prête" },
+  ready: { to: "shipped", label: "Partir en livraison" },
   shipped: { to: "delivered", label: "Marquer comme livrée" },
+};
+
+/** Retour en arrière proposé dans la fiche (libellé de l'action). */
+export const BACK_STATUS: Partial<Record<OrderStatus, { to: OrderStatus; label: string }>> = {
+  processing: { to: "pending", label: "Revenir à « Commandée »" },
+  ready: { to: "processing", label: "Revenir à « En préparation »" },
+  shipped: { to: "ready", label: "Livraison échouée : revenir à « Prête »" },
+  delivered: { to: "shipped", label: "Corriger : pas encore livrée" },
 };
 
 /** Lien WhatsApp à partir d'un numéro saisi librement (indicatif +221 ajouté si absent). */

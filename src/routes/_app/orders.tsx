@@ -8,12 +8,15 @@ import { toast } from "sonner";
 import { Check, PackageX, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { openChat } from "@/lib/farm";
 import { cartStore } from "@/lib/cart";
 import { formatDate, formatPrice } from "@/lib/format";
 import { formatLongDate, formatOrderDeliveryWindow, orderDeliveryWindow } from "@/lib/delivery";
 import { effectivePrice } from "@/lib/pricing";
 import { resolveProductImage } from "@/lib/product-images";
 import {
+  CANCELLED_BY_LABEL,
+  CUSTOMER_CANCEL_REASONS,
   ORDER_STATUS_LABEL,
   ORDER_STEPS,
   PAYMENT_METHOD_LABEL,
@@ -168,8 +171,10 @@ function OrderCard({ order: o }: { order: Order }) {
       : status === "cancelled"
         ? `Annulée le ${formatLongDate(o.cancelled_at ?? o.updated_at)}`
         : status === "shipped"
-          ? `Expédiée — ${eta.charAt(0).toLowerCase()}${eta.slice(1)}`
-          : eta;
+          ? "En cours de livraison : le livreur est en route"
+          : status === "ready"
+            ? `Prête, bientôt en route — ${eta.charAt(0).toLowerCase()}${eta.slice(1)}`
+            : eta;
 
   return (
     <article className="overflow-hidden rounded-lg border border-border bg-card">
@@ -218,7 +223,7 @@ function OrderCard({ order: o }: { order: Order }) {
           >
             {headline}
           </h2>
-          {status !== "cancelled" && <Tracker order={o} />}
+          {status === "cancelled" ? <CancelInfo order={o} /> : <Tracker order={o} />}
 
           <ul className="mt-4 space-y-4">
             {o.order_items.map((it) => (
@@ -229,7 +234,19 @@ function OrderCard({ order: o }: { order: Order }) {
 
         <div className="space-y-2">
           {canPayWithWave(o) && <WavePayButton orderId={o.id} className="w-full" />}
-          {canCustomerCancel(o.status, o.payment_status) && <CancelButton orderId={o.id} />}
+          {canCustomerCancel(o.status, o.payment_status) ? (
+            <CancelButton orderId={o.id} />
+          ) : (
+            (status === "processing" || status === "ready") && (
+              <p className="rounded-md bg-secondary px-3 py-2 text-xs text-muted-foreground">
+                La préparation a commencé. Pour annuler,{" "}
+                <button type="button" onClick={openChat} className="text-primary underline">
+                  écrivez à la ferme
+                </button>
+                .
+              </p>
+            )
+          )}
           <Link
             to="/contact"
             className="block rounded-full border border-border px-4 py-1.5 text-center text-sm hover:bg-secondary"
@@ -256,12 +273,13 @@ function Tracker({ order }: { order: Order }) {
   const dates: (string | null)[] = [
     order.created_at,
     order.processing_at,
+    order.ready_at,
     order.shipped_at,
     order.delivered_at,
   ];
 
   return (
-    <ol className="mt-4 grid grid-cols-4">
+    <ol className="mt-4 grid grid-cols-5">
       {ORDER_STEPS.map((step, i) => {
         const done = i <= current;
         return (
@@ -392,16 +410,39 @@ function OrderLine({
   );
 }
 
+function CancelInfo({ order }: { order: Order }) {
+  const by = order.cancelled_by ? CANCELLED_BY_LABEL[order.cancelled_by] : null;
+  const refund = order.payment_status === "paid";
+  return (
+    <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+      {(by || order.cancel_reason) && (
+        <p>
+          {by && <>Annulée {by}</>}
+          {by && order.cancel_reason && " : "}
+          {order.cancel_reason && <span className="text-foreground">{order.cancel_reason}</span>}
+        </p>
+      )}
+      {refund && <p>Votre paiement va vous être remboursé. La ferme vous contactera.</p>}
+      {order.payment_status === "refunded" && <p>Votre paiement vous a été remboursé.</p>}
+    </div>
+  );
+}
+
 function CancelButton({ orderId }: { orderId: string }) {
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
+  const [reason, setReason] = useState("");
 
   const cancel = async () => {
     setBusy(true);
-    const { error } = await supabase.rpc("cancel_order", { _order_id: orderId });
+    const { error } = await supabase.rpc("cancel_order", {
+      _order_id: orderId,
+      _reason: reason || undefined,
+    });
     setBusy(false);
     if (error) {
       toast.error(error.message);
+      void qc.invalidateQueries({ queryKey: ["my-orders"] });
       return;
     }
     toast.success("Commande annulée");
@@ -427,6 +468,21 @@ function CancelButton({ orderId }: { orderId: string }) {
             Tous les articles de la commande seront annulés. Cette action est définitive.
           </AlertDialogDescription>
         </AlertDialogHeader>
+        <label className="block text-sm">
+          <span className="text-muted-foreground">Pourquoi ? (facultatif)</span>
+          <select
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            className="input mt-1 w-full"
+          >
+            <option value="">Ne pas préciser</option>
+            {CUSTOMER_CANCEL_REASONS.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+        </label>
         <AlertDialogFooter>
           <AlertDialogCancel>Garder ma commande</AlertDialogCancel>
           <AlertDialogAction onClick={() => void cancel()}>Annuler la commande</AlertDialogAction>

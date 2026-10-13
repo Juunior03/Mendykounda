@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import {
   ORDER_STATUS_LABEL,
+  ORDER_STATUS_TONE,
   lineQuantity,
   orderNumber,
   whatsappLink,
@@ -35,14 +36,6 @@ export const Route = createFileRoute("/_app/admin_/customers/$customerId")({
     meta: [{ title: "Fiche client — MendyKounda" }, { name: "robots", content: "noindex" }],
   }),
 });
-
-const STATUS_TONE: Record<OrderStatus, string> = {
-  pending: "bg-accent/15",
-  processing: "bg-accent/15",
-  shipped: "bg-primary/10 text-primary",
-  delivered: "bg-primary/10 text-primary",
-  cancelled: "bg-destructive/10 text-destructive",
-};
 
 const fmtDate = (iso: string | null) =>
   iso
@@ -237,7 +230,9 @@ function CustomerPage() {
                           {count} article{count > 1 ? "s" : ""} ·{" "}
                           {o.order_items.map((i) => i.product_name).join(", ")}
                         </span>
-                        <span className={cn("rounded px-2 py-0.5 text-xs", STATUS_TONE[status])}>
+                        <span
+                          className={cn("rounded px-2 py-0.5 text-xs", ORDER_STATUS_TONE[status])}
+                        >
                           {ORDER_STATUS_LABEL[status]}
                         </span>
                         <span className="w-28 text-right tabular-nums">

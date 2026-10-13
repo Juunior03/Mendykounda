@@ -12,11 +12,13 @@ import {
   ArrowUpRight,
   ChevronRight,
   Clock,
+  CookingPot,
   MessageSquare,
   Minus,
   PackageCheck,
   PackageX,
   Truck,
+  Undo2,
   Wallet,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,7 +27,7 @@ import { ORDER_STATUS_LABEL, lineTotal, orderNumber, type OrderStatus } from "@/
 import { LOW_STOCK_THRESHOLD } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
-export type OrdersFilter = OrderStatus | "all" | "wave_unpaid";
+export type OrdersFilter = OrderStatus | "all" | "wave_unpaid" | "refund_due";
 export type ProductsFilter = "all" | "low" | "out";
 
 export interface DashboardNav {
@@ -84,9 +86,11 @@ function useDashboard(period: Period) {
       const [
         orders,
         toPrepare,
+        inPreparation,
         toShip,
         inDelivery,
         waveUnpaid,
+        refundDue,
         lowStock,
         unread,
         customers,
@@ -118,6 +122,12 @@ function useDashboard(period: Period) {
           supabase
             .from("orders")
             .select("id", { count: "exact", head: true })
+            .eq("status", "ready"),
+        ),
+        count(
+          supabase
+            .from("orders")
+            .select("id", { count: "exact", head: true })
             .eq("status", "shipped"),
         ),
         count(
@@ -127,6 +137,13 @@ function useDashboard(period: Period) {
             .eq("payment_method", "wave")
             .neq("payment_status", "paid")
             .neq("status", "cancelled"),
+        ),
+        count(
+          supabase
+            .from("orders")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "cancelled")
+            .eq("payment_status", "paid"),
         ),
         supabase
           .from("products")
@@ -168,9 +185,11 @@ function useDashboard(period: Period) {
         prevStart,
         orders,
         toPrepare,
+        inPreparation,
         toShip,
         inDelivery,
         waveUnpaid,
+        refundDue,
         lowStock,
         unread,
         customers,
@@ -353,10 +372,16 @@ export function AdminDashboard({ nav }: { nav: DashboardNav }) {
               onClick={() => nav.orders("pending")}
             />
             <ActionRow
-              icon={PackageCheck}
-              label="Prêtes à expédier"
-              count={data?.toShip}
+              icon={CookingPot}
+              label="En préparation"
+              count={data?.inPreparation}
               onClick={() => nav.orders("processing")}
+            />
+            <ActionRow
+              icon={PackageCheck}
+              label="Prêtes, à livrer"
+              count={data?.toShip}
+              onClick={() => nav.orders("ready")}
             />
             <ActionRow
               icon={Truck}
@@ -369,6 +394,13 @@ export function AdminDashboard({ nav }: { nav: DashboardNav }) {
               label="Paiements Wave en attente"
               count={data?.waveUnpaid}
               onClick={() => nav.orders("wave_unpaid")}
+            />
+            <ActionRow
+              icon={Undo2}
+              label="Remboursements à faire"
+              count={data?.refundDue}
+              tone="critical"
+              onClick={() => nav.orders("refund_due")}
             />
             <ActionRow
               icon={PackageX}
