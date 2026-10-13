@@ -25,12 +25,15 @@ import { useFarm } from "@/lib/farm";
 import { ADMIN_ALERTS_KEY } from "@/lib/admin-alerts";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import {
+  BACK_STATUS,
+  CANCELLED_BY_LABEL,
   NEXT_STATUS,
   awaitingWeight,
   formatWeight,
   lineQuantity,
   lineTotal,
   ORDER_STATUS_LABEL,
+  ORDER_STATUS_TONE,
   PAYMENT_METHOD_LABEL,
   orderNumber,
   whatsappLink,
@@ -39,6 +42,7 @@ import {
 import { resolveProductImage } from "@/lib/product-images";
 import { formatSlaughterDay } from "@/lib/slaughter";
 import { BrandLogo } from "@/components/brand-logo";
+import { CancelOrderDialog, DeliverOrderDialog } from "@/components/admin/order-status-dialogs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -54,14 +58,6 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   paid: "Payée",
   refunded: "Remboursée",
   failed: "Échec",
-};
-
-const STATUS_TONE: Record<OrderStatus, string> = {
-  pending: "bg-accent/15 text-foreground",
-  processing: "bg-accent/15 text-foreground",
-  shipped: "bg-primary/10 text-primary",
-  delivered: "bg-primary/10 text-primary",
-  cancelled: "bg-destructive/10 text-destructive",
 };
 
 const orderQuery = (id: string) => ({
@@ -112,6 +108,7 @@ function OrderSheetPage() {
   const { data: order, isLoading } = useQuery({ ...orderQuery(orderId), enabled: isAdmin });
   const { done, toggle } = usePrepChecklist(orderId);
   const [busy, setBusy] = useState(false);
+  const [dialog, setDialog] = useState<"cancel" | "deliver" | null>(null);
 
   useEffect(() => {
     if (!loading && !user) void navigate({ to: "/auth" });
@@ -157,6 +154,9 @@ function OrderSheetPage() {
   const paid = order.payment_status === "paid";
   const canWeigh = status !== "cancelled" && status !== "delivered" && !paid;
   const next = NEXT_STATUS[status];
+  const back = BACK_STATUS[status];
+  const refundDue = status === "cancelled" && paid;
+  const toCollect = !paid && order.payment_method === "cash_on_delivery";
   const wa = whatsappLink(order.shipping_phone);
   const preparedCount = items.filter((i) => done.includes(i.id)).length;
   const no = orderNumber(order.id);
@@ -181,28 +181,49 @@ function OrderSheetPage() {
   };
 
   const setStatus = (to: OrderStatus) => {
+    if (to === "cancelled") return setDialog("cancel");
     if (
-      to === "cancelled" &&
-      !window.confirm("Annuler cette commande ? Les articles seront remis en stock.")
-    )
-      return;
-    if (
-      to === "shipped" &&
+      to === "ready" &&
       preparedCount < items.length &&
       !window.confirm(
-        `${items.length - preparedCount} article(s) ne sont pas cochés comme prêts. Expédier quand même ?`,
+        `${items.length - preparedCount} article(s) ne sont pas cochés comme prêts. Marquer la commande comme prête quand même ?`,
       )
     )
       return;
     if (
-      (to === "shipped" || to === "delivered") &&
+      (to === "ready" || to === "shipped" || to === "delivered") &&
       toWeigh > 0 &&
       !window.confirm(
         `${toWeigh} article(s) au poids ne sont pas pesés : le montant restera l'estimation. Continuer ?`,
       )
     )
       return;
+    if (to === "delivered") return setDialog("deliver");
     void update({ status: to }, `Commande : ${ORDER_STATUS_LABEL[to].toLowerCase()}`);
+  };
+
+  const cancel = (reason: string) => {
+    setDialog(null);
+    void update(
+      { status: "cancelled", cancel_reason: reason, cancelled_by: "farm" },
+      "Commande annulée, articles remis en stock",
+    );
+  };
+
+  const deliver = (collected: boolean) => {
+    setDialog(null);
+    void update(
+      {
+        status: "delivered",
+        ...(collected ? { payment_status: "paid", paid_at: new Date().toISOString() } : {}),
+      },
+      collected ? "Livrée et encaissée" : "Commande livrée",
+    );
+  };
+
+  const markRefunded = () => {
+    if (!window.confirm(`Confirmer le remboursement de ${formatPrice(total)} au client ?`)) return;
+    void update({ payment_status: "refunded" }, "Remboursement enregistré");
   };
 
   const markPaid = () => {
@@ -216,7 +237,8 @@ function OrderSheetPage() {
   const history: { label: string; at: string | null }[] = [
     { label: "Commandée", at: order.created_at },
     { label: "Préparation commencée", at: order.processing_at },
-    { label: "Expédiée", at: order.shipped_at },
+    { label: "Prête", at: order.ready_at },
+    { label: "Partie en livraison", at: order.shipped_at },
     { label: "Livrée", at: order.delivered_at },
     { label: "Paiement reçu", at: order.paid_at },
     ...(order.cancelled_at ? [{ label: "Annulée", at: order.cancelled_at }] : []),
@@ -239,7 +261,10 @@ function OrderSheetPage() {
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-2xl font-semibold md:text-3xl">Commande #{no}</h1>
               <span
-                className={cn("rounded-full px-3 py-1 text-xs font-medium", STATUS_TONE[status])}
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-medium",
+                  ORDER_STATUS_TONE[status],
+                )}
               >
                 {ORDER_STATUS_LABEL[status]}
               </span>
@@ -261,11 +286,39 @@ function OrderSheetPage() {
           </p>
         )}
 
+        {status === "cancelled" && (
+          <section className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
+            <p className="font-medium text-destructive">
+              Annulée
+              {order.cancelled_by &&
+                ` ${order.cancelled_by === "customer" ? "par le client" : CANCELLED_BY_LABEL[order.cancelled_by]}`}
+              {order.cancelled_at && ` le ${formatDateTime(order.cancelled_at)}`}
+            </p>
+            {order.cancel_reason && <p className="mt-1">Motif : {order.cancel_reason}</p>}
+            {refundDue && (
+              <div className="mt-3 flex flex-wrap items-center gap-3 rounded-md bg-accent/15 p-3">
+                <p className="flex-1">
+                  <strong>Remboursement à faire :</strong> le client avait payé {formatPrice(total)}
+                  {order.payment_method === "wave" ? " par Wave" : ""}.
+                </p>
+                <Button size="sm" variant="outline" disabled={busy} onClick={markRefunded}>
+                  Marquer comme remboursée
+                </Button>
+              </div>
+            )}
+          </section>
+        )}
+
         {/* Actions */}
         <section className="mt-6 flex flex-wrap items-center gap-3 rounded-lg bg-card p-4 shadow-soft">
           {next && (
             <Button disabled={busy} onClick={() => setStatus(next.to)}>
               {next.label}
+            </Button>
+          )}
+          {status === "ready" && (
+            <Button variant="outline" disabled={busy} onClick={() => setStatus("delivered")}>
+              Retirée à la ferme
             </Button>
           )}
           {status === "delivered" && order.delivered_at && (
@@ -274,7 +327,16 @@ function OrderSheetPage() {
             </p>
           )}
           {status === "cancelled" && (
-            <Button variant="outline" disabled={busy} onClick={() => setStatus("pending")}>
+            <Button
+              variant="outline"
+              disabled={busy || order.payment_status === "refunded"}
+              onClick={() => setStatus("pending")}
+              title={
+                order.payment_status === "refunded"
+                  ? "Commande remboursée : le client doit repasser commande"
+                  : undefined
+              }
+            >
               Réactiver la commande
             </Button>
           )}
@@ -288,16 +350,43 @@ function OrderSheetPage() {
               Marquer comme payée
             </Button>
           )}
-          {status !== "cancelled" && status !== "delivered" && (
-            <button
-              disabled={busy}
-              onClick={() => setStatus("cancelled")}
-              className="ml-auto text-sm text-destructive hover:underline disabled:opacity-50"
-            >
-              Annuler la commande
-            </button>
-          )}
+          <div className="ml-auto flex flex-wrap items-center gap-4">
+            {back && (
+              <button
+                disabled={busy}
+                onClick={() => setStatus(back.to)}
+                className="text-sm text-muted-foreground hover:text-foreground hover:underline disabled:opacity-50"
+              >
+                {back.label}
+              </button>
+            )}
+            {status !== "cancelled" && status !== "delivered" && (
+              <button
+                disabled={busy}
+                onClick={() => setStatus("cancelled")}
+                className="text-sm text-destructive hover:underline disabled:opacity-50"
+              >
+                Annuler la commande
+              </button>
+            )}
+          </div>
         </section>
+
+        <CancelOrderDialog
+          open={dialog === "cancel"}
+          onOpenChange={(o) => setDialog(o ? "cancel" : null)}
+          paid={paid}
+          busy={busy}
+          onConfirm={cancel}
+        />
+        <DeliverOrderDialog
+          open={dialog === "deliver"}
+          onOpenChange={(o) => setDialog(o ? "deliver" : null)}
+          amount={total}
+          toCollect={toCollect}
+          busy={busy}
+          onConfirm={deliver}
+        />
 
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           {/* Préparation */}
@@ -462,7 +551,7 @@ function OrderSheetPage() {
                 {PAYMENT_STATUS_LABEL[order.payment_status] ?? order.payment_status}
                 {paid && order.paid_at ? ` le ${formatDateTime(order.paid_at)}` : ""}
               </p>
-              {!paid && order.payment_method === "cash_on_delivery" && status !== "cancelled" && (
+              {toCollect && status !== "cancelled" && (
                 <p className="mt-2 text-sm text-muted-foreground">
                   À encaisser à la livraison :{" "}
                   <strong className="text-foreground">{formatPrice(total)}</strong>
