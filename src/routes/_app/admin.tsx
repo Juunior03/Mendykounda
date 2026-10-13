@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/format";
 import { ORDER_STATUS_LABEL, PAYMENT_METHOD_LABEL, orderNumber, type OrderStatus } from "@/lib/orders";
 import { LOW_STOCK_THRESHOLD } from "@/lib/pricing";
+import { formatSlaughterDayShort } from "@/lib/slaughter";
 import {
   AdminDashboard,
   type DashboardNav,
@@ -19,6 +20,7 @@ import {
 } from "@/components/admin/dashboard";
 import { ChatBox } from "@/components/chat-box";
 import { ZonesAdmin } from "@/components/admin/zones";
+import { SlaughterAdmin } from "@/components/admin/slaughter";
 import { ImageCropDialog } from "@/components/image-crop-dialog";
 import { Button } from "@/components/ui/button";
 
@@ -29,7 +31,7 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   failed: "Échec",
 };
 
-const TABS = ["overview", "products", "categories", "orders", "customers", "delivery", "messages"] as const;
+const TABS = ["overview", "products", "categories", "orders", "customers", "delivery", "slaughter", "messages"] as const;
 type Tab = (typeof TABS)[number];
 
 export const Route = createFileRoute("/_app/admin")({
@@ -105,7 +107,7 @@ function AdminPage() {
               tab === t ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "overview" ? "Vue d'ensemble" : t === "products" ? "Produits" : t === "categories" ? "Catégories" : t === "orders" ? "Commandes" : t === "customers" ? "Clients" : t === "delivery" ? "Livraison" : "Messages"}
+            {t === "overview" ? "Vue d'ensemble" : t === "products" ? "Produits" : t === "categories" ? "Catégories" : t === "orders" ? "Commandes" : t === "customers" ? "Clients" : t === "delivery" ? "Livraison" : t === "slaughter" ? "Abattages" : "Messages"}
           </button>
         ))}
       </div>
@@ -117,6 +119,7 @@ function AdminPage() {
         {tab === "orders" && <OrdersAdmin filter={ordersFilter} onFilter={setOrdersFilter} />}
         {tab === "customers" && <CustomersAdmin />}
         {tab === "delivery" && <ZonesAdmin />}
+        {tab === "slaughter" && <SlaughterAdmin />}
         {tab === "messages" && <MessagesAdmin />}
       </div>
     </div>
@@ -173,12 +176,16 @@ interface ProductRow {
   category_id: string | null;
   discount_price: number | null;
   discount_label: string | null;
+  variant_group: string | null;
+  variant_label: string | null;
+  needs_slaughter: boolean;
 }
 
 const emptyProduct: Partial<ProductRow> = {
   name: "", slug: "", description: "", price: 0, stock: 0, unit: "kg",
   image_url: "", is_active: true, is_featured: false, category_id: null,
   discount_price: null, discount_label: "",
+  variant_group: "", variant_label: "", needs_slaughter: false,
 };
 
 /* ---------- Products admin ---------- */
@@ -197,7 +204,7 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, slug, description, price, stock, is_active, is_featured, unit, image_url, category_id, discount_price, discount_label")
+        .select("id, name, slug, description, price, stock, is_active, is_featured, unit, image_url, category_id, discount_price, discount_label, variant_group, variant_label, needs_slaughter")
         .order("name");
       if (error) throw error;
       return data as ProductRow[];
@@ -255,6 +262,9 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
           ? Number(editing.discount_price)
           : null,
       discount_label: editing.discount_label?.trim() ? editing.discount_label.trim() : null,
+      variant_group: editing.variant_group?.trim() ? slugify(editing.variant_group) : null,
+      variant_label: editing.variant_label?.trim() ? editing.variant_label.trim() : null,
+      needs_slaughter: !!editing.needs_slaughter,
     };
     if (!payload.name) { toast.error("Nom requis"); return; }
 
@@ -300,7 +310,19 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
           <tbody className="divide-y divide-border">
             {shownProducts?.map((p) => (
               <tr key={p.id} className="hover:bg-secondary/40">
-                <td className="p-3 font-medium">{p.name}</td>
+                <td className="p-3 font-medium">
+                  {p.name}
+                  {(p.variant_label || p.needs_slaughter) && (
+                    <span className="mt-1 flex flex-wrap gap-1 text-[11px] font-normal">
+                      {p.variant_label && (
+                        <span className="rounded bg-secondary px-1.5 py-0.5">Format : {p.variant_label}</span>
+                      )}
+                      {p.needs_slaughter && (
+                        <span className="rounded bg-accent/15 px-1.5 py-0.5">À l'abattage</span>
+                      )}
+                    </span>
+                  )}
+                </td>
                 <td className="p-3 tabular-nums">
                   {p.discount_price != null && Number(p.discount_price) < Number(p.price) ? (
                     <>
@@ -343,7 +365,7 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
 
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setEditing(null)}>
-          <div className="w-full max-w-2xl rounded-lg bg-background p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-background p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-medium">{editing.id ? "Éditer le produit" : "Nouveau produit"}</h3>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <Field label="Nom">
@@ -383,6 +405,40 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
                   placeholder="Promo, Bon plan, -20%…"
                   onChange={(e) => setEditing({ ...editing, discount_label: e.target.value })} />
               </Field>
+              <div className="rounded-md border border-border p-3 sm:col-span-2">
+                <p className="text-xs font-medium">Formats (facultatif)</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Donnez le même groupe à plusieurs produits pour les proposer sur une seule fiche,
+                  par exemple groupe « cochon-de-lait » : « Sur pied » et « En viande ».
+                </p>
+                <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                  <Field label="Groupe">
+                    <input className="input" list="variant-groups" value={editing.variant_group ?? ""}
+                      placeholder="cochon-de-lait"
+                      onChange={(e) => setEditing({ ...editing, variant_group: e.target.value })} />
+                    <datalist id="variant-groups">
+                      {[...new Set((products ?? []).map((p) => p.variant_group).filter(Boolean))].map((g) => (
+                        <option key={g} value={g!} />
+                      ))}
+                    </datalist>
+                  </Field>
+                  <Field label="Nom du format">
+                    <input className="input" value={editing.variant_label ?? ""}
+                      placeholder="Sur pied, En viande, Demi-porc…"
+                      onChange={(e) => setEditing({ ...editing, variant_label: e.target.value })} />
+                  </Field>
+                </div>
+                <label className="mt-3 flex items-start gap-2 text-sm">
+                  <input type="checkbox" className="mt-1" checked={!!editing.needs_slaughter}
+                    onChange={(e) => setEditing({ ...editing, needs_slaughter: e.target.checked })} />
+                  <span>
+                    Viande à l'abattage
+                    <span className="block text-xs text-muted-foreground">
+                      Commandable seulement s'il y a un abattage programmé (onglet Abattages), livrée à partir de ce jour.
+                    </span>
+                  </span>
+                </label>
+              </div>
               <Field label="Image" className="sm:col-span-2">
                 <ImagePicker
                   value={editing.image_url ?? ""}
@@ -531,7 +587,7 @@ function OrdersAdmin({ filter, onFilter }: { filter: OrdersFilter; onFilter: (f:
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, created_at, total_amount, status, payment_status, payment_method, shipping_full_name, shipping_city, confirmation_email_sent_at, confirmation_sms_sent_at")
+        .select("id, created_at, total_amount, status, payment_status, payment_method, shipping_full_name, shipping_city, confirmation_email_sent_at, confirmation_sms_sent_at, slaughter_date")
         .order("created_at", { ascending: false })
         // Assez large pour que les compteurs des filtres correspondent au tableau de bord.
         .limit(2000);
@@ -620,7 +676,14 @@ function OrdersAdmin({ filter, onFilter }: { filter: OrdersFilter; onFilter: (f:
                   E-mail {o.confirmation_email_sent_at ? "✓" : "—"} · SMS {o.confirmation_sms_sent_at ? "✓" : "—"}
                 </span>
               </td>
-              <td className="p-3">{o.shipping_city}</td>
+              <td className="p-3">
+                {o.shipping_city}
+                {o.slaughter_date && (
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    Abattage {formatSlaughterDayShort(o.slaughter_date)}
+                  </span>
+                )}
+              </td>
               <td className="p-3 tabular-nums">{formatPrice(Number(o.total_amount))}</td>
               <td className="p-3">
                 <span className={`rounded px-2 py-0.5 text-xs ${o.payment_status === "paid" ? "bg-primary/10 text-primary" : "bg-secondary"}`}>

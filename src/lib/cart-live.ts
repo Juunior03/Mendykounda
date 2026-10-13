@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cartStore, type CartItem } from "@/lib/cart";
 import { effectivePrice } from "@/lib/pricing";
+import { upcomingSlaughterQuery, type SlaughterDay } from "@/lib/slaughter";
 
 interface LiveProduct {
   id: string;
@@ -19,6 +20,7 @@ interface LiveProduct {
   is_active: boolean;
   unit: string;
   image_url: string | null;
+  needs_slaughter: boolean;
 }
 
 export interface CartLine {
@@ -42,12 +44,21 @@ export function useCartLines(items: CartItem[]) {
     queryFn: async (): Promise<LiveProduct[]> => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, slug, name, price, discount_price, stock, is_active, unit, image_url")
+        .select(
+          "id, slug, name, price, discount_price, stock, is_active, unit, image_url, needs_slaughter",
+        )
         .in("id", ids);
       if (error) throw error;
       return (data ?? []) as LiveProduct[];
     },
   });
+
+  // Viande à l'abattage : livrée à partir du prochain abattage programmé.
+  const hasSlaughterItems = (products ?? []).some(
+    (p) => p.needs_slaughter && items.some((i) => i.productId === p.id),
+  );
+  const { data: upcoming } = useQuery({ ...upcomingSlaughterQuery(), enabled: hasSlaughterItems });
+  const slaughterDay: SlaughterDay | null = hasSlaughterItems ? (upcoming?.[0] ?? null) : null;
 
   const lines: CartLine[] = items.map((item) => {
     const product = products?.find((p) => p.id === item.productId) ?? null;
@@ -67,6 +78,8 @@ export function useCartLines(items: CartItem[]) {
     if (product.stock <= 0) issue = "Actuellement indisponible.";
     else if (item.quantity > product.stock)
       issue = `Plus que ${product.stock} en stock : réduisez la quantité.`;
+    else if (product.needs_slaughter && upcoming && upcoming.length === 0)
+      issue = "Aucun abattage programmé pour le moment : retirez cet article ou revenez plus tard.";
     return { item, product, price, previousPrice: price !== item.price ? item.price : null, issue };
   });
 
@@ -89,5 +102,13 @@ export function useCartLines(items: CartItem[]) {
   const itemCount = available.reduce((s, l) => s + l.item.quantity, 0);
   const blocked = lines.some((l) => l.issue);
 
-  return { lines, subtotal, itemCount, blocked, loading: isLoading && ids.length > 0 };
+  return {
+    lines,
+    subtotal,
+    itemCount,
+    blocked,
+    loading: isLoading && ids.length > 0,
+    /** Prochain abattage si le panier contient de la viande à l'abattage. */
+    slaughterDay,
+  };
 }

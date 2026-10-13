@@ -30,6 +30,7 @@ import {
   type OrderStatus,
 } from "@/lib/orders";
 import { resolveProductImage } from "@/lib/product-images";
+import { formatSlaughterDay } from "@/lib/slaughter";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -232,6 +233,13 @@ function OrderSheetPage() {
             <Printer className="h-4 w-4" /> Imprimer le bon de livraison
           </Button>
         </div>
+
+        {order.slaughter_date && (
+          <p className="mt-4 rounded-lg bg-accent/15 p-3 text-sm">
+            Viande de l'abattage du <strong>{formatSlaughterDay(order.slaughter_date)}</strong> : à
+            livrer à partir de ce jour.
+          </p>
+        )}
 
         {/* Actions */}
         <section className="mt-6 flex flex-wrap items-center gap-3 rounded-lg bg-card p-4 shadow-soft">
@@ -473,6 +481,13 @@ function OrderSheetPage() {
             </p>
           </div>
         </div>
+
+        {order.slaughter_date && (
+          <p className="mt-4 rounded border-2 border-black p-2 font-semibold">
+            Viande de l'abattage du {formatSlaughterDay(order.slaughter_date)} : livrer à partir de
+            ce jour.
+          </p>
+        )}
 
         {order.notes && (
           <p className="mt-4 rounded border border-gray-400 p-2">

@@ -20,7 +20,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProductRail } from "@/components/product-rail";
 import { resolveProductImage } from "@/lib/product-images";
 import { hasPromo } from "@/lib/pricing";
-import { formatDeliveryWindow, formatLongDate, deliveryWindow } from "@/lib/delivery";
+import {
+  formatDeliveryWindow,
+  formatLongDate,
+  deliveryWindow,
+  formatOrderDeliveryWindow,
+  orderDeliveryWindow,
+} from "@/lib/delivery";
 import { ORDER_STATUS_LABEL, type OrderStatus } from "@/lib/orders";
 import { formatPrice } from "@/lib/format";
 import { DELIVERY_AREA } from "@/lib/zones";
@@ -285,7 +291,7 @@ function PersonalPanel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, created_at, status, total_amount, delivered_at")
+        .select("id, created_at, status, total_amount, delivered_at, slaughter_date")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -334,9 +340,9 @@ function PersonalPanel() {
       ? `Livrée le ${formatLongDate(lastOrder.delivered_at ?? lastOrder.created_at)}`
       : status === "cancelled"
         ? "Annulée"
-        : deliveryWindow(lastOrder.created_at).end.getTime() < Date.now()
+        : orderDeliveryWindow(lastOrder).end.getTime() < Date.now()
           ? `${ORDER_STATUS_LABEL[status!]} · livraison imminente`
-          : `${ORDER_STATUS_LABEL[status!]} · arrivée prévue ${formatDeliveryWindow(lastOrder.created_at)}`;
+          : `${ORDER_STATUS_LABEL[status!]} · arrivée prévue ${formatOrderDeliveryWindow(lastOrder)}`;
 
   return (
     <aside className="flex flex-col gap-4 rounded-lg bg-card p-5 shadow-soft">

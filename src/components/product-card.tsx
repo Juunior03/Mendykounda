@@ -5,26 +5,34 @@
 import { Link } from "@tanstack/react-router";
 import { ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
-import type { Product } from "@/lib/queries";
+import { productDisplayName, type Product } from "@/lib/queries";
 import { formatPrice } from "@/lib/format";
 import { resolveProductImage } from "@/lib/product-images";
 import { Button } from "@/components/ui/button";
 import { Stars } from "@/components/stars";
 import { cartStore } from "@/lib/cart";
 import { effectivePrice, hasPromo, promoPercent, LOW_STOCK_THRESHOLD } from "@/lib/pricing";
+import { useQuery } from "@tanstack/react-query";
 import { deliveryWindow, formatLongDate } from "@/lib/delivery";
+import { formatSlaughterDay, upcomingSlaughterQuery } from "@/lib/slaughter";
 
 export function ProductCard({ product }: { product: Product }) {
   const img = resolveProductImage(product.image_url);
   const promo = hasPromo(product);
   const price = effectivePrice(product);
-  const outOfStock = product.stock <= 0;
+  const { data: upcoming } = useQuery({
+    ...upcomingSlaughterQuery(),
+    enabled: product.needs_slaughter,
+  });
+  const slaughter = product.needs_slaughter ? (upcoming?.[0] ?? null) : null;
+  const noSlaughter = product.needs_slaughter && upcoming !== undefined && !slaughter;
+  const outOfStock = product.stock <= 0 || noSlaughter;
   const ratingCount = product.rating_count ?? 0;
 
   const add = () => {
     cartStore.add({
       productId: product.id,
-      name: product.name,
+      name: productDisplayName(product),
       price,
       unit: product.unit,
       imageUrl: product.image_url,
@@ -65,6 +73,11 @@ export function ProductCard({ product }: { product: Product }) {
         <h3 className="mt-3 line-clamp-2 min-h-[2.5rem] text-sm leading-5 group-hover:text-primary">
           {product.name}
         </h3>
+        {product.variant_label && (
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            Format : <span className="font-medium text-foreground">{product.variant_label}</span>
+          </p>
+        )}
       </Link>
 
       {ratingCount > 0 && (
@@ -98,14 +111,18 @@ export function ProductCard({ product }: { product: Product }) {
       )}
 
       <div className="mt-1.5 text-[11px] leading-4">
-        {outOfStock ? (
+        {noSlaughter ? (
+          <p className="font-medium text-muted-foreground">Prochain abattage bientôt programmé</p>
+        ) : outOfStock ? (
           <p className="font-medium text-destructive">Actuellement indisponible</p>
         ) : (
           <>
             <p className="text-muted-foreground">
-              Livraison dès le{" "}
+              {slaughter ? "Abattage du " : "Livraison dès le "}
               <span className="font-medium text-foreground">
-                {formatLongDate(deliveryWindow().start)}
+                {slaughter
+                  ? formatSlaughterDay(slaughter.day)
+                  : formatLongDate(deliveryWindow().start)}
               </span>
             </p>
             {product.stock <= LOW_STOCK_THRESHOLD && (
@@ -123,7 +140,8 @@ export function ProductCard({ product }: { product: Product }) {
         disabled={outOfStock}
         onClick={add}
       >
-        <ShoppingCart /> {outOfStock ? "Épuisé" : "Ajouter au panier"}
+        <ShoppingCart />{" "}
+        {noSlaughter ? "Bientôt disponible" : outOfStock ? "Épuisé" : "Ajouter au panier"}
       </Button>
     </article>
   );

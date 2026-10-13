@@ -175,6 +175,7 @@ export type Database = {
           shipping_phone: string
           shipping_postal_code: string
           status: Database["public"]["Enums"]["order_status"]
+          slaughter_date: string | null
           stripe_session_id: string | null
           total_amount: number
           updated_at: string
@@ -202,6 +203,7 @@ export type Database = {
           shipping_phone: string
           shipping_postal_code: string
           status?: Database["public"]["Enums"]["order_status"]
+          slaughter_date?: string | null
           stripe_session_id?: string | null
           total_amount: number
           updated_at?: string
@@ -229,6 +231,7 @@ export type Database = {
           shipping_phone?: string
           shipping_postal_code?: string
           status?: Database["public"]["Enums"]["order_status"]
+          slaughter_date?: string | null
           stripe_session_id?: string | null
           total_amount?: number
           updated_at?: string
@@ -253,6 +256,9 @@ export type Database = {
           stock: number
           unit: string
           updated_at: string
+          needs_slaughter: boolean
+          variant_group: string | null
+          variant_label: string | null
         }
         Insert: {
           category_id?: string | null
@@ -270,6 +276,9 @@ export type Database = {
           stock?: number
           unit?: string
           updated_at?: string
+          needs_slaughter?: boolean
+          variant_group?: string | null
+          variant_label?: string | null
         }
         Update: {
           category_id?: string | null
@@ -287,6 +296,9 @@ export type Database = {
           stock?: number
           unit?: string
           updated_at?: string
+          needs_slaughter?: boolean
+          variant_group?: string | null
+          variant_label?: string | null
         }
         Relationships: [
           {
@@ -368,6 +380,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      slaughter_days: {
+        Row: {
+          created_at: string
+          day: string
+          id: string
+          note: string | null
+          order_deadline: string
+        }
+        Insert: {
+          created_at?: string
+          day: string
+          id?: string
+          note?: string | null
+          order_deadline: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          id?: string
+          note?: string | null
+          order_deadline?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
