@@ -27,7 +27,6 @@ export interface NotifyOrder {
   shipping_phone: string;
   shipping_address: string;
   shipping_city: string;
-  shipping_postal_code: string;
   notes: string | null;
   items: NotifyItem[];
 }
@@ -264,7 +263,7 @@ export function buildCustomerEmail(
      <p style="margin:0 0 16px;color:#555">Commande n° <strong>${no}</strong></p>
 
      <p style="margin:0 0 4px;font-weight:bold;color:#15803d">Livraison prévue entre ${longDate(start)} et ${longDate(end)}</p>
-     <p style="margin:0 0 20px;color:#555">${escapeHtml(order.shipping_full_name)}, ${escapeHtml(order.shipping_address)}, ${escapeHtml(order.shipping_postal_code)} ${escapeHtml(order.shipping_city)} · Tél. ${escapeHtml(order.shipping_phone)}</p>
+     <p style="margin:0 0 20px;color:#555">${escapeHtml(order.shipping_full_name)}, ${escapeHtml(order.shipping_address)}, ${escapeHtml(order.shipping_city)} · Tél. ${escapeHtml(order.shipping_phone)}</p>
 
      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
        ${itemsRows(order)}
@@ -300,7 +299,7 @@ export function buildCustomerEmail(
     `Total : ${formatFcfa(order.total_amount)}`,
     "",
     `Livraison prévue entre ${longDate(start)} et ${longDate(end)}.`,
-    `${order.shipping_full_name}, ${order.shipping_address}, ${order.shipping_postal_code} ${order.shipping_city}`,
+    `${order.shipping_full_name}, ${order.shipping_address}, ${order.shipping_city}`,
     `${payment}. ${paymentNote}`,
     "",
     `Suivre ma commande : ${ordersUrl}`,
@@ -321,7 +320,7 @@ export function buildAdminEmail(
     `Nouvelle commande ${no}`,
     `<h1 style="margin:0 0 8px;font-size:20px">Nouvelle commande n° ${no}</h1>
      <p style="margin:0 0 16px;color:#555">${escapeHtml(order.shipping_full_name)} · ${escapeHtml(order.shipping_phone)}<br>
-     ${escapeHtml(order.shipping_address)}, ${escapeHtml(order.shipping_postal_code)} ${escapeHtml(order.shipping_city)}</p>
+     ${escapeHtml(order.shipping_address)}, ${escapeHtml(order.shipping_city)}</p>
      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
        ${itemsRows(order)}
        <tr>

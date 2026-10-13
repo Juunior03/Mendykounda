@@ -16,7 +16,7 @@ export function notifyRepo(): NotifyRepo {
       const { data, error } = await db
         .from("orders")
         .select(
-          "id, user_id, created_at, total_amount, delivery_fee, status, payment_method, shipping_full_name, shipping_phone, shipping_address, shipping_city, shipping_postal_code, notes, order_items(product_name, quantity, unit_price, sold_by_weight)",
+          "id, user_id, created_at, total_amount, delivery_fee, status, payment_method, shipping_full_name, shipping_phone, shipping_address, shipping_city, notes, order_items(product_name, quantity, unit_price, sold_by_weight)",
         )
         .eq("id", id)
         .maybeSingle();

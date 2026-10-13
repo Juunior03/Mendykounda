@@ -417,7 +417,6 @@ function OrderSheetPage() {
                   {order.shipping_address}
                   <br />
                   {order.shipping_city}
-                  {order.shipping_postal_code ? ` ${order.shipping_postal_code}` : ""}
                 </span>
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
@@ -537,10 +536,7 @@ function OrderSheetPage() {
             <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Livrer à</p>
             <p className="mt-1 text-base font-semibold">{order.shipping_full_name}</p>
             <p>{order.shipping_address}</p>
-            <p>
-              {order.shipping_city}
-              {order.shipping_postal_code ? ` ${order.shipping_postal_code}` : ""}
-            </p>
+            <p>{order.shipping_city}</p>
             <p className="mt-1 font-medium">Tél. {order.shipping_phone}</p>
           </div>
           <div>

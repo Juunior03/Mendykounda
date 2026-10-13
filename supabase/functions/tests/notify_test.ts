@@ -33,7 +33,6 @@ const order = (over: Partial<NotifyOrder> = {}): NotifyOrder => ({
   shipping_phone: "77 123 45 67",
   shipping_address: "Rue 10, Sicap Liberté",
   shipping_city: "Dakar",
-  shipping_postal_code: "10000",
   notes: null,
   items: [
     { product_name: "Poulet fermier", quantity: 2, unit_price: "5500.00" },
