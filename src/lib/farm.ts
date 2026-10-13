@@ -30,6 +30,12 @@ export const DEFAULT_FARM: FarmSettings = {
   about_title: "Notre ferme en Casamance",
   about_body: "",
   about_image_url: null,
+  legal_name: null,
+  ninea: null,
+  rccm: null,
+  terms_body: null,
+  privacy_body: null,
+  legal_updated_at: null,
 };
 
 export const farmSettingsQuery = () =>

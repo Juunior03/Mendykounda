@@ -113,7 +113,14 @@ export function SiteFooter() {
           <p>
             © {new Date().getFullYear()} {farm.name}. Tous droits réservés.
           </p>
-          <p>Paiement en FCFA · Direct producteur</p>
+          <nav className="flex flex-wrap gap-x-4 gap-y-1">
+            <Link to="/cgv" className="hover:text-primary-foreground">
+              Conditions générales de vente
+            </Link>
+            <Link to="/confidentialite" className="hover:text-primary-foreground">
+              Confidentialité
+            </Link>
+          </nav>
         </div>
       </div>
     </footer>

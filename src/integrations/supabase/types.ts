@@ -112,6 +112,12 @@ export type Database = {
           hero_title: string
           id: number
           instagram_url: string | null
+          legal_name: string | null
+          legal_updated_at: string | null
+          ninea: string | null
+          privacy_body: string | null
+          rccm: string | null
+          terms_body: string | null
           location: string
           name: string
           opening_hours: string | null
@@ -134,6 +140,12 @@ export type Database = {
           hero_title?: string
           id?: number
           instagram_url?: string | null
+          legal_name?: string | null
+          legal_updated_at?: string | null
+          ninea?: string | null
+          privacy_body?: string | null
+          rccm?: string | null
+          terms_body?: string | null
           location?: string
           name?: string
           opening_hours?: string | null
@@ -156,6 +168,12 @@ export type Database = {
           hero_title?: string
           id?: number
           instagram_url?: string | null
+          legal_name?: string | null
+          legal_updated_at?: string | null
+          ninea?: string | null
+          privacy_body?: string | null
+          rccm?: string | null
+          terms_body?: string | null
           location?: string
           name?: string
           opening_hours?: string | null

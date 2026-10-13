@@ -229,6 +229,16 @@ function CheckoutPage() {
     </button>
   );
 
+  const termsNote = (
+    <p className="mt-2 text-center text-[11px] text-muted-foreground">
+      En validant, vous acceptez nos{" "}
+      <Link to="/cgv" target="_blank" className="underline hover:text-foreground">
+        conditions générales de vente
+      </Link>
+      .
+    </p>
+  );
+
   const fields: {
     k: keyof Address;
     label: string;
@@ -476,7 +486,10 @@ function CheckoutPage() {
             </label>
 
             <div className="mt-4 flex flex-col gap-3 rounded-md border border-border p-4 sm:flex-row sm:items-center">
-              <div className="sm:w-56">{placeButton}</div>
+              <div className="sm:w-56">
+                {placeButton}
+                {termsNote}
+              </div>
               <p className="text-base font-semibold text-destructive">
                 {hasWeighed ? "Montant estimé" : "Montant total"} :{" "}
                 <span className="tabular-nums">{formatPrice(total)}</span>
@@ -490,6 +503,7 @@ function CheckoutPage() {
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
             Le montant final est calculé à partir des prix en vigueur.
           </p>
+          {termsNote}
           <div className="mt-4 border-t border-border pt-4 text-sm">
             <h2 className="font-semibold">Récapitulatif de commande</h2>
             <div className="mt-2 flex justify-between">

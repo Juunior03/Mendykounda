@@ -31,6 +31,7 @@ import { ZonesAdmin } from "@/components/admin/zones";
 import { SlaughterAdmin } from "@/components/admin/slaughter";
 import { CustomersAdmin } from "@/components/admin/customers";
 import { FarmAdmin } from "@/components/admin/farm";
+import { LegalAdmin } from "@/components/admin/legal";
 import { AlertBadge } from "@/components/alert-badge";
 import { ADMIN_ALERTS_KEY, useAdminAlerts } from "@/lib/admin-alerts";
 import { ImagePicker } from "@/components/admin/image-picker";
@@ -43,7 +44,7 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   failed: "Échec",
 };
 
-const TABS = ["overview", "products", "categories", "orders", "customers", "delivery", "slaughter", "messages", "farm"] as const;
+const TABS = ["overview", "products", "categories", "orders", "customers", "delivery", "slaughter", "messages", "farm", "legal"] as const;
 type Tab = (typeof TABS)[number];
 
 const TAB_LABEL: Record<Tab, string> = {
@@ -56,6 +57,7 @@ const TAB_LABEL: Record<Tab, string> = {
   slaughter: "Abattages",
   messages: "Messages",
   farm: "Ferme",
+  legal: "Pages légales",
 };
 
 export const Route = createFileRoute("/_app/admin")({
@@ -197,6 +199,7 @@ function AdminPage() {
         {tab === "delivery" && <ZonesAdmin />}
         {tab === "slaughter" && <SlaughterAdmin />}
         {tab === "farm" && <FarmAdmin />}
+        {tab === "legal" && <LegalAdmin />}
         {tab === "messages" && <MessagesAdmin />}
       </div>
     </div>

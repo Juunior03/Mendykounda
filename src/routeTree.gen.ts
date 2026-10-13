@@ -16,7 +16,9 @@ import { Route as AppResetPasswordRouteImport } from './routes/_app/reset-passwo
 import { Route as AppOrdersRouteImport } from './routes/_app/orders'
 import { Route as AppOrderConfirmationRouteImport } from './routes/_app/order-confirmation'
 import { Route as AppContactRouteImport } from './routes/_app/contact'
+import { Route as AppConfidentialiteRouteImport } from './routes/_app/confidentialite'
 import { Route as AppCheckoutRouteImport } from './routes/_app/checkout'
+import { Route as AppCgvRouteImport } from './routes/_app/cgv'
 import { Route as AppCartRouteImport } from './routes/_app/cart'
 import { Route as AppAuthRouteImport } from './routes/_app/auth'
 import { Route as AppAdminRouteImport } from './routes/_app/admin'
@@ -60,9 +62,19 @@ const AppContactRoute = AppContactRouteImport.update({
   path: '/contact',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConfidentialiteRoute = AppConfidentialiteRouteImport.update({
+  id: '/confidentialite',
+  path: '/confidentialite',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCheckoutRoute = AppCheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCgvRoute = AppCgvRouteImport.update({
+  id: '/cgv',
+  path: '/cgv',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCartRoute = AppCartRouteImport.update({
@@ -114,7 +126,9 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AppAdminRoute
   '/auth': typeof AppAuthRoute
   '/cart': typeof AppCartRoute
+  '/cgv': typeof AppCgvRoute
   '/checkout': typeof AppCheckoutRoute
+  '/confidentialite': typeof AppConfidentialiteRoute
   '/contact': typeof AppContactRoute
   '/order-confirmation': typeof AppOrderConfirmationRoute
   '/orders': typeof AppOrdersRoute
@@ -130,7 +144,9 @@ export interface FileRoutesByTo {
   '/admin': typeof AppAdminRoute
   '/auth': typeof AppAuthRoute
   '/cart': typeof AppCartRoute
+  '/cgv': typeof AppCgvRoute
   '/checkout': typeof AppCheckoutRoute
+  '/confidentialite': typeof AppConfidentialiteRoute
   '/contact': typeof AppContactRoute
   '/order-confirmation': typeof AppOrderConfirmationRoute
   '/orders': typeof AppOrdersRoute
@@ -149,7 +165,9 @@ export interface FileRoutesById {
   '/_app/admin': typeof AppAdminRoute
   '/_app/auth': typeof AppAuthRoute
   '/_app/cart': typeof AppCartRoute
+  '/_app/cgv': typeof AppCgvRoute
   '/_app/checkout': typeof AppCheckoutRoute
+  '/_app/confidentialite': typeof AppConfidentialiteRoute
   '/_app/contact': typeof AppContactRoute
   '/_app/order-confirmation': typeof AppOrderConfirmationRoute
   '/_app/orders': typeof AppOrdersRoute
@@ -169,7 +187,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/cart'
+    | '/cgv'
     | '/checkout'
+    | '/confidentialite'
     | '/contact'
     | '/order-confirmation'
     | '/orders'
@@ -185,7 +205,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/cart'
+    | '/cgv'
     | '/checkout'
+    | '/confidentialite'
     | '/contact'
     | '/order-confirmation'
     | '/orders'
@@ -203,7 +225,9 @@ export interface FileRouteTypes {
     | '/_app/admin'
     | '/_app/auth'
     | '/_app/cart'
+    | '/_app/cgv'
     | '/_app/checkout'
+    | '/_app/confidentialite'
     | '/_app/contact'
     | '/_app/order-confirmation'
     | '/_app/orders'
@@ -270,11 +294,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppContactRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/confidentialite': {
+      id: '/_app/confidentialite'
+      path: '/confidentialite'
+      fullPath: '/confidentialite'
+      preLoaderRoute: typeof AppConfidentialiteRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/checkout': {
       id: '/_app/checkout'
       path: '/checkout'
       fullPath: '/checkout'
       preLoaderRoute: typeof AppCheckoutRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/cgv': {
+      id: '/_app/cgv'
+      path: '/cgv'
+      fullPath: '/cgv'
+      preLoaderRoute: typeof AppCgvRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/cart': {
@@ -342,7 +380,9 @@ interface AppRouteChildren {
   AppAdminRoute: typeof AppAdminRoute
   AppAuthRoute: typeof AppAuthRoute
   AppCartRoute: typeof AppCartRoute
+  AppCgvRoute: typeof AppCgvRoute
   AppCheckoutRoute: typeof AppCheckoutRoute
+  AppConfidentialiteRoute: typeof AppConfidentialiteRoute
   AppContactRoute: typeof AppContactRoute
   AppOrderConfirmationRoute: typeof AppOrderConfirmationRoute
   AppOrdersRoute: typeof AppOrdersRoute
@@ -360,7 +400,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdminRoute: AppAdminRoute,
   AppAuthRoute: AppAuthRoute,
   AppCartRoute: AppCartRoute,
+  AppCgvRoute: AppCgvRoute,
   AppCheckoutRoute: AppCheckoutRoute,
+  AppConfidentialiteRoute: AppConfidentialiteRoute,
   AppContactRoute: AppContactRoute,
   AppOrderConfirmationRoute: AppOrderConfirmationRoute,
   AppOrdersRoute: AppOrdersRoute,
