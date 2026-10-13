@@ -155,7 +155,7 @@ export function CustomersAdmin() {
 
   return (
     <div className="space-y-4">
-      <dl className="grid gap-3 sm:grid-cols-3">
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
         <Kpi label="Clients inscrits" value={String(clients.length)} />
         <Kpi
           label="Ont déjà commandé"
@@ -227,7 +227,55 @@ export function CustomersAdmin() {
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-border">
+      {/* Mobile : une carte par client. */}
+      <ul className="space-y-2 md:hidden">
+        {isLoading && (
+          <li className="p-6 text-center text-sm text-muted-foreground">Chargement…</li>
+        )}
+        {!isLoading && shown.length === 0 && (
+          <li className="rounded-lg border border-border p-6 text-center text-sm text-muted-foreground">
+            Aucun client.
+          </li>
+        )}
+        {shown.map((c) => (
+          <li key={c.id}>
+            <Link
+              to="/admin/customers/$customerId"
+              params={{ customerId: c.id }}
+              className="block rounded-lg border border-border bg-card p-3 active:bg-secondary"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">
+                    {c.full_name || "Sans nom"}
+                    {c.is_admin && (
+                      <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary">
+                        admin
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {[c.city, c.phone].filter(Boolean).join(" · ") || "—"}
+                  </p>
+                </div>
+                <p className="shrink-0 text-right">
+                  <span className="block font-semibold tabular-nums">
+                    {formatPrice(c.stats.totalSpent)}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    {c.stats.orderCount} commande{c.stats.orderCount > 1 ? "s" : ""}
+                  </span>
+                </p>
+              </div>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Dernière commande : {fmtDate(c.stats.lastOrderAt)}
+              </p>
+            </Link>
+          </li>
+        ))}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
         <table className="w-full text-sm">
           <thead className="bg-cream text-left text-xs uppercase tracking-wider text-muted-foreground">
             <tr>
@@ -298,9 +346,9 @@ export function CustomersAdmin() {
 
 function Kpi({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className="min-w-0 rounded-lg border border-border bg-card p-3 last:col-span-2 sm:p-4 sm:last:col-span-1">
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="mt-1 text-xl font-semibold tabular-nums">{value}</dd>
+      <dd className="mt-1 text-base font-semibold tabular-nums sm:text-xl">{value}</dd>
     </div>
   );
 }

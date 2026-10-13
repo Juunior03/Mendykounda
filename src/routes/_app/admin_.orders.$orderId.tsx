@@ -221,7 +221,7 @@ function OrderSheetPage() {
   return (
     <>
       {/* ---------- Écran ---------- */}
-      <div className="container-market py-8 print:hidden md:py-10">
+      <div className="container-market py-6 pb-24 print:hidden md:py-10">
         <Link
           to="/admin"
           search={{ tab: "orders" }}
@@ -295,7 +295,7 @@ function OrderSheetPage() {
           )}
         </section>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           {/* Préparation */}
           <section className="rounded-lg bg-card p-5 shadow-soft">
             <div className="flex items-baseline justify-between gap-3">
@@ -312,7 +312,7 @@ function OrderSheetPage() {
                   <li key={i.id}>
                     <button
                       onClick={() => toggle(i.id)}
-                      className="flex w-full items-center gap-4 py-3 text-left"
+                      className="flex w-full items-center gap-3 py-3 text-left sm:gap-4"
                       aria-pressed={ready}
                     >
                       {ready ? (
@@ -324,10 +324,10 @@ function OrderSheetPage() {
                         <img
                           src={img}
                           alt=""
-                          className="h-14 w-14 shrink-0 rounded-md object-cover"
+                          className="h-12 w-12 shrink-0 rounded-md object-cover sm:h-14 sm:w-14"
                         />
                       ) : (
-                        <span className="h-14 w-14 shrink-0 rounded-md bg-secondary" />
+                        <span className="h-12 w-12 shrink-0 rounded-md bg-secondary sm:h-14 sm:w-14" />
                       )}
                       <span className="min-w-0 flex-1">
                         <span
@@ -341,6 +341,12 @@ function OrderSheetPage() {
                         <span className="block text-sm text-muted-foreground">
                           {formatPrice(Number(i.unit_price))}
                           {i.products?.unit ? ` / ${i.products.unit}` : ""}
+                          {/* Mobile : montant de la ligne ici pour laisser la place au nom. */}
+                          <span className="sm:hidden">
+                            {" "}
+                            · {awaitingWeight(i) ? "≈ " : ""}
+                            {formatPrice(lineTotal(i))}
+                          </span>
                         </span>
                       </span>
                       <span className="shrink-0 text-right">
@@ -349,7 +355,7 @@ function OrderSheetPage() {
                             ? formatWeight(lineQuantity(i), i.products?.unit ?? "kg")
                             : `× ${i.quantity}`}
                         </span>
-                        <span className="block text-sm tabular-nums text-muted-foreground">
+                        <span className="hidden text-sm tabular-nums text-muted-foreground sm:block">
                           {awaitingWeight(i) ? "≈ " : ""}
                           {formatPrice(lineTotal(i))}
                         </span>
@@ -490,6 +496,28 @@ function OrderSheetPage() {
           </div>
         </div>
       </div>
+
+      {/* Mobile : action principale toujours à portée de pouce. */}
+      {(next || status !== "cancelled") && (
+        <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-2 border-t border-border bg-card p-3 shadow-elevated print:hidden md:hidden">
+          <a
+            href={`tel:${order.shipping_phone.replace(/\s/g, "")}`}
+            aria-label={`Appeler ${order.shipping_full_name}`}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-border"
+          >
+            <Phone className="h-5 w-5" />
+          </a>
+          {next ? (
+            <Button className="h-11 flex-1" disabled={busy} onClick={() => setStatus(next.to)}>
+              {next.label}
+            </Button>
+          ) : (
+            <p className="flex-1 text-center text-sm font-medium text-primary">
+              {ORDER_STATUS_LABEL[status]}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* ---------- Bon de livraison (impression) ---------- */}
       <div className="hidden bg-white text-sm text-black print:block">
@@ -661,7 +689,7 @@ function WeightInput({
   const changed = value.trim().replace(",", ".") !== (actual != null ? String(actual) : "");
 
   return (
-    <form onSubmit={save} className="mb-3 ml-10 flex flex-wrap items-center gap-2 text-sm">
+    <form onSubmit={save} className="mb-3 flex flex-wrap items-center gap-2 text-sm sm:ml-10">
       <Scale className="h-4 w-4 text-primary" />
       <label htmlFor={`w-${itemId}`} className="text-muted-foreground">
         Poids pesé :
