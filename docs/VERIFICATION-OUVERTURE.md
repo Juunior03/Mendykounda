@@ -38,10 +38,10 @@ Migration à exécuter : `supabase/migrations/20261025090000_prelaunch_hardening
 - **Admin › Produits** : supprimer les produits ou avis de démonstration éventuels, vérifier photos, prix, unités, saisons et formats.
 - **Admin › Livraison** : saisir le vrai coût du transport par commune. Sinon, la valeur d'exemple de 2000 F s'applique.
 
-### Pages légales (recommandé)
-Le site recueille des données personnelles (nom, téléphone, adresse). La loi sénégalaise sur les données personnelles, contrôlée par la CDP, impose d'informer les clients. Il manque :
-- une page **Conditions générales de vente** : livraison, annulation, paiement à la livraison, pesée réelle ;
-- une page **Politique de confidentialité** : données collectées, usage, durée de conservation, contact.
+### Pages légales
+Les pages **Conditions générales de vente** (`/cgv`) et **Politique de confidentialité** (`/confidentialite`) sont en ligne, avec des liens dans le pied de page, au paiement et à l'inscription. Migration à exécuter : `supabase/migrations/20261027090000_legal_pages.sql`.
+- **Admin › Pages légales** : renseigner la raison sociale, le NINEA et le RCCM, puis relire les deux textes et les adapter si besoin.
+- Déclarer le fichier clients auprès de la CDP (cdp.sn).
 
 ### Dépendances (à traiter avant l'hébergement)
 - Sur une **installation neuve**, `npm install` et `npm ci` échouent : TanStack Start déclare une dépendance optionnelle à Vite 8 alors que le projet utilise Vite 7. Un hébergeur qui construit le site planterait.

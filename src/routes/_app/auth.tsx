@@ -185,6 +185,23 @@ function AuthPage() {
           >
             {busy ? "…" : mode === "login" ? "Se connecter" : mode === "signup" ? "Créer mon compte" : "Envoyer le lien"}
           </button>
+          {mode === "signup" && (
+            <p className="text-center text-xs text-muted-foreground">
+              En créant un compte, vous acceptez nos{" "}
+              <Link to="/cgv" target="_blank" className="underline hover:text-foreground">
+                conditions de vente
+              </Link>{" "}
+              et notre{" "}
+              <Link
+                to="/confidentialite"
+                target="_blank"
+                className="underline hover:text-foreground"
+              >
+                politique de confidentialité
+              </Link>
+              .
+            </p>
+          )}
         </form>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
