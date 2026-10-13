@@ -67,7 +67,9 @@ function ContactPage() {
               </Button>
             ) : (
               <Button asChild>
-                <Link to="/auth">Se connecter pour discuter</Link>
+                <Link to="/auth" search={{ redirect: "/contact" }}>
+                  Se connecter pour discuter
+                </Link>
               </Button>
             )}
           </div>

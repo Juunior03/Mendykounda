@@ -4,6 +4,7 @@
  */
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { BrandLogoStacked } from "@/components/brand-logo";
+import { authErrorMessage } from "@/lib/after-login";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,12 +29,15 @@ function ResetPasswordPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 6) { toast.error("6 caractères minimum"); return; }
+    if (password.length < 8 || !/[a-zA-Z]/.test(password) || !/\d/.test(password)) {
+      toast.error("Mot de passe : 8 caractères minimum, avec au moins une lettre et un chiffre");
+      return;
+    }
     if (password !== confirm) { toast.error("Les mots de passe ne correspondent pas"); return; }
     setBusy(true);
     const { error } = await supabase.auth.updateUser({ password });
     setBusy(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(authErrorMessage(error.message)); return; }
     toast.success("Mot de passe mis à jour");
     void navigate({ to: "/account" });
   };

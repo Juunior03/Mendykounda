@@ -86,7 +86,7 @@ function AdminPage() {
   };
 
   useEffect(() => {
-    if (!loading && !user) void navigate({ to: "/auth" });
+    if (!loading && !user) void navigate({ to: "/auth", search: { redirect: "/admin" } });
   }, [loading, user, navigate]);
 
   if (loading) return <div className="container-editorial py-20 text-sm text-muted-foreground">Chargement…</div>;

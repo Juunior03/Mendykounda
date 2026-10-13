@@ -8,9 +8,15 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { authErrorMessage, rememberAfterLogin, safeRedirect, takeAfterLogin } from "@/lib/after-login";
 
 export const Route = createFileRoute("/_app/auth")({
   component: AuthPage,
+  // ?redirect=/checkout : page où revenir après la connexion.
+  validateSearch: (search: Record<string, unknown>): { redirect?: string } => {
+    const redirect = safeRedirect(search.redirect);
+    return redirect ? { redirect } : {};
+  },
   head: () => ({ meta: [
     { title: "Connexion et inscription — MendyKounda" },
     { name: "description", content: "Connectez-vous ou créez votre compte client MendyKounda." },
@@ -23,10 +29,15 @@ export const Route = createFileRoute("/_app/auth")({
 
 const loginSchema = z.object({
   email: z.string().email("Email invalide"),
-  password: z.string().min(6, "6 caractères minimum"),
+  password: z.string().min(6, "Mot de passe : 6 caractères minimum"),
 });
 const signupSchema = loginSchema.extend({
-  fullName: z.string().min(2, "Nom requis").max(80),
+  password: z
+    .string()
+    .min(8, "Mot de passe : 8 caractères minimum")
+    .regex(/[a-zA-Z]/, "Le mot de passe doit contenir au moins une lettre")
+    .regex(/\d/, "Le mot de passe doit contenir au moins un chiffre"),
+  fullName: z.string().trim().min(2, "Nom requis").max(80),
 });
 
 function AuthPage() {
@@ -37,9 +48,15 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { redirect } = Route.useSearch();
+
+  // Mémorise la page d'origine (utile aussi pour Google et le lien d'e-mail).
+  useEffect(() => {
+    rememberAfterLogin(redirect);
+  }, [redirect]);
 
   useEffect(() => {
-    if (user) void navigate({ to: "/account" });
+    if (user) void navigate({ to: takeAfterLogin() ?? "/account" });
   }, [user, navigate]);
 
   const submit = async (e: React.FormEvent) => {
@@ -73,8 +90,11 @@ function AuthPage() {
         setMode("login");
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Erreur inconnue";
-      toast.error(msg);
+      toast.error(
+        err instanceof z.ZodError
+          ? (err.issues[0]?.message ?? "Formulaire incomplet")
+          : authErrorMessage(err instanceof Error ? err.message : ""),
+      );
     } finally {
       setBusy(false);
     }

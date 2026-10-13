@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth";
 import { Package, ShoppingBag } from "lucide-react";
 import { deliveryZonesQuery, groupByDepartment, matchZone, zoneLabel } from "@/lib/zones";
 import { isValidPhone, normalizePhone } from "@/lib/phone";
+import { takeAfterLogin } from "@/lib/after-login";
 import { PhoneInput } from "@/components/phone-input";
 
 export const Route = createFileRoute("/_app/account")({
@@ -33,6 +34,11 @@ function AccountPage() {
 
   useEffect(() => {
     if (!loading && !user) void navigate({ to: "/auth" });
+    // Retour de Google ou du lien de confirmation : page d'origine (ex. commande).
+    if (!loading && user) {
+      const next = takeAfterLogin();
+      if (next && next !== "/account") void navigate({ to: next });
+    }
   }, [user, loading, navigate]);
 
   const { data: profile } = useQuery({
