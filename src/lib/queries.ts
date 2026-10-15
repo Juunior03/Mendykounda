@@ -60,10 +60,7 @@ export const categoriesQuery = () =>
   queryOptions({
     queryKey: ["categories"],
     queryFn: async (): Promise<Category[]> => {
-      const { data, error } = await supabase
-        .from("categories")
-        .select("*")
-        .order("name");
+      const { data, error } = await supabase.from("categories").select("*").order("name");
       if (error) throw error;
       return data ?? [];
     },
@@ -92,26 +89,34 @@ export const productsQuery = (filter: ProductsFilter = {}) =>
       if (filter.maxPrice != null) q = q.lte("price", filter.maxPrice);
       if (filter.search) {
         const safeSearch = filter.search.trim().replace(/[,%()]/g, "");
-        const searchVariants = Array.from(new Set([
-          safeSearch,
-          safeSearch.replace(/oe/gi, "œ"),
-          safeSearch.replace(/œ/gi, "oe"),
-        ])).filter(Boolean);
+        const searchVariants = Array.from(
+          new Set([safeSearch, safeSearch.replace(/oe/gi, "œ"), safeSearch.replace(/œ/gi, "oe")]),
+        ).filter(Boolean);
         if (searchVariants.length > 0) {
           q = q.or(searchVariants.map((term) => `name.ilike.%${term}%`).join(","));
         }
       }
 
       switch (filter.sort) {
-        case "price_asc": q = q.order("price", { ascending: true }); break;
-        case "price_desc": q = q.order("price", { ascending: false }); break;
-        case "name": q = q.order("name", { ascending: true }); break;
-        default: q = q.order("created_at", { ascending: false });
+        case "price_asc":
+          q = q.order("price", { ascending: true });
+          break;
+        case "price_desc":
+          q = q.order("price", { ascending: false });
+          break;
+        case "name":
+          q = q.order("name", { ascending: true });
+          break;
+        default:
+          q = q.order("created_at", { ascending: false });
       }
 
       const { data, error } = await q;
       if (error) throw error;
-      type Row = Product & { categories: { slug: string } | null; reviews: { rating: number }[] | null };
+      type Row = Product & {
+        categories: { slug: string } | null;
+        reviews: { rating: number }[] | null;
+      };
       let rows = (data ?? []) as unknown as Row[];
       if (filter.categorySlug) {
         rows = rows.filter((r) => r.categories?.slug === filter.categorySlug);
@@ -121,7 +126,9 @@ export const productsQuery = (filter: ProductsFilter = {}) =>
         return {
           ...r,
           rating_count: ratings.length,
-          rating_avg: ratings.length ? ratings.reduce((sum, x) => sum + x.rating, 0) / ratings.length : 0,
+          rating_avg: ratings.length
+            ? ratings.reduce((sum, x) => sum + x.rating, 0) / ratings.length
+            : 0,
         };
       });
     },

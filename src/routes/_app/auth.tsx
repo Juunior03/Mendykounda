@@ -8,7 +8,12 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { authErrorMessage, rememberAfterLogin, safeRedirect, takeAfterLogin } from "@/lib/after-login";
+import {
+  authErrorMessage,
+  rememberAfterLogin,
+  safeRedirect,
+  takeAfterLogin,
+} from "@/lib/after-login";
 
 export const Route = createFileRoute("/_app/auth")({
   component: AuthPage,
@@ -17,14 +22,16 @@ export const Route = createFileRoute("/_app/auth")({
     const redirect = safeRedirect(search.redirect);
     return redirect ? { redirect } : {};
   },
-  head: () => ({ meta: [
-    { title: "Connexion et inscription — MendyKounda" },
-    { name: "description", content: "Connectez-vous ou créez votre compte client MendyKounda." },
-    { property: "og:title", content: "Connexion — MendyKounda" },
-    { property: "og:description", content: "Accédez à votre compte client MendyKounda." },
-    { property: "og:type", content: "website" },
-    { name: "twitter:card", content: "summary" },
-  ] }),
+  head: () => ({
+    meta: [
+      { title: "Connexion et inscription — MendyKounda" },
+      { name: "description", content: "Connectez-vous ou créez votre compte client MendyKounda." },
+      { property: "og:title", content: "Connexion — MendyKounda" },
+      { property: "og:description", content: "Accédez à votre compte client MendyKounda." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
 
 const loginSchema = z.object({
@@ -131,9 +138,7 @@ function AuthPage() {
           <BrandLogoStacked />
         </Link>
         <p className="editorial-eyebrow text-center">Espace client</p>
-        <h1 className="mt-3 text-center text-3xl font-medium tracking-tight">
-          {MODE_TITLE[mode]}
-        </h1>
+        <h1 className="mt-3 text-center text-3xl font-medium tracking-tight">{MODE_TITLE[mode]}</h1>
 
         {mode !== "forgot" && (
           <>
@@ -180,7 +185,11 @@ function AuthPage() {
               <div className="flex items-center justify-between">
                 <label className="text-xs text-muted-foreground">Mot de passe</label>
                 {mode === "login" && (
-                  <button type="button" onClick={() => setMode("forgot")} className="text-xs text-muted-foreground underline-grow">
+                  <button
+                    type="button"
+                    onClick={() => setMode("forgot")}
+                    className="text-xs text-muted-foreground underline-grow"
+                  >
                     Oublié ?
                   </button>
                 )}
@@ -222,7 +231,9 @@ function AuthPage() {
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
           {mode === "forgot" ? (
-            <button onClick={() => setMode("login")} className="underline-grow text-foreground">← Retour à la connexion</button>
+            <button onClick={() => setMode("login")} className="underline-grow text-foreground">
+              ← Retour à la connexion
+            </button>
           ) : (
             <>
               {mode === "login" ? "Pas encore de compte ?" : "Déjà inscrit ?"}{" "}
@@ -236,7 +247,9 @@ function AuthPage() {
           )}
         </p>
         <p className="mt-4 text-center text-xs text-muted-foreground">
-          <Link to="/" className="underline-grow">← Retour à l'accueil</Link>
+          <Link to="/" className="underline-grow">
+            ← Retour à l'accueil
+          </Link>
         </p>
       </div>
     </div>

@@ -335,5 +335,8 @@ Deno.test("e-mail : pied de page avec les infos de la ferme", () => {
     location: "Bignona",
     phone: "77 000 00 00",
   });
-  assertStringIncludes(custom.html, "Ferme &lt;Test&gt; · Produits fermiers livrés · Bignona · 77 000 00 00");
+  assertStringIncludes(
+    custom.html,
+    "Ferme &lt;Test&gt; · Produits fermiers livrés · Bignona · 77 000 00 00",
+  );
 });

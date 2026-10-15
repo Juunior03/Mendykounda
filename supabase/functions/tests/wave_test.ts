@@ -322,10 +322,7 @@ Deno.test("wave-checkout : authentification et validation", async () => {
   const sync = await checkoutHandle(post({ action: "sync", order_id: ORDER }), deps(USER));
   assertEquals((await sync.json()).status, "pending");
 
-  const preflight = await checkoutHandle(
-    new Request(TEST_URL, { method: "OPTIONS" }),
-    deps(null),
-  );
+  const preflight = await checkoutHandle(new Request(TEST_URL, { method: "OPTIONS" }), deps(null));
   assertEquals(preflight.headers.get("Access-Control-Allow-Origin"), "*");
 });
 

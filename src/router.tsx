@@ -11,10 +11,15 @@ function DefaultErrorComponent({ error, reset }: { error: unknown; reset: () => 
         <h1 className="text-3xl font-medium tracking-tight text-foreground">
           Quelque chose s'est mal passé
         </h1>
-        <p className="mt-3 text-sm text-muted-foreground">{error instanceof Error ? error.message : String(error)}</p>
+        <p className="mt-3 text-sm text-muted-foreground">
+          {error instanceof Error ? error.message : String(error)}
+        </p>
         <div className="mt-6 flex items-center justify-center gap-3">
           <button
-            onClick={() => { router.invalidate(); reset(); }}
+            onClick={() => {
+              router.invalidate();
+              reset();
+            }}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
           >
             Réessayer

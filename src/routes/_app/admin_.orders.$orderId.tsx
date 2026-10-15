@@ -578,12 +578,7 @@ function OrderSheet({ order }: { order: SheetOrder }) {
 
       {/* Mobile : action principale toujours à portée de pouce. */}
       {status !== "cancelled" && (
-        <MobileActionBar
-          order={order}
-          next={next}
-          busy={busy}
-          onNext={(to) => setStatus(to)}
-        />
+        <MobileActionBar order={order} next={next} busy={busy} onNext={(to) => setStatus(to)} />
       )}
 
       {/* ---------- Bon de livraison (impression) ---------- */}

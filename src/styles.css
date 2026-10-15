@@ -47,8 +47,8 @@
   --color-ink: var(--ink);
   --color-chart-sales: var(--chart-sales);
 
-  --shadow-soft: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04);
-  --shadow-elevated: 0 2px 4px rgba(0,0,0,0.05), 0 16px 48px rgba(0,0,0,0.08);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.04);
+  --shadow-elevated: 0 2px 4px rgba(0, 0, 0, 0.05), 0 16px 48px rgba(0, 0, 0, 0.08);
   --shadow-glow: 0 8px 32px color-mix(in oklab, var(--primary) 22%, transparent);
 }
 
@@ -56,8 +56,8 @@
   --radius: 0.5rem;
 
   /* Editorial cream palette */
-  --background: oklch(0.985 0.008 85);          /* warm off-white */
-  --foreground: oklch(0.18 0.012 85);           /* deep ink */
+  --background: oklch(0.985 0.008 85); /* warm off-white */
+  --foreground: oklch(0.18 0.012 85); /* deep ink */
   --ink: oklch(0.14 0.012 85);
 
   --card: oklch(1 0 0);
@@ -122,8 +122,12 @@
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
-  html { scroll-behavior: smooth; }
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
@@ -132,7 +136,10 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     font-family: var(--font-display);
     letter-spacing: -0.02em;
     font-weight: 500;
@@ -143,8 +150,12 @@
  * Utility classes — premium editorial accents
  * ==================================================================== */
 @layer utilities {
-  .text-balance { text-wrap: balance; }
-  .text-pretty { text-wrap: pretty; }
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
 
   .container-editorial {
     width: 100%;
@@ -153,7 +164,9 @@
     max-width: 1280px;
   }
   @media (min-width: 768px) {
-    .container-editorial { padding-inline: 2.5rem; }
+    .container-editorial {
+      padding-inline: 2.5rem;
+    }
   }
 
   .container-market {
@@ -163,7 +176,9 @@
     padding-inline: 1rem;
   }
   @media (min-width: 768px) {
-    .container-market { padding-inline: 1.5rem; }
+    .container-market {
+      padding-inline: 1.5rem;
+    }
   }
 
   .editorial-eyebrow {
@@ -175,27 +190,38 @@
   }
 
   .hover-lift {
-    transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1),
-                box-shadow 400ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition:
+      transform 400ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 400ms cubic-bezier(0.22, 1, 0.36, 1);
   }
   .hover-lift:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-elevated);
   }
 
-  .image-zoom { overflow: hidden; }
+  .image-zoom {
+    overflow: hidden;
+  }
   .image-zoom > img {
     transition: transform 800ms cubic-bezier(0.22, 1, 0.36, 1);
   }
-  .image-zoom:hover > img { transform: scale(1.06); }
+  .image-zoom:hover > img {
+    transform: scale(1.06);
+  }
 
   .fade-in-up {
     animation: fadeInUp 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .underline-grow {
@@ -204,14 +230,18 @@
   .underline-grow::after {
     content: "";
     position: absolute;
-    left: 0; right: 0; bottom: -2px;
+    left: 0;
+    right: 0;
+    bottom: -2px;
     height: 1px;
     background: currentColor;
     transform: scaleX(0);
     transform-origin: left;
-    transition: transform 300ms cubic-bezier(0.22,1,0.36,1);
+    transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
   }
-  .underline-grow:hover::after { transform: scaleX(1); }
+  .underline-grow:hover::after {
+    transform: scaleX(1);
+  }
 }
 
 @layer components {
@@ -233,21 +263,37 @@
 
 /* Impression (bon de livraison) : page blanche, marges A4. */
 @media print {
-  @page { margin: 12mm; }
-  :root { --background: #fff; }
+  @page {
+    margin: 12mm;
+  }
+  :root {
+    --background: #fff;
+  }
 }
 
 /* Bannière d'accueil « vivante », façon fond d'écran animé de Mac :
    lent travelling sur la photo + halo de soleil qui se déplace.
    Désactivé si l'utilisateur a demandé moins d'animations. */
 @keyframes hero-drift {
-  0% { transform: scale(1.06) translate3d(0, 0, 0); }
-  50% { transform: scale(1.16) translate3d(-2%, -1.5%, 0); }
-  100% { transform: scale(1.1) translate3d(1.5%, -2.5%, 0); }
+  0% {
+    transform: scale(1.06) translate3d(0, 0, 0);
+  }
+  50% {
+    transform: scale(1.16) translate3d(-2%, -1.5%, 0);
+  }
+  100% {
+    transform: scale(1.1) translate3d(1.5%, -2.5%, 0);
+  }
 }
 @keyframes hero-glow {
-  0% { opacity: 0.35; transform: translate3d(-12%, 4%, 0); }
-  100% { opacity: 0.7; transform: translate3d(10%, -4%, 0); }
+  0% {
+    opacity: 0.35;
+    transform: translate3d(-12%, 4%, 0);
+  }
+  100% {
+    opacity: 0.7;
+    transform: translate3d(10%, -4%, 0);
+  }
 }
 .hero-drift {
   animation: hero-drift 48s ease-in-out infinite alternate;

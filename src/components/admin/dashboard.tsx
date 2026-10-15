@@ -517,7 +517,8 @@ const DELTA_ICON = { up: ArrowUpRight, down: ArrowDownRight, flat: Minus };
 /** Évolution par rapport à la période précédente (null si inconnue). */
 function computeDelta(current?: number, previous?: number): Delta | null {
   if (current == null || previous == null) return null;
-  if (previous === 0) return current > 0 ? { text: "nouveau", dir: "up" } : { text: "stable", dir: "flat" };
+  if (previous === 0)
+    return current > 0 ? { text: "nouveau", dir: "up" } : { text: "stable", dir: "flat" };
   const pct = Math.round(((current - previous) / previous) * 100);
   if (pct > 0) return { text: `+${pct} %`, dir: "up" };
   if (pct < 0) return { text: `${pct} %`, dir: "down" };
@@ -579,10 +580,7 @@ function ActionRow({
         onClick={onClick}
         className="group flex w-full items-center gap-3 py-2.5 text-left text-sm hover:bg-secondary/50"
       >
-        <Icon
-          className={cn("h-4 w-4 shrink-0", iconTone)}
-          aria-hidden
-        />
+        <Icon className={cn("h-4 w-4 shrink-0", iconTone)} aria-hidden />
         <span className={cn("flex-1", !active && "text-muted-foreground")}>{label}</span>
         <span
           className={cn(
@@ -634,7 +632,9 @@ function bucketLabel(d: Date, weekly: boolean, long = false) {
   }
   return d.toLocaleDateString(
     "fr-FR",
-    long ? { weekday: "long", day: "numeric", month: "long" } : { day: "2-digit", month: "2-digit" },
+    long
+      ? { weekday: "long", day: "numeric", month: "long" }
+      : { day: "2-digit", month: "2-digit" },
   );
 }
 

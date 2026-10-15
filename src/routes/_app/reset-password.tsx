@@ -11,14 +11,22 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/reset-password")({
   component: ResetPasswordPage,
-  head: () => ({ meta: [
-    { title: "Nouveau mot de passe — MendyKounda" },
-    { name: "description", content: "Choisissez un nouveau mot de passe pour votre compte MendyKounda." },
-    { property: "og:title", content: "Nouveau mot de passe — MendyKounda" },
-    { property: "og:description", content: "Réinitialisation sécurisée de votre compte MendyKounda." },
-    { property: "og:type", content: "website" },
-    { name: "twitter:card", content: "summary" },
-  ] }),
+  head: () => ({
+    meta: [
+      { title: "Nouveau mot de passe — MendyKounda" },
+      {
+        name: "description",
+        content: "Choisissez un nouveau mot de passe pour votre compte MendyKounda.",
+      },
+      { property: "og:title", content: "Nouveau mot de passe — MendyKounda" },
+      {
+        property: "og:description",
+        content: "Réinitialisation sécurisée de votre compte MendyKounda.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
 
 function ResetPasswordPage() {
@@ -33,11 +41,17 @@ function ResetPasswordPage() {
       toast.error("Mot de passe : 8 caractères minimum, avec au moins une lettre et un chiffre");
       return;
     }
-    if (password !== confirm) { toast.error("Les mots de passe ne correspondent pas"); return; }
+    if (password !== confirm) {
+      toast.error("Les mots de passe ne correspondent pas");
+      return;
+    }
     setBusy(true);
     const { error } = await supabase.auth.updateUser({ password });
     setBusy(false);
-    if (error) { toast.error(authErrorMessage(error.message)); return; }
+    if (error) {
+      toast.error(authErrorMessage(error.message));
+      return;
+    }
     toast.success("Mot de passe mis à jour");
     void navigate({ to: "/account" });
   };
@@ -49,7 +63,9 @@ function ResetPasswordPage() {
           <BrandLogoStacked />
         </Link>
         <p className="editorial-eyebrow text-center">Sécurité</p>
-        <h1 className="mt-3 text-center text-3xl font-medium tracking-tight">Nouveau mot de passe</h1>
+        <h1 className="mt-3 text-center text-3xl font-medium tracking-tight">
+          Nouveau mot de passe
+        </h1>
         <form onSubmit={submit} className="mt-8 space-y-4">
           <div>
             <label className="text-xs text-muted-foreground">Nouveau mot de passe</label>
@@ -80,7 +96,9 @@ function ResetPasswordPage() {
           </button>
         </form>
         <p className="mt-4 text-center text-xs text-muted-foreground">
-          <Link to="/auth" className="underline-grow">← Connexion</Link>
+          <Link to="/auth" className="underline-grow">
+            ← Connexion
+          </Link>
         </p>
       </div>
     </div>
