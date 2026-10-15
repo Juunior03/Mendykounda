@@ -59,7 +59,7 @@ const copied = new Map();
 
 /** Recopie une image hébergée sur l'ancien stockage et renvoie sa nouvelle URL. */
 async function migrateImage(url) {
-  if (!url || !url.startsWith(oldPrefix)) return url; // asset local ou URL externe
+  if (!url?.startsWith(oldPrefix)) return url; // asset local ou URL externe
   if (copied.has(url)) return copied.get(url);
 
   const path = decodeURIComponent(url.slice(oldPrefix.length).split("?")[0]);
@@ -83,8 +83,11 @@ const categories = await fetchAll("categories");
 const products = await fetchAll("products");
 console.log(`Trouvé : ${categories.length} catégories, ${products.length} produits.`);
 
-for (const c of categories) c.image_url = await migrateImage(c.image_url);
-for (const p of products) p.image_url = await migrateImage(p.image_url);
+await Promise.all(
+  [...categories, ...products].map(async (row) => {
+    row.image_url = await migrateImage(row.image_url);
+  }),
+);
 console.log(`Images copiées : ${copied.size}.`);
 
 // On garde les mêmes id pour que products.category_id reste valide.

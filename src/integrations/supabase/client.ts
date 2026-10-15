@@ -3,7 +3,7 @@ import type { Database } from "./types";
 
 /** Première valeur renseignée (une variable vide compte comme absente). */
 function firstSet(...values: (string | undefined)[]) {
-  return values.find((v) => v);
+  return values.find(Boolean);
 }
 
 function createSupabaseClient() {

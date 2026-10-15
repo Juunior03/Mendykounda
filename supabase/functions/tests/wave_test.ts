@@ -187,7 +187,7 @@ Deno.test("syncOrder marque payé seulement si Wave confirme succeeded", async (
 });
 
 Deno.test("syncOrder refuse une session dont le montant ou la référence diffère", async () => {
-  for (const tamper of [{ amount: "100" }, { client_reference: "autre" }, { currency: "EUR" }]) {
+  const check = async (tamper: Partial<WaveSession>) => {
     const repo = memoryRepo({ payment_session_id: "cos-x" });
     const wave = fakeWave();
     wave.sessions.set("cos-x", {
@@ -202,7 +202,10 @@ Deno.test("syncOrder refuse une session dont le montant ou la référence diffè
     });
     assertEquals(await syncOrder(repo, wave, repo.row), "failed");
     assertEquals(repo.row.payment_status, "unpaid");
-  }
+  };
+  await Promise.all(
+    [{ amount: "100" }, { client_reference: "autre" }, { currency: "EUR" }].map(check),
+  );
 });
 
 /* ---------------- signature webhook ---------------- */
