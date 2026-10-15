@@ -53,7 +53,8 @@ const createCroppedFile = async (imageUrl: string, area: Area, fileName: string)
 
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
-      (result) => result ? resolve(result) : reject(new Error("Impossible d’enregistrer l’image.")),
+      (result) =>
+        result ? resolve(result) : reject(new Error("Impossible d’enregistrer l’image.")),
       "image/jpeg",
       0.9,
     );
@@ -63,7 +64,13 @@ const createCroppedFile = async (imageUrl: string, area: Area, fileName: string)
   return new File([blob], `${baseName}-recadree.jpg`, { type: "image/jpeg" });
 };
 
-export function ImageCropDialog({ imageUrl, fileName, open, onCancel, onConfirm }: ImageCropDialogProps) {
+export function ImageCropDialog({
+  imageUrl,
+  fileName,
+  open,
+  onCancel,
+  onConfirm,
+}: ImageCropDialogProps) {
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [imageAspect, setImageAspect] = useState(1);
@@ -104,11 +111,22 @@ export function ImageCropDialog({ imageUrl, fileName, open, onCancel, onConfirm 
   };
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen && !processing) onCancel(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && !processing) onCancel();
+      }}
+    >
       <DialogContent className="max-w-2xl overflow-hidden p-0">
         <DialogHeader className="px-5 pt-5 pr-12">
-          <DialogTitle className="flex items-center gap-2"><Crop className="h-5 w-5" />Recadrer l’image</DialogTitle>
-          <DialogDescription>L’image est conservée entière et centrée. Zoomez seulement si vous souhaitez la recadrer.</DialogDescription>
+          <DialogTitle className="flex items-center gap-2">
+            <Crop className="h-5 w-5" />
+            Recadrer l’image
+          </DialogTitle>
+          <DialogDescription>
+            L’image est conservée entière et centrée. Zoomez seulement si vous souhaitez la
+            recadrer.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="relative h-[min(58vh,520px)] w-full bg-foreground">
@@ -147,18 +165,31 @@ export function ImageCropDialog({ imageUrl, fileName, open, onCancel, onConfirm 
               value={[zoom]}
               onValueChange={(values) => setZoom(values[0] ?? 1)}
             />
-            <span className="w-10 text-right text-xs tabular-nums text-muted-foreground">{zoom.toFixed(1)}×</span>
+            <span className="w-10 text-right text-xs tabular-nums text-muted-foreground">
+              {zoom.toFixed(1)}×
+            </span>
           </div>
-          {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
+          {error && (
+            <p role="alert" className="text-xs text-destructive">
+              {error}
+            </p>
+          )}
         </div>
 
         <DialogFooter className="gap-2 px-5 pb-5 sm:space-x-0">
           <Button type="button" variant="ghost" onClick={reset} disabled={processing}>
-            <RotateCcw />Réinitialiser
+            <RotateCcw />
+            Réinitialiser
           </Button>
           <div className="flex-1" />
-          <Button type="button" variant="outline" onClick={onCancel} disabled={processing}>Annuler</Button>
-          <Button type="button" onClick={() => void confirm()} disabled={processing || !croppedArea}>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={processing}>
+            Annuler
+          </Button>
+          <Button
+            type="button"
+            onClick={() => void confirm()}
+            disabled={processing || !croppedArea}
+          >
             {processing ? "Préparation…" : "Valider le recadrage"}
           </Button>
         </DialogFooter>

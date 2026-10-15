@@ -55,23 +55,7 @@ function ContactPage() {
             </p>
           </div>
           <div className="mt-4 shrink-0 md:mt-0">
-            {isAdmin ? (
-              <Button asChild variant="outline">
-                <Link to="/admin" search={{ tab: "messages" }}>
-                  Voir les messages reçus
-                </Link>
-              </Button>
-            ) : user ? (
-              <Button onClick={openChat}>
-                <MessageCircle className="h-4 w-4" /> Ouvrir la messagerie
-              </Button>
-            ) : (
-              <Button asChild>
-                <Link to="/auth" search={{ redirect: "/contact" }}>
-                  Se connecter pour discuter
-                </Link>
-              </Button>
-            )}
+            <ChatAction isAdmin={isAdmin} signedIn={!!user} />
           </div>
         </section>
 
@@ -135,5 +119,29 @@ function ContactPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function ChatAction({ isAdmin, signedIn }: { isAdmin: boolean; signedIn: boolean }) {
+  if (isAdmin)
+    return (
+      <Button asChild variant="outline">
+        <Link to="/admin" search={{ tab: "messages" }}>
+          Voir les messages reçus
+        </Link>
+      </Button>
+    );
+  if (signedIn)
+    return (
+      <Button onClick={openChat}>
+        <MessageCircle className="h-4 w-4" /> Ouvrir la messagerie
+      </Button>
+    );
+  return (
+    <Button asChild>
+      <Link to="/auth" search={{ redirect: "/contact" }}>
+        Se connecter pour discuter
+      </Link>
+    </Button>
   );
 }

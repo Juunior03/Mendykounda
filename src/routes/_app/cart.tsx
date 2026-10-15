@@ -104,15 +104,7 @@ function CartPage() {
                       {formatPrice(price)} / {item.unit}
                     </p>
 
-                    {issue ? (
-                      <p className="mt-1 text-sm font-medium text-destructive">{issue}</p>
-                    ) : product && product.stock <= LOW_STOCK_THRESHOLD ? (
-                      <p className="mt-1 text-sm text-destructive">
-                        Plus que {product.stock} en stock
-                      </p>
-                    ) : (
-                      <p className="mt-1 text-sm text-primary">En stock</p>
-                    )}
+                    <StockNote issue={issue} stock={product?.stock} />
 
                     {previousPrice != null && (
                       <p className="mt-1 rounded-md bg-accent/15 px-2 py-1 text-xs">
@@ -186,7 +178,7 @@ function CartPage() {
           </div>
           <p className="flex items-start gap-2 px-1 text-xs text-muted-foreground">
             <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
-            Paiement à la livraison. Annulation gratuite tant que la commande n'est pas expédiée.
+            Paiement à la livraison. Annulation gratuite tant que la préparation n'a pas commencé.
           </p>
         </aside>
       </div>
@@ -238,4 +230,11 @@ function DeliveryInfo({ subtotal }: { subtotal: number }) {
       </p>
     </div>
   );
+}
+
+function StockNote({ issue, stock }: { issue: string | null; stock?: number }) {
+  if (issue) return <p className="mt-1 text-sm font-medium text-destructive">{issue}</p>;
+  if (stock != null && stock <= LOW_STOCK_THRESHOLD)
+    return <p className="mt-1 text-sm text-destructive">Plus que {stock} en stock</p>;
+  return <p className="mt-1 text-sm text-primary">En stock</p>;
 }

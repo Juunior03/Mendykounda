@@ -3,12 +3,7 @@
  * Les passages sont aussi contrôlés par la base (orders_on_status_change).
  */
 export type OrderStatus =
-  | "pending"
-  | "processing"
-  | "ready"
-  | "shipped"
-  | "delivered"
-  | "cancelled";
+  "pending" | "processing" | "ready" | "shipped" | "delivered" | "cancelled";
 
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   pending: "Commandée",

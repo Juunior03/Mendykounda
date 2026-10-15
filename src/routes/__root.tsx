@@ -53,7 +53,10 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { name: "author", content: "MendyKounda" },
       { name: "theme-color", content: "#14532d" },
       { property: "og:title", content: "MendyKounda — Produits de la ferme en Casamance" },
-      { property: "og:description", content: "Direct producteur. Légumes, fruits, volailles, porcs, viandes, jus…" },
+      {
+        property: "og:description",
+        content: "Direct producteur. Légumes, fruits, volailles, porcs, viandes, jus…",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],

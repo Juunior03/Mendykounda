@@ -26,7 +26,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
   const fetchRole = async (uid: string | undefined) => {
-    if (!uid) { setIsAdmin(false); return; }
+    if (!uid) {
+      setIsAdmin(false);
+      return;
+    }
     const { data } = await supabase
       .from("user_roles")
       .select("role")
@@ -38,15 +41,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Tout le code auth tourne uniquement côté client.
-    if (typeof window === "undefined") { setLoading(false); return; }
+    if (typeof window === "undefined") {
+      setLoading(false);
+      return;
+    }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, sess) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, sess) => {
       setSession(sess);
       setUser(sess?.user ?? null);
-      setTimeout(() => { void fetchRole(sess?.user?.id).catch(() => {}); }, 0);
+      setTimeout(() => {
+        void fetchRole(sess?.user?.id).catch(() => {});
+      }, 0);
     });
 
-    supabase.auth.getSession()
+    supabase.auth
+      .getSession()
       .then(({ data: { session: sess } }) => {
         setSession(sess);
         setUser(sess?.user ?? null);

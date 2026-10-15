@@ -2,13 +2,13 @@
  * Dashboard Admin — KPIs, graphique ventes, gestion produits & commandes.
  */
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, plural } from "@/lib/format";
 import {
   ALLOWED_TRANSITIONS,
   ORDER_STATUS_LABEL,
@@ -44,7 +44,18 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   failed: "Échec",
 };
 
-const TABS = ["overview", "products", "categories", "orders", "customers", "delivery", "slaughter", "messages", "farm", "legal"] as const;
+const TABS = [
+  "overview",
+  "products",
+  "categories",
+  "orders",
+  "customers",
+  "delivery",
+  "slaughter",
+  "messages",
+  "farm",
+  "legal",
+] as const;
 type Tab = (typeof TABS)[number];
 
 const TAB_LABEL: Record<Tab, string> = {
@@ -65,16 +76,17 @@ export const Route = createFileRoute("/_app/admin")({
   // ?tab=orders : retour depuis une fiche commande sur le bon onglet.
   validateSearch: (search: Record<string, unknown>): { tab?: Tab } =>
     TABS.includes(search.tab as Tab) ? { tab: search.tab as Tab } : {},
-  head: () => ({ meta: [
-    { title: "Administration — MendyKounda" },
-    { name: "description", content: "Console vendeur sécurisée de MendyKounda." },
-    { property: "og:title", content: "Administration — MendyKounda" },
-    { property: "og:description", content: "Gestion sécurisée de la boutique MendyKounda." },
-    { property: "og:type", content: "website" },
-    { name: "twitter:card", content: "summary" },
-  ] }),
+  head: () => ({
+    meta: [
+      { title: "Administration — MendyKounda" },
+      { name: "description", content: "Console vendeur sécurisée de MendyKounda." },
+      { property: "og:title", content: "Administration — MendyKounda" },
+      { property: "og:description", content: "Gestion sécurisée de la boutique MendyKounda." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
-
 
 function AdminPage() {
   const { isAdmin, loading, user } = useAuth();
@@ -100,7 +112,10 @@ function AdminPage() {
     if (!loading && !user) void navigate({ to: "/auth", search: { redirect: "/admin" } });
   }, [loading, user, navigate]);
 
-  if (loading) return <div className="container-editorial py-20 text-sm text-muted-foreground">Chargement…</div>;
+  if (loading)
+    return (
+      <div className="container-editorial py-20 text-sm text-muted-foreground">Chargement…</div>
+    );
 
   if (!isAdmin) {
     return (
@@ -110,7 +125,9 @@ function AdminPage() {
         <p className="mt-3 text-sm text-muted-foreground">
           Votre compte n'a pas les permissions nécessaires. Contactez un administrateur.
         </p>
-        <Link to="/" className="mt-6 inline-block underline-grow text-sm">← Accueil</Link>
+        <Link to="/" className="mt-6 inline-block underline-grow text-sm">
+          ← Accueil
+        </Link>
       </div>
     );
   }
@@ -118,7 +135,9 @@ function AdminPage() {
   return (
     <div className="container-editorial py-6 md:py-16">
       <p className="editorial-eyebrow">Tableau de bord</p>
-      <h1 className="mt-2 text-2xl font-medium tracking-tight md:mt-3 md:text-4xl">Administration</h1>
+      <h1 className="mt-2 text-2xl font-medium tracking-tight md:mt-3 md:text-4xl">
+        Administration
+      </h1>
 
       {/* Mobile : menu déroulant (les sections ne tiennent pas en onglets). */}
       {alerts.total > 0 && (
@@ -131,7 +150,8 @@ function AdminPage() {
               }}
               className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs"
             >
-              <AlertBadge count={alerts.orders} label="" /> commande{alerts.orders > 1 ? "s" : ""} à préparer
+              <AlertBadge count={alerts.orders} label="" /> commande{alerts.orders > 1 ? "s" : ""} à
+              préparer
             </button>
           )}
           {alerts.messages > 0 && (
@@ -139,7 +159,8 @@ function AdminPage() {
               onClick={() => setTab("messages")}
               className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs"
             >
-              <AlertBadge count={alerts.messages} label="" /> message{alerts.messages > 1 ? "s" : ""} non lu{alerts.messages > 1 ? "s" : ""}
+              <AlertBadge count={alerts.messages} label="" /> message
+              {alerts.messages > 1 ? "s" : ""} non lu{alerts.messages > 1 ? "s" : ""}
             </button>
           )}
         </div>
@@ -160,7 +181,9 @@ function AdminPage() {
             <option key={t} value={t}>
               {TAB_LABEL[t]}
               {t === "orders" && alerts.orders ? ` · ${alerts.orders} à préparer` : ""}
-              {t === "messages" && alerts.messages ? ` · ${alerts.messages} non lu${alerts.messages > 1 ? "s" : ""}` : ""}
+              {t === "messages" && alerts.messages
+                ? ` · ${alerts.messages} non lu${plural(alerts.messages)}`
+                : ""}
             </option>
           ))}
         </select>
@@ -178,7 +201,9 @@ function AdminPage() {
               setTab(t);
             }}
             className={`whitespace-nowrap px-4 py-2 text-sm border-b-2 -mb-px transition-colors ${
-              tab === t ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+              tab === t
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             <span className="inline-flex items-center gap-1.5">
@@ -192,7 +217,9 @@ function AdminPage() {
 
       <div className="mt-6 md:mt-8">
         {tab === "overview" && <AdminDashboard nav={nav} />}
-        {tab === "products" && <ProductsAdmin filter={productsFilter} onFilter={setProductsFilter} />}
+        {tab === "products" && (
+          <ProductsAdmin filter={productsFilter} onFilter={setProductsFilter} />
+        )}
         {tab === "categories" && <CategoriesAdmin />}
         {tab === "orders" && <OrdersAdmin filter={ordersFilter} onFilter={setOrdersFilter} />}
         {tab === "customers" && <CustomersAdmin />}
@@ -239,8 +266,12 @@ function FilterChips<T extends string>({
 }
 
 const slugify = (s: string) =>
-  s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 
 interface ProductRow {
   id: string;
@@ -264,14 +295,39 @@ interface ProductRow {
 }
 
 const emptyProduct: Partial<ProductRow> = {
-  name: "", slug: "", description: "", price: 0, stock: 0, unit: "kg",
-  image_url: "", is_active: true, is_featured: false, category_id: null,
-  discount_price: null, discount_label: "",
-  variant_group: "", variant_label: "", needs_slaughter: false, season_months: null, sold_by_weight: false,
+  name: "",
+  slug: "",
+  description: "",
+  price: 0,
+  stock: 0,
+  unit: "kg",
+  image_url: "",
+  is_active: true,
+  is_featured: false,
+  category_id: null,
+  discount_price: null,
+  discount_label: "",
+  variant_group: "",
+  variant_label: "",
+  needs_slaughter: false,
+  season_months: null,
+  sold_by_weight: false,
 };
 
 /* ---------- Products admin ---------- */
-function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter: (f: ProductsFilter) => void }) {
+function matchesStockFilter(stock: number, f: ProductsFilter) {
+  if (f === "out") return stock <= 0;
+  if (f === "low") return stock > 0 && stock <= LOW_STOCK_THRESHOLD;
+  return true;
+}
+
+function ProductsAdmin({
+  filter,
+  onFilter,
+}: {
+  filter: ProductsFilter;
+  onFilter: (f: ProductsFilter) => void;
+}) {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Partial<ProductRow> | null>(null);
 
@@ -286,16 +342,16 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, slug, description, price, stock, is_active, is_featured, unit, image_url, category_id, discount_price, discount_label, variant_group, variant_label, needs_slaughter, season_months, sold_by_weight")
+        .select(
+          "id, name, slug, description, price, stock, is_active, is_featured, unit, image_url, category_id, discount_price, discount_label, variant_group, variant_label, needs_slaughter, season_months, sold_by_weight",
+        )
         .order("name");
       if (error) throw error;
       return data as ProductRow[];
     },
   });
 
-  const shownProducts = products?.filter((p) =>
-    filter === "out" ? p.stock <= 0 : filter === "low" ? p.stock > 0 && p.stock <= LOW_STOCK_THRESHOLD : true,
-  );
+  const shownProducts = products?.filter((p) => matchesStockFilter(p.stock, filter));
 
   const { data: categories } = useQuery({
     queryKey: ["admin-categories-list"],
@@ -310,7 +366,10 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
     const patch = field === "is_active" ? { is_active: value } : { is_featured: value };
     const { error } = await supabase.from("products").update(patch).eq("id", id);
     if (error) toast.error(error.message);
-    else { toast.success("Mis à jour"); invalidateAll(); }
+    else {
+      toast.success("Mis à jour");
+      invalidateAll();
+    }
   };
 
   const updateStock = async (id: string, stock: number) => {
@@ -323,7 +382,10 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
     if (!confirm("Supprimer ce produit ?")) return;
     const { error } = await supabase.from("products").delete().eq("id", id);
     if (error) toast.error(error.message);
-    else { toast.success("Supprimé"); invalidateAll(); }
+    else {
+      toast.success("Supprimé");
+      invalidateAll();
+    }
   };
 
   const save = async () => {
@@ -354,13 +416,20 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
           ? [...editing.season_months].sort((a, b) => a - b)
           : null,
     };
-    if (!payload.name) { toast.error("Nom requis"); return; }
+    if (!payload.name) {
+      toast.error("Nom requis");
+      return;
+    }
 
     const { error } = editing.id
       ? await supabase.from("products").update(payload).eq("id", editing.id)
       : await supabase.from("products").insert(payload);
     if (error) toast.error(error.message);
-    else { toast.success(editing.id ? "Produit mis à jour" : "Produit créé"); setEditing(null); invalidateAll(); }
+    else {
+      toast.success(editing.id ? "Produit mis à jour" : "Produit créé");
+      setEditing(null);
+      invalidateAll();
+    }
   };
 
   return (
@@ -371,7 +440,11 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
           onChange={onFilter}
           options={[
             { value: "all", label: "Tous", count: products?.length },
-            { value: "low", label: `Stock bas (≤ ${LOW_STOCK_THRESHOLD})`, count: products?.filter((p) => p.stock > 0 && p.stock <= LOW_STOCK_THRESHOLD).length },
+            {
+              value: "low",
+              label: `Stock bas (≤ ${LOW_STOCK_THRESHOLD})`,
+              count: products?.filter((p) => p.stock > 0 && p.stock <= LOW_STOCK_THRESHOLD).length,
+            },
             { value: "out", label: "Épuisés", count: products?.filter((p) => p.stock <= 0).length },
           ]}
         />
@@ -391,21 +464,40 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
               <div className="min-w-0">
                 <p className="font-medium">{p.name}</p>
                 <p className="text-sm tabular-nums">
-                  {formatPrice(Number(p.discount_price != null && Number(p.discount_price) < Number(p.price) ? p.discount_price : p.price))}
+                  {formatPrice(
+                    Number(
+                      p.discount_price != null && Number(p.discount_price) < Number(p.price)
+                        ? p.discount_price
+                        : p.price,
+                    ),
+                  )}
                   <span className="text-xs text-muted-foreground"> / {p.unit}</span>
                 </p>
                 <span className="mt-1 flex flex-wrap gap-1 text-[11px]">
-                  {p.variant_label && <span className="rounded bg-secondary px-1.5 py-0.5">Format : {p.variant_label}</span>}
-                  {p.needs_slaughter && <span className="rounded bg-accent/15 px-1.5 py-0.5">À l'abattage</span>}
-                  {p.sold_by_weight && <span className="rounded bg-secondary px-1.5 py-0.5">Au poids réel</span>}
+                  {p.variant_label && (
+                    <span className="rounded bg-secondary px-1.5 py-0.5">
+                      Format : {p.variant_label}
+                    </span>
+                  )}
+                  {p.needs_slaughter && (
+                    <span className="rounded bg-accent/15 px-1.5 py-0.5">À l'abattage</span>
+                  )}
+                  {p.sold_by_weight && (
+                    <span className="rounded bg-secondary px-1.5 py-0.5">Au poids réel</span>
+                  )}
                   {isSeasonal(p) && (
-                    <span className={`rounded px-1.5 py-0.5 ${inSeason(p) ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                    <span
+                      className={`rounded px-1.5 py-0.5 ${inSeason(p) ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}
+                    >
                       {inSeason(p) ? "De saison" : "Hors saison"}
                     </span>
                   )}
                 </span>
               </div>
-              <button onClick={() => setEditing(p)} className="shrink-0 rounded-md border border-border px-3 py-1.5 text-sm">
+              <button
+                onClick={() => setEditing(p)}
+                className="shrink-0 rounded-md border border-border px-3 py-1.5 text-sm"
+              >
                 Éditer
               </button>
             </div>
@@ -421,19 +513,33 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
                 />
               </label>
               <label className="flex items-center gap-1.5">
-                <input type="checkbox" className="h-4 w-4" checked={p.is_active}
-                  onChange={(e) => toggle(p.id, "is_active", e.target.checked)} /> Actif
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={p.is_active}
+                  onChange={(e) => toggle(p.id, "is_active", e.target.checked)}
+                />{" "}
+                Actif
               </label>
               <label className="flex items-center gap-1.5">
-                <input type="checkbox" className="h-4 w-4" checked={p.is_featured}
-                  onChange={(e) => toggle(p.id, "is_featured", e.target.checked)} /> Vedette
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={p.is_featured}
+                  onChange={(e) => toggle(p.id, "is_featured", e.target.checked)}
+                />{" "}
+                Vedette
               </label>
-              <button onClick={() => remove(p.id)} className="ml-auto text-xs text-destructive">Supprimer</button>
+              <button onClick={() => remove(p.id)} className="ml-auto text-xs text-destructive">
+                Supprimer
+              </button>
             </div>
           </li>
         ))}
         {products?.length === 0 && (
-          <li className="rounded-lg border border-border p-8 text-center text-sm text-muted-foreground">Aucun produit. Créez-en un.</li>
+          <li className="rounded-lg border border-border p-8 text-center text-sm text-muted-foreground">
+            Aucun produit. Créez-en un.
+          </li>
         )}
       </ul>
 
@@ -457,7 +563,9 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
                   {(p.variant_label || p.needs_slaughter || isSeasonal(p) || p.sold_by_weight) && (
                     <span className="mt-1 flex flex-wrap gap-1 text-[11px] font-normal">
                       {p.variant_label && (
-                        <span className="rounded bg-secondary px-1.5 py-0.5">Format : {p.variant_label}</span>
+                        <span className="rounded bg-secondary px-1.5 py-0.5">
+                          Format : {p.variant_label}
+                        </span>
                       )}
                       {p.needs_slaughter && (
                         <span className="rounded bg-accent/15 px-1.5 py-0.5">À l'abattage</span>
@@ -466,8 +574,11 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
                         <span className="rounded bg-secondary px-1.5 py-0.5">Au poids réel</span>
                       )}
                       {isSeasonal(p) && (
-                        <span className={`rounded px-1.5 py-0.5 ${inSeason(p) ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
-                          {inSeason(p) ? "De saison" : "Hors saison"} : {formatSeason(p.season_months)}
+                        <span
+                          className={`rounded px-1.5 py-0.5 ${inSeason(p) ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}
+                        >
+                          {inSeason(p) ? "De saison" : "Hors saison"} :{" "}
+                          {formatSeason(p.season_months)}
                         </span>
                       )}
                     </span>
@@ -476,8 +587,12 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
                 <td className="p-3 tabular-nums">
                   {p.discount_price != null && Number(p.discount_price) < Number(p.price) ? (
                     <>
-                      <span className="text-destructive">{formatPrice(Number(p.discount_price))}</span>
-                      <span className="ml-1 text-xs text-muted-foreground line-through">{formatPrice(Number(p.price))}</span>
+                      <span className="text-destructive">
+                        {formatPrice(Number(p.discount_price))}
+                      </span>
+                      <span className="ml-1 text-xs text-muted-foreground line-through">
+                        {formatPrice(Number(p.price))}
+                      </span>
                     </>
                   ) : (
                     formatPrice(Number(p.price))
@@ -493,67 +608,134 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
                   />
                 </td>
                 <td className="p-3">
-                  <input type="checkbox" checked={p.is_active}
-                    onChange={(e) => toggle(p.id, "is_active", e.target.checked)} />
+                  <input
+                    type="checkbox"
+                    checked={p.is_active}
+                    onChange={(e) => toggle(p.id, "is_active", e.target.checked)}
+                  />
                 </td>
                 <td className="p-3">
-                  <input type="checkbox" checked={p.is_featured}
-                    onChange={(e) => toggle(p.id, "is_featured", e.target.checked)} />
+                  <input
+                    type="checkbox"
+                    checked={p.is_featured}
+                    onChange={(e) => toggle(p.id, "is_featured", e.target.checked)}
+                  />
                 </td>
                 <td className="p-3 text-right space-x-2">
-                  <button onClick={() => setEditing(p)} className="text-xs underline-grow">Éditer</button>
-                  <button onClick={() => remove(p.id)} className="text-xs text-destructive">Suppr.</button>
+                  <button onClick={() => setEditing(p)} className="text-xs underline-grow">
+                    Éditer
+                  </button>
+                  <button onClick={() => remove(p.id)} className="text-xs text-destructive">
+                    Suppr.
+                  </button>
                 </td>
               </tr>
             ))}
             {products?.length === 0 && (
-              <tr><td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">Aucun produit. Créez-en un.</td></tr>
+              <tr>
+                <td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">
+                  Aucun produit. Créez-en un.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
       </div>
 
       {editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setEditing(null)}>
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-background p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-medium">{editing.id ? "Éditer le produit" : "Nouveau produit"}</h3>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setEditing(null)}
+        >
+          <div
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-background p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-medium">
+              {editing.id ? "Éditer le produit" : "Nouveau produit"}
+            </h3>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <Field label="Nom">
-                <input className="input" value={editing.name ?? ""}
-                  onChange={(e) => setEditing({ ...editing, name: e.target.value, slug: editing.id ? editing.slug : slugify(e.target.value) })} />
+                <input
+                  className="input"
+                  value={editing.name ?? ""}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      name: e.target.value,
+                      slug: editing.id ? editing.slug : slugify(e.target.value),
+                    })
+                  }
+                />
               </Field>
               <Field label="Slug">
-                <input className="input" value={editing.slug ?? ""}
-                  onChange={(e) => setEditing({ ...editing, slug: e.target.value })} />
+                <input
+                  className="input"
+                  value={editing.slug ?? ""}
+                  onChange={(e) => setEditing({ ...editing, slug: e.target.value })}
+                />
               </Field>
               <Field label="Prix (FCFA)">
-                <input type="number" step="1" className="input" value={editing.price ?? 0}
-                  onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })} />
+                <input
+                  type="number"
+                  step="1"
+                  className="input"
+                  value={editing.price ?? 0}
+                  onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })}
+                />
               </Field>
               <Field label="Stock">
-                <input type="number" className="input" value={editing.stock ?? 0}
-                  onChange={(e) => setEditing({ ...editing, stock: Number(e.target.value) })} />
+                <input
+                  type="number"
+                  className="input"
+                  value={editing.stock ?? 0}
+                  onChange={(e) => setEditing({ ...editing, stock: Number(e.target.value) })}
+                />
               </Field>
               <Field label="Unité">
-                <input className="input" value={editing.unit ?? ""}
-                  onChange={(e) => setEditing({ ...editing, unit: e.target.value })} placeholder="kg, pièce…" />
+                <input
+                  className="input"
+                  value={editing.unit ?? ""}
+                  onChange={(e) => setEditing({ ...editing, unit: e.target.value })}
+                  placeholder="kg, pièce…"
+                />
               </Field>
               <Field label="Catégorie">
-                <select className="input" value={editing.category_id ?? ""}
-                  onChange={(e) => setEditing({ ...editing, category_id: e.target.value || null })}>
+                <select
+                  className="input"
+                  value={editing.category_id ?? ""}
+                  onChange={(e) => setEditing({ ...editing, category_id: e.target.value || null })}
+                >
                   <option value="">— Aucune —</option>
-                  {categories?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {categories?.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
                 </select>
               </Field>
               <Field label="Prix promo (FCFA, optionnel)">
-                <input type="number" step="1" className="input" value={editing.discount_price ?? ""}
+                <input
+                  type="number"
+                  step="1"
+                  className="input"
+                  value={editing.discount_price ?? ""}
                   placeholder="Laisser vide si pas de promo"
-                  onChange={(e) => setEditing({ ...editing, discount_price: e.target.value === "" ? null : Number(e.target.value) })} />
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      discount_price: e.target.value === "" ? null : Number(e.target.value),
+                    })
+                  }
+                />
               </Field>
               <Field label="Étiquette promo">
-                <input className="input" value={editing.discount_label ?? ""}
+                <input
+                  className="input"
+                  value={editing.discount_label ?? ""}
                   placeholder="Promo, Bon plan, -20%…"
-                  onChange={(e) => setEditing({ ...editing, discount_label: e.target.value })} />
+                  onChange={(e) => setEditing({ ...editing, discount_label: e.target.value })}
+                />
               </Field>
               <div className="rounded-md border border-border p-3 sm:col-span-2">
                 <p className="text-xs font-medium">Formats (facultatif)</p>
@@ -563,38 +745,57 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
                 </p>
                 <div className="mt-2 grid gap-3 sm:grid-cols-2">
                   <Field label="Groupe">
-                    <input className="input" list="variant-groups" value={editing.variant_group ?? ""}
+                    <input
+                      className="input"
+                      list="variant-groups"
+                      value={editing.variant_group ?? ""}
                       placeholder="poulet, cochon-de-lait…"
-                      onChange={(e) => setEditing({ ...editing, variant_group: e.target.value })} />
+                      onChange={(e) => setEditing({ ...editing, variant_group: e.target.value })}
+                    />
                     <datalist id="variant-groups">
-                      {[...new Set((products ?? []).map((p) => p.variant_group).filter(Boolean))].map((g) => (
+                      {[
+                        ...new Set((products ?? []).map((p) => p.variant_group).filter(Boolean)),
+                      ].map((g) => (
                         <option key={g} value={g!} />
                       ))}
                     </datalist>
                   </Field>
                   <Field label="Nom du format">
-                    <input className="input" value={editing.variant_label ?? ""}
+                    <input
+                      className="input"
+                      value={editing.variant_label ?? ""}
                       placeholder="Sur pied, Vivant, En viande, Au kg…"
-                      onChange={(e) => setEditing({ ...editing, variant_label: e.target.value })} />
+                      onChange={(e) => setEditing({ ...editing, variant_label: e.target.value })}
+                    />
                   </Field>
                 </div>
                 <label className="mt-3 flex items-start gap-2 text-sm">
-                  <input type="checkbox" className="mt-1" checked={!!editing.sold_by_weight}
-                    onChange={(e) => setEditing({ ...editing, sold_by_weight: e.target.checked })} />
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={!!editing.sold_by_weight}
+                    onChange={(e) => setEditing({ ...editing, sold_by_weight: e.target.checked })}
+                  />
                   <span>
                     Vendu au poids réel
                     <span className="block text-xs text-muted-foreground">
-                      Prix au kilo : le client commande une quantité estimée, vous saisissez le poids pesé dans la fiche commande et le montant est recalculé.
+                      Prix au kilo : le client commande une quantité estimée, vous saisissez le
+                      poids pesé dans la fiche commande et le montant est recalculé.
                     </span>
                   </span>
                 </label>
                 <label className="mt-3 flex items-start gap-2 text-sm">
-                  <input type="checkbox" className="mt-1" checked={!!editing.needs_slaughter}
-                    onChange={(e) => setEditing({ ...editing, needs_slaughter: e.target.checked })} />
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={!!editing.needs_slaughter}
+                    onChange={(e) => setEditing({ ...editing, needs_slaughter: e.target.checked })}
+                  />
                   <span>
                     Viande à l'abattage
                     <span className="block text-xs text-muted-foreground">
-                      Commandable seulement s'il y a un abattage programmé (onglet Abattages), livrée à partir de ce jour.
+                      Commandable seulement s'il y a un abattage programmé (onglet Abattages),
+                      livrée à partir de ce jour.
                     </span>
                   </span>
                 </label>
@@ -602,8 +803,8 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
               <div className="rounded-md border border-border p-3 sm:col-span-2">
                 <p className="text-xs font-medium">Saison (facultatif)</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Cochez les mois où le produit est disponible. Hors saison, il reste visible mais ne peut
-                  pas être commandé. Aucun mois coché = toute l'année.
+                  Cochez les mois où le produit est disponible. Hors saison, il reste visible mais
+                  ne peut pas être commandé. Aucun mois coché = toute l'année.
                 </p>
                 <div className="mt-2 grid grid-cols-4 gap-1.5 sm:grid-cols-6">
                   {MONTHS_SHORT.map((label, i) => {
@@ -616,7 +817,10 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
                         aria-pressed={on}
                         onClick={() => {
                           const cur = editing.season_months ?? [];
-                          setEditing({ ...editing, season_months: on ? cur.filter((x) => x !== m) : [...cur, m] });
+                          setEditing({
+                            ...editing,
+                            season_months: on ? cur.filter((x) => x !== m) : [...cur, m],
+                          });
                         }}
                         className={`rounded-md border px-2 py-1.5 text-xs ${on ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-secondary"}`}
                       >
@@ -636,21 +840,40 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
                 />
               </Field>
               <Field label="Description" className="sm:col-span-2">
-                <textarea className="input min-h-[100px]" value={editing.description ?? ""}
-                  onChange={(e) => setEditing({ ...editing, description: e.target.value })} />
+                <textarea
+                  className="input min-h-[100px]"
+                  value={editing.description ?? ""}
+                  onChange={(e) => setEditing({ ...editing, description: e.target.value })}
+                />
               </Field>
               <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={!!editing.is_active}
-                  onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })} /> Actif (visible)
+                <input
+                  type="checkbox"
+                  checked={!!editing.is_active}
+                  onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })}
+                />{" "}
+                Actif (visible)
               </label>
               <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={!!editing.is_featured}
-                  onChange={(e) => setEditing({ ...editing, is_featured: e.target.checked })} /> Mis en avant
+                <input
+                  type="checkbox"
+                  checked={!!editing.is_featured}
+                  onChange={(e) => setEditing({ ...editing, is_featured: e.target.checked })}
+                />{" "}
+                Mis en avant
               </label>
             </div>
             <div className="mt-6 flex justify-end gap-2">
-              <button onClick={() => setEditing(null)} className="rounded-md border border-border px-4 py-2 text-sm">Annuler</button>
-              <button onClick={save} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">
+              <button
+                onClick={() => setEditing(null)}
+                className="rounded-md border border-border px-4 py-2 text-sm"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={save}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+              >
                 Enregistrer
               </button>
             </div>
@@ -661,7 +884,15 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
   );
 }
 
-function Field({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
+function Field({
+  label,
+  children,
+  className = "",
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <label className={`block text-xs ${className}`}>
       <span className="mb-1 block text-muted-foreground">{label}</span>
@@ -671,7 +902,13 @@ function Field({ label, children, className = "" }: { label: string; children: R
 }
 
 /* ---------- Categories admin ---------- */
-interface CategoryRow { id: string; name: string; slug: string; description: string | null; image_url: string | null }
+interface CategoryRow {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  image_url: string | null;
+}
 
 function CategoriesAdmin() {
   const qc = useQueryClient();
@@ -693,7 +930,10 @@ function CategoriesAdmin() {
   };
 
   const create = async () => {
-    if (!draft.name) { toast.error("Nom requis"); return; }
+    if (!draft.name) {
+      toast.error("Nom requis");
+      return;
+    }
     const { error } = await supabase.from("categories").insert({
       name: draft.name,
       slug: draft.slug || slugify(draft.name),
@@ -701,7 +941,11 @@ function CategoriesAdmin() {
       image_url: draft.image_url || null,
     });
     if (error) toast.error(error.message);
-    else { toast.success("Catégorie créée"); setDraft({ name: "", slug: "" }); invalidate(); }
+    else {
+      toast.success("Catégorie créée");
+      setDraft({ name: "", slug: "" });
+      invalidate();
+    }
   };
 
   const update = async (id: string, patch: Partial<CategoryRow>) => {
@@ -714,7 +958,10 @@ function CategoriesAdmin() {
     if (!confirm("Supprimer cette catégorie ?")) return;
     const { error } = await supabase.from("categories").delete().eq("id", id);
     if (error) toast.error(error.message);
-    else { toast.success("Supprimée"); invalidate(); }
+    else {
+      toast.success("Supprimée");
+      invalidate();
+    }
   };
 
   return (
@@ -722,13 +969,30 @@ function CategoriesAdmin() {
       <div className="rounded-lg border border-border p-4">
         <p className="editorial-eyebrow">Nouvelle catégorie</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-4">
-          <input className="input" placeholder="Nom" value={draft.name ?? ""}
-            onChange={(e) => setDraft({ ...draft, name: e.target.value, slug: slugify(e.target.value) })} />
-          <input className="input" placeholder="Slug" value={draft.slug ?? ""}
-            onChange={(e) => setDraft({ ...draft, slug: e.target.value })} />
-          <input className="input" placeholder="URL image (optionnel)" value={draft.image_url ?? ""}
-            onChange={(e) => setDraft({ ...draft, image_url: e.target.value })} />
-          <button onClick={create} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">
+          <input
+            className="input"
+            placeholder="Nom"
+            value={draft.name ?? ""}
+            onChange={(e) =>
+              setDraft({ ...draft, name: e.target.value, slug: slugify(e.target.value) })
+            }
+          />
+          <input
+            className="input"
+            placeholder="Slug"
+            value={draft.slug ?? ""}
+            onChange={(e) => setDraft({ ...draft, slug: e.target.value })}
+          />
+          <input
+            className="input"
+            placeholder="URL image (optionnel)"
+            value={draft.image_url ?? ""}
+            onChange={(e) => setDraft({ ...draft, image_url: e.target.value })}
+          />
+          <button
+            onClick={create}
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
             Ajouter
           </button>
         </div>
@@ -737,30 +1001,54 @@ function CategoriesAdmin() {
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead className="bg-cream text-left text-xs uppercase tracking-wider text-muted-foreground">
-            <tr><th className="p-3">Nom</th><th className="p-3">Slug</th><th className="p-3">Description</th><th className="p-3 text-right">Actions</th></tr>
+            <tr>
+              <th className="p-3">Nom</th>
+              <th className="p-3">Slug</th>
+              <th className="p-3">Description</th>
+              <th className="p-3 text-right">Actions</th>
+            </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {categories?.map((c) => (
               <tr key={c.id}>
                 <td className="p-3">
-                  <input defaultValue={c.name} onBlur={(e) => e.target.value !== c.name && update(c.id, { name: e.target.value })}
-                    className="w-full rounded border border-border bg-background px-2 py-1 text-xs" />
+                  <input
+                    defaultValue={c.name}
+                    onBlur={(e) =>
+                      e.target.value !== c.name && update(c.id, { name: e.target.value })
+                    }
+                    className="w-full rounded border border-border bg-background px-2 py-1 text-xs"
+                  />
                 </td>
                 <td className="p-3">
-                  <input defaultValue={c.slug} onBlur={(e) => e.target.value !== c.slug && update(c.id, { slug: e.target.value })}
-                    className="w-full rounded border border-border bg-background px-2 py-1 text-xs" />
+                  <input
+                    defaultValue={c.slug}
+                    onBlur={(e) =>
+                      e.target.value !== c.slug && update(c.id, { slug: e.target.value })
+                    }
+                    className="w-full rounded border border-border bg-background px-2 py-1 text-xs"
+                  />
                 </td>
                 <td className="p-3">
-                  <input defaultValue={c.description ?? ""} onBlur={(e) => update(c.id, { description: e.target.value || null })}
-                    className="w-full rounded border border-border bg-background px-2 py-1 text-xs" />
+                  <input
+                    defaultValue={c.description ?? ""}
+                    onBlur={(e) => update(c.id, { description: e.target.value || null })}
+                    className="w-full rounded border border-border bg-background px-2 py-1 text-xs"
+                  />
                 </td>
                 <td className="p-3 text-right">
-                  <button onClick={() => remove(c.id)} className="text-xs text-destructive">Suppr.</button>
+                  <button onClick={() => remove(c.id)} className="text-xs text-destructive">
+                    Suppr.
+                  </button>
                 </td>
               </tr>
             ))}
             {categories?.length === 0 && (
-              <tr><td colSpan={4} className="p-8 text-center text-sm text-muted-foreground">Aucune catégorie.</td></tr>
+              <tr>
+                <td colSpan={4} className="p-8 text-center text-sm text-muted-foreground">
+                  Aucune catégorie.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
@@ -769,15 +1057,39 @@ function CategoriesAdmin() {
   );
 }
 
+function matchesOrdersFilter(
+  o: { status: string; payment_status: string; payment_method: string },
+  f: OrdersFilter,
+) {
+  switch (f) {
+    case "all":
+      return true;
+    case "refund_due":
+      return o.status === "cancelled" && o.payment_status === "paid";
+    case "wave_unpaid":
+      return o.payment_method === "wave" && o.payment_status !== "paid" && o.status !== "cancelled";
+    default:
+      return o.status === f;
+  }
+}
+
 /* ---------- Orders admin ---------- */
-function OrdersAdmin({ filter, onFilter }: { filter: OrdersFilter; onFilter: (f: OrdersFilter) => void }) {
+function OrdersAdmin({
+  filter,
+  onFilter,
+}: {
+  filter: OrdersFilter;
+  onFilter: (f: OrdersFilter) => void;
+}) {
   const qc = useQueryClient();
   const { data: orders } = useQuery({
     queryKey: ["admin-orders"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, created_at, total_amount, status, payment_status, payment_method, shipping_full_name, shipping_city, confirmation_email_sent_at, confirmation_sms_sent_at, slaughter_date")
+        .select(
+          "id, created_at, total_amount, status, payment_status, payment_method, shipping_full_name, shipping_city, confirmation_email_sent_at, confirmation_sms_sent_at, slaughter_date",
+        )
         .order("created_at", { ascending: false })
         // Assez large pour que les compteurs des filtres correspondent au tableau de bord.
         .limit(2000);
@@ -787,7 +1099,9 @@ function OrdersAdmin({ filter, onFilter }: { filter: OrdersFilter; onFilter: (f:
   });
 
   // Demande en attente de confirmation (annulation ou livraison).
-  const [pending, setPending] = useState<{ id: string; to: "cancelled" | "delivered" } | null>(null);
+  const [pending, setPending] = useState<{ id: string; to: "cancelled" | "delivered" } | null>(
+    null,
+  );
   const [busy, setBusy] = useState(false);
   const pendingOrder = orders?.find((o) => o.id === pending?.id);
 
@@ -809,14 +1123,7 @@ function OrdersAdmin({ filter, onFilter }: { filter: OrdersFilter; onFilter: (f:
     if (status === "cancelled" || status === "delivered") setPending({ id, to: status });
     else void saveStatus(id, { status });
   };
-  const matches = (o: NonNullable<typeof orders>[number], f: OrdersFilter) =>
-    f === "all"
-      ? true
-      : f === "refund_due"
-        ? o.status === "cancelled" && o.payment_status === "paid"
-      : f === "wave_unpaid"
-        ? o.payment_method === "wave" && o.payment_status !== "paid" && o.status !== "cancelled"
-        : o.status === f;
+  const matches = matchesOrdersFilter;
   const shownOrders = orders?.filter((o) => matches(o, filter));
   const chip = (value: OrdersFilter, label: string) => ({
     value,
@@ -826,165 +1133,201 @@ function OrdersAdmin({ filter, onFilter }: { filter: OrdersFilter; onFilter: (f:
 
   return (
     <div className="space-y-4">
-    <FilterChips
-      value={filter}
-      onChange={onFilter}
-      options={[
-        chip("all", "Toutes"),
-        chip("pending", "À préparer"),
-        chip("processing", "En préparation"),
-        chip("ready", "Prêtes"),
-        chip("shipped", "En livraison"),
-        chip("delivered", "Livrées"),
-        chip("cancelled", "Annulées"),
-        chip("wave_unpaid", "Wave en attente"),
-        chip("refund_due", "À rembourser"),
-      ]}
-    />
-    {/* Mobile : une carte par commande, qui ouvre la fiche. */}
-    <ul className="space-y-2 md:hidden">
-      {shownOrders?.map((o) => (
-        <li key={o.id}>
-          <Link
-            to="/admin/orders/$orderId"
-            params={{ orderId: o.id }}
-            className="block rounded-lg border border-border bg-card p-3 active:bg-secondary"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate font-medium">{o.shipping_full_name}</p>
-                <p className="text-xs text-muted-foreground">
-                  <span className="font-mono">#{orderNumber(o.id)}</span> ·{" "}
-                  {new Date(o.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} ·{" "}
-                  {o.shipping_city}
+      <FilterChips
+        value={filter}
+        onChange={onFilter}
+        options={[
+          chip("all", "Toutes"),
+          chip("pending", "À préparer"),
+          chip("processing", "En préparation"),
+          chip("ready", "Prêtes"),
+          chip("shipped", "En livraison"),
+          chip("delivered", "Livrées"),
+          chip("cancelled", "Annulées"),
+          chip("wave_unpaid", "Wave en attente"),
+          chip("refund_due", "À rembourser"),
+        ]}
+      />
+      {/* Mobile : une carte par commande, qui ouvre la fiche. */}
+      <ul className="space-y-2 md:hidden">
+        {shownOrders?.map((o) => (
+          <li key={o.id}>
+            <Link
+              to="/admin/orders/$orderId"
+              params={{ orderId: o.id }}
+              className="block rounded-lg border border-border bg-card p-3 active:bg-secondary"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{o.shipping_full_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-mono">#{orderNumber(o.id)}</span> ·{" "}
+                    {new Date(o.created_at).toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "short",
+                    })}{" "}
+                    · {o.shipping_city}
+                  </p>
+                </div>
+                <p className="shrink-0 font-semibold tabular-nums">
+                  {formatPrice(Number(o.total_amount))}
                 </p>
               </div>
-              <p className="shrink-0 font-semibold tabular-nums">{formatPrice(Number(o.total_amount))}</p>
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
-              <span className={`rounded px-2 py-0.5 ${ORDER_STATUS_TONE[o.status as OrderStatus]}`}>
-                {ORDER_STATUS_LABEL[o.status as OrderStatus]}
-              </span>
-              <span className={`rounded px-2 py-0.5 ${o.payment_status === "paid" ? "bg-primary/10 text-primary" : "bg-secondary"}`}>
-                {PAYMENT_STATUS_LABEL[o.payment_status] ?? o.payment_status}
-              </span>
-              {o.slaughter_date && (
-                <span className="rounded bg-secondary px-2 py-0.5">Abattage {formatSlaughterDayShort(o.slaughter_date)}</span>
-              )}
-              <span className="ml-auto text-primary">Ouvrir →</span>
-            </div>
-          </Link>
-        </li>
-      ))}
-      {shownOrders?.length === 0 && (
-        <li className="rounded-lg border border-border p-8 text-center text-sm text-muted-foreground">Aucune commande pour le moment.</li>
-      )}
-    </ul>
-
-    <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
-      <table className="w-full text-sm">
-        <thead className="bg-cream text-left text-xs uppercase tracking-wider text-muted-foreground">
-          <tr>
-            <th className="p-3">Date</th>
-            <th className="p-3">Client</th>
-            <th className="p-3">Ville</th>
-            <th className="p-3">Total</th>
-            <th className="p-3">Paiement</th>
-            <th className="p-3">Statut</th>
-            <th className="p-3" />
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {shownOrders?.map((o) => (
-            <tr key={o.id} className="hover:bg-secondary/40">
-              <td className="p-3 text-xs text-muted-foreground">
-                {new Date(o.created_at).toLocaleDateString("fr-FR")}
-                <Link
-                  to="/admin/orders/$orderId"
-                  params={{ orderId: o.id }}
-                  className="block font-mono font-medium text-primary hover:underline"
+              <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+                <span
+                  className={`rounded px-2 py-0.5 ${ORDER_STATUS_TONE[o.status as OrderStatus]}`}
                 >
-                  #{orderNumber(o.id)}
-                </Link>
-              </td>
-              <td className="p-3">
-                <Link to="/admin/orders/$orderId" params={{ orderId: o.id }} className="font-medium hover:underline">
-                  {o.shipping_full_name}
-                </Link>
-                <span className="mt-1 block text-xs text-muted-foreground">
-                  {/* Confirmations envoyées au client */}
-                  E-mail {o.confirmation_email_sent_at ? "✓" : "—"} · SMS {o.confirmation_sms_sent_at ? "✓" : "—"}
+                  {ORDER_STATUS_LABEL[o.status as OrderStatus]}
                 </span>
-              </td>
-              <td className="p-3">
-                {o.shipping_city}
+                <span
+                  className={`rounded px-2 py-0.5 ${o.payment_status === "paid" ? "bg-primary/10 text-primary" : "bg-secondary"}`}
+                >
+                  {PAYMENT_STATUS_LABEL[o.payment_status] ?? o.payment_status}
+                </span>
                 {o.slaughter_date && (
-                  <span className="mt-1 block text-xs text-muted-foreground">
+                  <span className="rounded bg-secondary px-2 py-0.5">
                     Abattage {formatSlaughterDayShort(o.slaughter_date)}
                   </span>
                 )}
-              </td>
-              <td className="p-3 tabular-nums">{formatPrice(Number(o.total_amount))}</td>
-              <td className="p-3">
-                <span className={`rounded px-2 py-0.5 text-xs ${o.payment_status === "paid" ? "bg-primary/10 text-primary" : "bg-secondary"}`}>
-                  {PAYMENT_STATUS_LABEL[o.payment_status] ?? o.payment_status}
-                </span>
-                <span className="mt-1 block text-xs text-muted-foreground">
-                  {PAYMENT_METHOD_LABEL[o.payment_method] ?? o.payment_method}
-                </span>
-              </td>
-              <td className="p-3">
-                <select
-                  value={o.status}
-                  onChange={(e) => updateStatus(o.id, e.target.value as OrderStatus)}
-                  className="rounded border border-border bg-background px-2 py-1 text-xs"
-                >
-                  {/* Seuls les passages autorisés depuis le statut actuel sont proposés. */}
-                  {[o.status as OrderStatus, ...ALLOWED_TRANSITIONS[o.status as OrderStatus]].map((s) => (
-                    <option key={s} value={s}>{s === o.status ? ORDER_STATUS_LABEL[s] : `→ ${ORDER_STATUS_LABEL[s]}`}</option>
-                  ))}
-                </select>
-              </td>
-              <td className="p-3 text-right">
-                <Link
-                  to="/admin/orders/$orderId"
-                  params={{ orderId: o.id }}
-                  className="whitespace-nowrap text-xs font-medium text-primary hover:underline"
-                >
-                  Ouvrir la fiche →
-                </Link>
-              </td>
+                <span className="ml-auto text-primary">Ouvrir →</span>
+              </div>
+            </Link>
+          </li>
+        ))}
+        {shownOrders?.length === 0 && (
+          <li className="rounded-lg border border-border p-8 text-center text-sm text-muted-foreground">
+            Aucune commande pour le moment.
+          </li>
+        )}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
+        <table className="w-full text-sm">
+          <thead className="bg-cream text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <tr>
+              <th className="p-3">Date</th>
+              <th className="p-3">Client</th>
+              <th className="p-3">Ville</th>
+              <th className="p-3">Total</th>
+              <th className="p-3">Paiement</th>
+              <th className="p-3">Statut</th>
+              <th className="p-3" />
             </tr>
-          ))}
-          {shownOrders?.length === 0 && (
-            <tr><td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">Aucune commande pour le moment.</td></tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-    <CancelOrderDialog
-      open={pending?.to === "cancelled"}
-      onOpenChange={(open) => !open && setPending(null)}
-      paid={pendingOrder?.payment_status === "paid"}
-      busy={busy}
-      onConfirm={(reason) =>
-        pending && void saveStatus(pending.id, { status: "cancelled", cancel_reason: reason, cancelled_by: "farm" })
-      }
-    />
-    <DeliverOrderDialog
-      open={pending?.to === "delivered"}
-      onOpenChange={(open) => !open && setPending(null)}
-      amount={Number(pendingOrder?.total_amount ?? 0)}
-      toCollect={pendingOrder?.payment_status !== "paid" && pendingOrder?.payment_method === "cash_on_delivery"}
-      busy={busy}
-      onConfirm={(collected) =>
-        pending &&
-        void saveStatus(pending.id, {
-          status: "delivered",
-          ...(collected ? { payment_status: "paid", paid_at: new Date().toISOString() } : {}),
-        })
-      }
-    />
+          </thead>
+          <tbody className="divide-y divide-border">
+            {shownOrders?.map((o) => (
+              <tr key={o.id} className="hover:bg-secondary/40">
+                <td className="p-3 text-xs text-muted-foreground">
+                  {new Date(o.created_at).toLocaleDateString("fr-FR")}
+                  <Link
+                    to="/admin/orders/$orderId"
+                    params={{ orderId: o.id }}
+                    className="block font-mono font-medium text-primary hover:underline"
+                  >
+                    #{orderNumber(o.id)}
+                  </Link>
+                </td>
+                <td className="p-3">
+                  <Link
+                    to="/admin/orders/$orderId"
+                    params={{ orderId: o.id }}
+                    className="font-medium hover:underline"
+                  >
+                    {o.shipping_full_name}
+                  </Link>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {/* Confirmations envoyées au client */}
+                    E-mail {o.confirmation_email_sent_at ? "✓" : "—"} · SMS{" "}
+                    {o.confirmation_sms_sent_at ? "✓" : "—"}
+                  </span>
+                </td>
+                <td className="p-3">
+                  {o.shipping_city}
+                  {o.slaughter_date && (
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      Abattage {formatSlaughterDayShort(o.slaughter_date)}
+                    </span>
+                  )}
+                </td>
+                <td className="p-3 tabular-nums">{formatPrice(Number(o.total_amount))}</td>
+                <td className="p-3">
+                  <span
+                    className={`rounded px-2 py-0.5 text-xs ${o.payment_status === "paid" ? "bg-primary/10 text-primary" : "bg-secondary"}`}
+                  >
+                    {PAYMENT_STATUS_LABEL[o.payment_status] ?? o.payment_status}
+                  </span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {PAYMENT_METHOD_LABEL[o.payment_method] ?? o.payment_method}
+                  </span>
+                </td>
+                <td className="p-3">
+                  <select
+                    value={o.status}
+                    onChange={(e) => updateStatus(o.id, e.target.value as OrderStatus)}
+                    className="rounded border border-border bg-background px-2 py-1 text-xs"
+                  >
+                    {/* Seuls les passages autorisés depuis le statut actuel sont proposés. */}
+                    {[o.status as OrderStatus, ...ALLOWED_TRANSITIONS[o.status as OrderStatus]].map(
+                      (s) => (
+                        <option key={s} value={s}>
+                          {s === o.status ? ORDER_STATUS_LABEL[s] : `→ ${ORDER_STATUS_LABEL[s]}`}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </td>
+                <td className="p-3 text-right">
+                  <Link
+                    to="/admin/orders/$orderId"
+                    params={{ orderId: o.id }}
+                    className="whitespace-nowrap text-xs font-medium text-primary hover:underline"
+                  >
+                    Ouvrir la fiche →
+                  </Link>
+                </td>
+              </tr>
+            ))}
+            {shownOrders?.length === 0 && (
+              <tr>
+                <td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">
+                  Aucune commande pour le moment.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <CancelOrderDialog
+        open={pending?.to === "cancelled"}
+        onOpenChange={(open) => !open && setPending(null)}
+        paid={pendingOrder?.payment_status === "paid"}
+        busy={busy}
+        onConfirm={(reason) =>
+          pending &&
+          void saveStatus(pending.id, {
+            status: "cancelled",
+            cancel_reason: reason,
+            cancelled_by: "farm",
+          })
+        }
+      />
+      <DeliverOrderDialog
+        open={pending?.to === "delivered"}
+        onOpenChange={(open) => !open && setPending(null)}
+        amount={Number(pendingOrder?.total_amount ?? 0)}
+        toCollect={
+          pendingOrder?.payment_status !== "paid" &&
+          pendingOrder?.payment_method === "cash_on_delivery"
+        }
+        busy={busy}
+        onConfirm={(collected) =>
+          pending &&
+          void saveStatus(pending.id, {
+            status: "delivered",
+            ...(collected ? { payment_status: "paid", paid_at: new Date().toISOString() } : {}),
+          })
+        }
+      />
     </div>
   );
 }
@@ -1008,7 +1351,12 @@ function MessagesAdmin() {
         const cur = map.get(m.user_id);
         const isUnread = !m.is_from_admin && !m.read_at;
         if (!cur) {
-          map.set(m.user_id, { user_id: m.user_id, last: m.content, at: m.created_at, unread: isUnread ? 1 : 0 });
+          map.set(m.user_id, {
+            user_id: m.user_id,
+            last: m.content,
+            at: m.created_at,
+            unread: isUnread ? 1 : 0,
+          });
         } else if (isUnread) {
           cur.unread += 1;
         }
@@ -1016,7 +1364,10 @@ function MessagesAdmin() {
       const list = Array.from(map.values()).sort((a, b) => b.at.localeCompare(a.at));
       const ids = list.map((t) => t.user_id);
       if (ids.length === 0) return [];
-      const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", ids);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", ids);
       const nameMap = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
       return list.map((t) => ({ ...t, name: nameMap.get(t.user_id) || t.user_id.slice(0, 8) }));
     },
@@ -1026,10 +1377,13 @@ function MessagesAdmin() {
   useEffect(() => {
     const channel = supabase
       .channel("admin-threads")
-      .on("postgres_changes", { event: "*", schema: "public", table: "messages" },
-        () => qc.invalidateQueries({ queryKey: ["admin-message-threads"] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () =>
+        qc.invalidateQueries({ queryKey: ["admin-message-threads"] }),
+      )
       .subscribe();
-    return () => { void supabase.removeChannel(channel); };
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, [qc]);
 
   // Mark messages as read when opening a thread
@@ -1050,7 +1404,10 @@ function MessagesAdmin() {
   const deleteThread = async (userId: string) => {
     if (!confirm("Supprimer toute cette conversation ? Cette action est irréversible.")) return;
     const { error } = await supabase.from("messages").delete().eq("user_id", userId);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Conversation supprimée");
     if (selected === userId) setSelected(null);
     qc.invalidateQueries({ queryKey: ["admin-message-threads"] });
@@ -1060,7 +1417,9 @@ function MessagesAdmin() {
   return (
     <div className="grid gap-6 md:grid-cols-[280px_1fr]">
       <div className="rounded-lg border border-border">
-        <p className="border-b border-border p-3 text-xs uppercase tracking-wider text-muted-foreground">Conversations</p>
+        <p className="border-b border-border p-3 text-xs uppercase tracking-wider text-muted-foreground">
+          Conversations
+        </p>
         <ul className="max-h-[500px] overflow-y-auto">
           {threads?.length === 0 && (
             <li className="p-4 text-sm text-muted-foreground">Aucune conversation.</li>
@@ -1083,7 +1442,10 @@ function MessagesAdmin() {
                 </div>
                 <p className="truncate text-xs text-muted-foreground">{t.last}</p>
                 <p className="mt-0.5 text-[10px] text-muted-foreground">
-                  {new Date(t.at).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
+                  {new Date(t.at).toLocaleString("fr-FR", {
+                    dateStyle: "short",
+                    timeStyle: "short",
+                  })}
                 </p>
               </button>
               <button

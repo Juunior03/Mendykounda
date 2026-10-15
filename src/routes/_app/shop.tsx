@@ -120,18 +120,82 @@ function applyFilters(
         ? relevance(p, terms, catNameBySlug.get(p.categories?.slug ?? "") ?? "")
         : 1,
     }))
-    .filter(({ p, score }) => {
-      if (score === 0) return false;
-      if (ignore !== "category" && s.category && p.categories?.slug !== s.category) return false;
-      const price = effectivePrice(p);
-      if (s.min != null && price < s.min) return false;
-      if (s.max != null && price > s.max) return false;
-      if (s.rating && (p.rating_avg ?? 0) < s.rating) return false;
-      if (s.stock && (p.stock <= 0 || !inSeason(p))) return false;
-      if (s.promo && !hasPromo(p)) return false;
-      if (s.season && !(isSeasonal(p) && inSeason(p))) return false;
-      return true;
+    .filter(({ p, score }) => score > 0 && matchesCategory(p, s, ignore) && matchesOptions(p, s));
+}
+
+function matchesCategory(p: Row, s: Search, ignore?: "category") {
+  return ignore === "category" || !s.category || p.categories?.slug === s.category;
+}
+
+/** Prix, note, stock, promotion et saison. */
+function matchesOptions(p: Row, s: Search) {
+  const price = effectivePrice(p);
+  const checks = [
+    s.min == null || price >= s.min,
+    s.max == null || price <= s.max,
+    !s.rating || (p.rating_avg ?? 0) >= s.rating,
+    !s.stock || (p.stock > 0 && inSeason(p)),
+    !s.promo || hasPromo(p),
+    !s.season || (isSeasonal(p) && inSeason(p)),
+  ];
+  return checks.every(Boolean);
+}
+
+const inStockRank = (p: Product) => Number(p.stock > 0 && inSeason(p));
+
+function compareRows(sort: SortKey, a: { p: Row; score: number }, b: { p: Row; score: number }) {
+  switch (sort) {
+    case "price_asc":
+      return effectivePrice(a.p) - effectivePrice(b.p);
+    case "price_desc":
+      return effectivePrice(b.p) - effectivePrice(a.p);
+    case "rating":
+      return (
+        (b.p.rating_avg ?? 0) - (a.p.rating_avg ?? 0) ||
+        (b.p.rating_count ?? 0) - (a.p.rating_count ?? 0)
+      );
+    case "name":
+      return a.p.name.localeCompare(b.p.name, "fr");
+    case "relevance":
+      return b.score - a.score || inStockRank(b.p) - inStockRank(a.p);
+    default:
+      // Nouveautés, produits en stock d'abord.
+      return inStockRank(b.p) - inStockRank(a.p) || b.p.created_at.localeCompare(a.p.created_at);
+  }
+}
+
+function priceChipLabel(min?: number, max?: number) {
+  if (min != null && max != null) return `${formatPrice(min)} – ${formatPrice(max)}`;
+  if (min != null) return `Dès ${formatPrice(min)}`;
+  return `Jusqu'à ${formatPrice(max ?? 0)}`;
+}
+
+/** Filtres actifs, affichés en pastilles que l'on peut retirer. */
+function activeChips(search: Search, catNameBySlug: Map<string, string>) {
+  const chips: { label: string; clear: Partial<Search> }[] = [];
+  if (search.q) chips.push({ label: `« ${search.q} »`, clear: { q: undefined } });
+  if (search.category)
+    chips.push({
+      label: catNameBySlug.get(search.category) ?? search.category,
+      clear: { category: undefined },
     });
+  if (search.min != null || search.max != null)
+    chips.push({
+      label: priceChipLabel(search.min, search.max),
+      clear: { min: undefined, max: undefined },
+    });
+  if (search.rating)
+    chips.push({ label: `${search.rating} étoiles et plus`, clear: { rating: undefined } });
+  if (search.stock) chips.push({ label: "En stock", clear: { stock: undefined } });
+  if (search.promo) chips.push({ label: "En promotion", clear: { promo: undefined } });
+  if (search.season) chips.push({ label: "De saison", clear: { season: undefined } });
+  return chips;
+}
+
+function shopTitle(search: Search, catNameBySlug: Map<string, string>) {
+  if (search.q) return `Résultats pour « ${search.q} »`;
+  if (search.category) return catNameBySlug.get(search.category) ?? "Boutique";
+  return "Toute la boutique";
 }
 
 function ShopPage() {
@@ -150,27 +214,7 @@ function ShopPage() {
 
   const results = useMemo(() => {
     const rows = applyFilters(products, search, catNameBySlug);
-    const inStock = (p: Product) => Number(p.stock > 0 && inSeason(p));
-    rows.sort((a, b) => {
-      switch (sort) {
-        case "price_asc":
-          return effectivePrice(a.p) - effectivePrice(b.p);
-        case "price_desc":
-          return effectivePrice(b.p) - effectivePrice(a.p);
-        case "rating":
-          return (
-            (b.p.rating_avg ?? 0) - (a.p.rating_avg ?? 0) ||
-            (b.p.rating_count ?? 0) - (a.p.rating_count ?? 0)
-          );
-        case "name":
-          return a.p.name.localeCompare(b.p.name, "fr");
-        case "relevance":
-          return b.score - a.score || inStock(b.p) - inStock(a.p);
-        default:
-          // Nouveautés, produits en stock d'abord.
-          return inStock(b.p) - inStock(a.p) || b.p.created_at.localeCompare(a.p.created_at);
-      }
-    });
+    rows.sort((a, b) => compareRows(sort, a, b));
     return rows.map((r) => r.p);
   }, [products, search, sort, catNameBySlug]);
 
@@ -188,35 +232,9 @@ function ShopPage() {
     void navigate({ search: (prev) => ({ ...prev, ...next }), replace: true });
   };
 
-  const chips: { label: string; clear: Partial<Search> }[] = [];
-  if (search.q) chips.push({ label: `« ${search.q} »`, clear: { q: undefined } });
-  if (search.category)
-    chips.push({
-      label: catNameBySlug.get(search.category) ?? search.category,
-      clear: { category: undefined },
-    });
-  if (search.min != null || search.max != null)
-    chips.push({
-      label:
-        search.min != null && search.max != null
-          ? `${formatPrice(search.min)} – ${formatPrice(search.max)}`
-          : search.min != null
-            ? `Dès ${formatPrice(search.min)}`
-            : `Jusqu'à ${formatPrice(search.max!)}`,
-      clear: { min: undefined, max: undefined },
-    });
-  if (search.rating)
-    chips.push({ label: `${search.rating} étoiles et plus`, clear: { rating: undefined } });
-  if (search.stock) chips.push({ label: "En stock", clear: { stock: undefined } });
-  if (search.promo) chips.push({ label: "En promotion", clear: { promo: undefined } });
-  if (search.season) chips.push({ label: "De saison", clear: { season: undefined } });
+  const chips = activeChips(search, catNameBySlug);
   const filterCount = chips.filter((c) => !("q" in c.clear)).length;
-
-  const title = search.q
-    ? `Résultats pour « ${search.q} »`
-    : search.category
-      ? (catNameBySlug.get(search.category) ?? "Boutique")
-      : "Toute la boutique";
+  const title = shopTitle(search, catNameBySlug);
 
   const filters = (
     <Filters

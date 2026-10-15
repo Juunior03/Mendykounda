@@ -18,6 +18,9 @@ import {
 } from "../_shared/notify.ts";
 import { handle } from "../order-notify/index.ts";
 
+/** Adresse fictive des requêtes de test (jamais appelée). */
+const TEST_URL = "https://test.invalid/";
+
 const USER = "11111111-1111-1111-1111-111111111111";
 const ORDER = "0f3a9c21-2222-4222-8222-222222222222";
 const SITE = "https://mendykounda.sn";
@@ -52,7 +55,9 @@ function memoryRepo(o: NotifyOrder | null = order(), email: string | null = "awa
       sent[ch] = "now";
       return true;
     },
-    release: async (_id, ch) => void (sent[ch] = null),
+    release: async (_id, ch) => {
+      sent[ch] = null;
+    },
   };
   return repo;
 }
@@ -250,7 +255,7 @@ Deno.test("order-notify : authentification et validation", async () => {
     userId: async () => uid,
   });
   const post = (body: unknown) =>
-    new Request("http://x", { method: "POST", body: JSON.stringify(body) });
+    new Request(TEST_URL, { method: "POST", body: JSON.stringify(body) });
   assertEquals((await handle(post({ order_id: ORDER }), deps(null))).status, 401);
   assertEquals((await handle(post({ order_id: "x" }), deps(USER))).status, 400);
   assertEquals(
@@ -330,5 +335,8 @@ Deno.test("e-mail : pied de page avec les infos de la ferme", () => {
     location: "Bignona",
     phone: "77 000 00 00",
   });
-  assertStringIncludes(custom.html, "Ferme &lt;Test&gt; · Produits fermiers livrés · Bignona · 77 000 00 00");
+  assertStringIncludes(
+    custom.html,
+    "Ferme &lt;Test&gt; · Produits fermiers livrés · Bignona · 77 000 00 00",
+  );
 });

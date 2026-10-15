@@ -159,7 +159,11 @@ export function CustomersAdmin() {
         <Kpi label="Clients inscrits" value={String(clients.length)} />
         <Kpi
           label="Ont déjà commandé"
-          value={`${buyers}${clients.length ? ` (${Math.round((buyers / clients.length) * 100)} %)` : ""}`}
+          value={
+            clients.length
+              ? `${buyers} (${Math.round((buyers / clients.length) * 100)} %)`
+              : String(buyers)
+          }
         />
         <Kpi
           label="Dépense moyenne par client acheteur"

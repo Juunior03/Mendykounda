@@ -17,6 +17,9 @@ import {
 import { handle as checkoutHandle } from "../wave-checkout/index.ts";
 import { handle as webhookHandle } from "../wave-webhook/index.ts";
 
+/** Adresse fictive des requêtes de test (jamais appelée). */
+const TEST_URL = "https://test.invalid/";
+
 const USER = "11111111-1111-1111-1111-111111111111";
 const ORDER = "22222222-2222-2222-2222-222222222222";
 const SECRET = "wave_sn_WHS_test";
@@ -36,7 +39,9 @@ function memoryRepo(order: Partial<OrderRow> = {}) {
     row,
     findById: async (id) => (id === row.id ? { ...row } : null),
     findBySession: async (s) => (s === row.payment_session_id ? { ...row } : null),
-    setSession: async (_id, s) => void (row.payment_session_id = s),
+    setSession: async (_id, s) => {
+      row.payment_session_id = s;
+    },
     markPaid: async (_id, s) => {
       row.payment_status = "paid";
       row.payment_session_id = s;
@@ -262,14 +267,14 @@ Deno.test("wave-webhook : refuse sans signature, relit la session chez Wave", as
   });
   const t = Math.floor(Date.now() / 1000);
   const signed = async () =>
-    new Request("http://x", {
+    new Request(TEST_URL, {
       method: "POST",
       body: event,
       headers: { "Wave-Signature": `t=${t},v1=${await sign(event, t)}` },
     });
 
   const unsigned = await webhookHandle(
-    new Request("http://x", { method: "POST", body: event }),
+    new Request(TEST_URL, { method: "POST", body: event }),
     deps,
   );
   assertEquals(unsigned.status, 401);
@@ -290,7 +295,7 @@ Deno.test("wave-checkout : authentification et validation", async () => {
   const wave = fakeWave();
   const deps = (uid: string | null) => ({ repo, wave, userId: async () => uid, siteUrl: SITE });
   const post = (body: unknown) =>
-    new Request("http://x", { method: "POST", body: JSON.stringify(body) });
+    new Request(TEST_URL, { method: "POST", body: JSON.stringify(body) });
 
   assertEquals(
     (await checkoutHandle(post({ action: "create", order_id: ORDER }), deps(null))).status,
@@ -317,10 +322,7 @@ Deno.test("wave-checkout : authentification et validation", async () => {
   const sync = await checkoutHandle(post({ action: "sync", order_id: ORDER }), deps(USER));
   assertEquals((await sync.json()).status, "pending");
 
-  const preflight = await checkoutHandle(
-    new Request("http://x", { method: "OPTIONS" }),
-    deps(null),
-  );
+  const preflight = await checkoutHandle(new Request(TEST_URL, { method: "OPTIONS" }), deps(null));
   assertEquals(preflight.headers.get("Access-Control-Allow-Origin"), "*");
 });
 

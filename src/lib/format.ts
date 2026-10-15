@@ -16,3 +16,6 @@ export const formatDateTime = (iso: string) =>
   new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(
     new Date(iso),
   );
+
+/** « s » final au pluriel : plural(2) === "s", plural(1) === "". */
+export const plural = (n: number, suffix = "s") => (n > 1 ? suffix : "");

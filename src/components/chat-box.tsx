@@ -78,7 +78,9 @@ export function ChatBox({ userId, asAdmin = false }: { userId: string; asAdmin?:
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
         {messages.length === 0 && (
           <p className="py-12 text-center text-sm text-muted-foreground">
-            {asAdmin ? "Aucun message dans cette conversation." : "Posez votre question — le vendeur vous répondra ici."}
+            {asAdmin
+              ? "Aucun message dans cette conversation."
+              : "Posez votre question — le vendeur vous répondra ici."}
           </p>
         )}
         {messages.map((m) => {
@@ -92,7 +94,10 @@ export function ChatBox({ userId, asAdmin = false }: { userId: string; asAdmin?:
               >
                 <p className="whitespace-pre-wrap break-words">{m.content}</p>
                 <p className={`mt-1 text-[10px] ${mine ? "opacity-70" : "text-muted-foreground"}`}>
-                  {new Date(m.created_at).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
+                  {new Date(m.created_at).toLocaleString("fr-FR", {
+                    dateStyle: "short",
+                    timeStyle: "short",
+                  })}
                 </p>
               </div>
             </div>

@@ -4,13 +4,13 @@
  * Par défaut, le site affiche un texte proposé, complété avec les infos de
  * la ferme ; l'admin peut le personnaliser.
  */
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { DEFAULT_FARM, farmSettingsQuery } from "@/lib/farm";
+import { DEFAULT_FARM, farmSettingsQuery, type FarmSettings } from "@/lib/farm";
 import { LEGAL_PAGES, defaultLegalText, type LegalPage } from "@/lib/legal";
 import { LegalText } from "@/components/legal-text";
 import { Button } from "@/components/ui/button";
@@ -26,17 +26,19 @@ interface LegalForm {
 
 const PAGES: LegalPage[] = ["terms", "privacy"];
 
+const toForm = (farm: FarmSettings): LegalForm => ({
+  legal_name: farm.legal_name ?? "",
+  ninea: farm.ninea ?? "",
+  rccm: farm.rccm ?? "",
+  terms_body: farm.terms_body?.trim() ? farm.terms_body : null,
+  privacy_body: farm.privacy_body?.trim() ? farm.privacy_body : null,
+});
+
 export function LegalAdmin() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery(farmSettingsQuery());
   const farm = data ?? DEFAULT_FARM;
-  const initial = (): LegalForm => ({
-    legal_name: farm.legal_name ?? "",
-    ninea: farm.ninea ?? "",
-    rccm: farm.rccm ?? "",
-    terms_body: farm.terms_body?.trim() ? farm.terms_body : null,
-    privacy_body: farm.privacy_body?.trim() ? farm.privacy_body : null,
-  });
+  const initial = (): LegalForm => toForm(farm);
   const [form, setForm] = useState<LegalForm>(initial);
   const [preview, setPreview] = useState<Record<LegalPage, boolean>>({
     terms: false,
@@ -44,10 +46,12 @@ export function LegalAdmin() {
   });
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (data) setForm(initial());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data]);
+  // Réglages rechargés (après enregistrement ou au premier chargement).
+  const [loaded, setLoaded] = useState(data);
+  if (data !== loaded) {
+    setLoaded(data);
+    if (data) setForm(toForm(data));
+  }
 
   const dirty = JSON.stringify(form) !== JSON.stringify(initial());
   // Le texte proposé reprend l'identité saisie ci-dessus, même avant l'enregistrement.

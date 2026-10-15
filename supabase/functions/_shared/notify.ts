@@ -130,10 +130,15 @@ export function brevo(
 /* ------------------------------------------------------------------ */
 
 /** « 15 000 F CFA » avec des espaces simples (compatibles SMS). */
-export const formatFcfa = (n: number | string) =>
-  `${Math.round(Number(n))
-    .toString()
-    .replace(/\B(?=(\d{3})+(?!\d))/g, " ")} F CFA`;
+export function formatFcfa(n: number | string) {
+  const v = Math.round(Number(n));
+  const digits = String(Math.abs(v));
+  const groups: string[] = [];
+  for (let end = digits.length; end > 0; end -= 3) {
+    groups.unshift(digits.slice(Math.max(0, end - 3), end));
+  }
+  return `${v < 0 ? "-" : ""}${groups.join(" ")} F CFA`;
+}
 
 const deliveryLabel = (order: NotifyOrder) =>
   Number(order.delivery_fee ?? 0) > 0 ? formatFcfa(order.delivery_fee!) : "offerte";
@@ -256,10 +261,12 @@ export function buildCustomerEmail(
       : "Vous réglerez à la réception de votre commande.";
   const name = firstName(order.shipping_full_name);
   const weighed = order.items.some((it) => it.sold_by_weight);
+  const greeting = name ? `Merci ${name}` : "Merci";
+  const greetingHtml = name ? `Merci ${escapeHtml(name)}` : "Merci";
 
   const html = layout(
     `Commande ${no} confirmée`,
-    `<h1 style="margin:0 0 8px;font-size:20px">Merci${name ? ` ${escapeHtml(name)}` : ""}, votre commande est confirmée.</h1>
+    `<h1 style="margin:0 0 8px;font-size:20px">${greetingHtml}, votre commande est confirmée.</h1>
      <p style="margin:0 0 16px;color:#555">Commande n° <strong>${no}</strong></p>
 
      <p style="margin:0 0 4px;font-weight:bold;color:#15803d">Livraison prévue entre ${longDate(start)} et ${longDate(end)}</p>
@@ -289,7 +296,7 @@ export function buildCustomerEmail(
   );
 
   const text = [
-    `Merci${name ? ` ${name}` : ""}, votre commande ${no} est confirmée.`,
+    `${greeting}, votre commande ${no} est confirmée.`,
     "",
     ...order.items.map(
       (it) =>

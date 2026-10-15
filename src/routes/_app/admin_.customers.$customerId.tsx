@@ -9,7 +9,7 @@ import { ArrowLeft, MapPin, MessageCircle, Phone, StickyNote } from "lucide-reac
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { formatDateTime, formatPrice } from "@/lib/format";
+import { formatDateTime, formatPrice, plural } from "@/lib/format";
 import {
   ORDER_STATUS_LABEL,
   ORDER_STATUS_TONE,
@@ -42,6 +42,48 @@ const fmtDate = (iso: string | null) =>
     ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
     : "—";
 
+const fetchCustomer = async (customerId: string) => {
+  const [profile, orders, note] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, full_name, phone, address, city, created_at")
+      .eq("id", customerId)
+      .maybeSingle(),
+    supabase
+      .from("orders")
+      .select(
+        "id, created_at, status, total_amount, payment_status, shipping_city, order_items(product_id, product_name, quantity, actual_quantity, unit_price)",
+      )
+      .eq("user_id", customerId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("customer_notes")
+      .select("note, updated_at")
+      .eq("user_id", customerId)
+      .maybeSingle(),
+  ]);
+  if (profile.error) throw profile.error;
+  if (orders.error) throw orders.error;
+  return { profile: profile.data, orders: orders.data ?? [], note: note.data };
+};
+
+type CustomerOrder = Awaited<ReturnType<typeof fetchCustomer>>["orders"][number];
+
+/** Produits préférés : quantités cumulées sur les commandes non annulées. */
+function favoriteProducts(orders: CustomerOrder[]) {
+  const favorites = new Map<string, { name: string; quantity: number; orders: number }>();
+  for (const i of orders.filter((o) => o.status !== "cancelled").flatMap((o) => o.order_items)) {
+    const key = i.product_id ?? i.product_name;
+    const f = favorites.get(key) ?? { name: i.product_name, quantity: 0, orders: 0 };
+    f.quantity += lineQuantity(i);
+    f.orders += 1;
+    favorites.set(key, f);
+  }
+  return [...favorites.values()]
+    .sort((a, b) => b.orders - a.orders || b.quantity - a.quantity)
+    .slice(0, 5);
+}
+
 function CustomerPage() {
   const { customerId } = Route.useParams();
   const { isAdmin, loading, user } = useAuth();
@@ -54,30 +96,7 @@ function CustomerPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-customer", customerId],
     enabled: isAdmin,
-    queryFn: async () => {
-      const [profile, orders, note] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("id, full_name, phone, address, city, created_at")
-          .eq("id", customerId)
-          .maybeSingle(),
-        supabase
-          .from("orders")
-          .select(
-            "id, created_at, status, total_amount, payment_status, shipping_city, order_items(product_id, product_name, quantity, actual_quantity, unit_price)",
-          )
-          .eq("user_id", customerId)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("customer_notes")
-          .select("note, updated_at")
-          .eq("user_id", customerId)
-          .maybeSingle(),
-      ]);
-      if (profile.error) throw profile.error;
-      if (orders.error) throw orders.error;
-      return { profile: profile.data, orders: orders.data ?? [], note: note.data };
-    },
+    queryFn: () => fetchCustomer(customerId),
   });
 
   if (loading || (isAdmin && isLoading)) {
@@ -115,21 +134,7 @@ function CustomerPage() {
   );
   const wa = profile.phone ? whatsappLink(profile.phone) : null;
 
-  // Produits préférés : quantités cumulées sur les commandes non annulées.
-  const favorites = new Map<string, { name: string; quantity: number; orders: number }>();
-  for (const o of orders) {
-    if (o.status === "cancelled") continue;
-    for (const i of o.order_items) {
-      const key = i.product_id ?? i.product_name;
-      const f = favorites.get(key) ?? { name: i.product_name, quantity: 0, orders: 0 };
-      f.quantity += lineQuantity(i);
-      f.orders += 1;
-      favorites.set(key, f);
-    }
-  }
-  const topProducts = [...favorites.values()]
-    .sort((a, b) => b.orders - a.orders || b.quantity - a.quantity)
-    .slice(0, 5);
+  const topProducts = favoriteProducts(orders);
 
   return (
     <div className="container-market py-8 md:py-10">
@@ -165,7 +170,7 @@ function CustomerPage() {
           value={String(stats.orderCount)}
           hint={
             stats.cancelledCount
-              ? `+ ${stats.cancelledCount} annulée${stats.cancelledCount > 1 ? "s" : ""}`
+              ? `+ ${stats.cancelledCount} annulée${plural(stats.cancelledCount)}`
               : undefined
           }
         />

@@ -166,11 +166,7 @@ function OrderConfirmation() {
                 </p>
               )}
               <p className="mt-1 text-xs text-muted-foreground">
-                {data.payment_status === "paid"
-                  ? "Réglé"
-                  : data.payment_method === "wave"
-                    ? "À régler avec Wave"
-                    : "À régler à la livraison"}
+                {paymentNote(data.payment_status, data.payment_method)}
               </p>
             </div>
           )}
@@ -190,4 +186,9 @@ function OrderConfirmation() {
       </div>
     </div>
   );
+}
+
+function paymentNote(status: string, method: string) {
+  if (status === "paid") return "Réglé";
+  return method === "wave" ? "À régler avec Wave" : "À régler à la livraison";
 }

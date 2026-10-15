@@ -99,16 +99,13 @@ function usePrepChecklist(orderId: string) {
   return { done, toggle };
 }
 
+type SheetOrder = NonNullable<Awaited<ReturnType<ReturnType<typeof orderQuery>["queryFn"]>>>;
+
 function OrderSheetPage() {
-  const farm = useFarm();
   const { orderId } = Route.useParams();
   const { isAdmin, loading, user } = useAuth();
   const navigate = useNavigate();
-  const qc = useQueryClient();
   const { data: order, isLoading } = useQuery({ ...orderQuery(orderId), enabled: isAdmin });
-  const { done, toggle } = usePrepChecklist(orderId);
-  const [busy, setBusy] = useState(false);
-  const [dialog, setDialog] = useState<"cancel" | "deliver" | null>(null);
 
   useEffect(() => {
     if (!loading && !user) void navigate({ to: "/auth" });
@@ -144,6 +141,16 @@ function OrderSheetPage() {
     );
   }
 
+  return <OrderSheet order={order} />;
+}
+
+function OrderSheet({ order }: { order: SheetOrder }) {
+  const orderId = order.id;
+  const qc = useQueryClient();
+  const { done, toggle } = usePrepChecklist(orderId);
+  const [busy, setBusy] = useState(false);
+  const [dialog, setDialog] = useState<"cancel" | "deliver" | null>(null);
+
   const status = order.status as OrderStatus;
   const items = order.order_items ?? [];
   const subtotal = items.reduce((s, i) => s + lineTotal(i), 0);
@@ -155,7 +162,6 @@ function OrderSheetPage() {
   const canWeigh = status !== "cancelled" && status !== "delivered" && !paid;
   const next = NEXT_STATUS[status];
   const back = BACK_STATUS[status];
-  const refundDue = status === "cancelled" && paid;
   const toCollect = !paid && order.payment_method === "cash_on_delivery";
   const wa = whatsappLink(order.shipping_phone);
   const preparedCount = items.filter((i) => done.includes(i.id)).length;
@@ -287,26 +293,7 @@ function OrderSheetPage() {
         )}
 
         {status === "cancelled" && (
-          <section className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
-            <p className="font-medium text-destructive">
-              Annulée
-              {order.cancelled_by &&
-                ` ${order.cancelled_by === "customer" ? "par le client" : CANCELLED_BY_LABEL[order.cancelled_by]}`}
-              {order.cancelled_at && ` le ${formatDateTime(order.cancelled_at)}`}
-            </p>
-            {order.cancel_reason && <p className="mt-1">Motif : {order.cancel_reason}</p>}
-            {refundDue && (
-              <div className="mt-3 flex flex-wrap items-center gap-3 rounded-md bg-accent/15 p-3">
-                <p className="flex-1">
-                  <strong>Remboursement à faire :</strong> le client avait payé {formatPrice(total)}
-                  {order.payment_method === "wave" ? " par Wave" : ""}.
-                </p>
-                <Button size="sm" variant="outline" disabled={busy} onClick={markRefunded}>
-                  Marquer comme remboursée
-                </Button>
-              </div>
-            )}
-          </section>
+          <CancelledBanner order={order} busy={busy} onRefunded={markRefunded} />
         )}
 
         {/* Actions */}
@@ -590,148 +577,221 @@ function OrderSheetPage() {
       </div>
 
       {/* Mobile : action principale toujours à portée de pouce. */}
-      {(next || status !== "cancelled") && (
-        <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-2 border-t border-border bg-card p-3 shadow-elevated print:hidden md:hidden">
-          <a
-            href={`tel:${order.shipping_phone.replace(/\s/g, "")}`}
-            aria-label={`Appeler ${order.shipping_full_name}`}
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-border"
-          >
-            <Phone className="h-5 w-5" />
-          </a>
-          {next ? (
-            <Button className="h-11 flex-1" disabled={busy} onClick={() => setStatus(next.to)}>
-              {next.label}
-            </Button>
-          ) : (
-            <p className="flex-1 text-center text-sm font-medium text-primary">
-              {ORDER_STATUS_LABEL[status]}
-            </p>
-          )}
-        </div>
+      {status !== "cancelled" && (
+        <MobileActionBar order={order} next={next} busy={busy} onNext={(to) => setStatus(to)} />
       )}
 
       {/* ---------- Bon de livraison (impression) ---------- */}
-      <div className="hidden bg-white text-sm text-black print:block">
-        <div className="flex items-start justify-between border-b-2 border-[#14532d] pb-4">
-          <BrandLogo />
-          <div className="text-right">
-            <p className="text-xl font-bold">BON DE LIVRAISON</p>
-            <p className="mt-1">Commande n° {no}</p>
-            <p>Du {formatDateTime(order.created_at)}</p>
-          </div>
-        </div>
-
-        <div className="mt-5 grid grid-cols-2 gap-6">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Livrer à</p>
-            <p className="mt-1 text-base font-semibold">{order.shipping_full_name}</p>
-            <p>{order.shipping_address}</p>
-            <p>{order.shipping_city}</p>
-            <p className="mt-1 font-medium">Tél. {order.shipping_phone}</p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Paiement</p>
-            <p className="mt-1">
-              {PAYMENT_METHOD_LABEL[order.payment_method] ?? order.payment_method}
-            </p>
-            <p className="mt-2 rounded border-2 border-black p-2 text-base font-bold">
-              {paid
-                ? "DÉJÀ PAYÉE"
-                : `À ENCAISSER : ${formatPrice(total)}${toWeigh > 0 ? " (estimé avant pesée)" : ""}`}
-            </p>
-          </div>
-        </div>
-
-        {order.slaughter_date && (
-          <p className="mt-4 rounded border-2 border-black p-2 font-semibold">
-            Viande de l'abattage du {formatSlaughterDay(order.slaughter_date)} : livrer à partir de
-            ce jour.
-          </p>
-        )}
-
-        {order.notes && (
-          <p className="mt-4 rounded border border-gray-400 p-2">
-            <strong>Instructions du client :</strong> {order.notes}
-          </p>
-        )}
-
-        <table className="mt-5 w-full border-collapse">
-          <thead>
-            <tr className="border-b-2 border-black text-left">
-              <th className="w-8 py-2" />
-              <th className="py-2">Article</th>
-              <th className="py-2 text-center">Qté</th>
-              <th className="py-2 text-right">Prix unitaire</th>
-              <th className="py-2 text-right">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((i) => (
-              <tr key={i.id} className="border-b border-gray-300">
-                <td className="py-2">
-                  <span className="inline-block h-4 w-4 border border-black" />
-                </td>
-                <td className="py-2">
-                  {i.product_name}
-                  {i.products?.unit ? (
-                    <span className="text-gray-500"> ({i.products.unit})</span>
-                  ) : null}
-                </td>
-                <td className="py-2 text-center font-semibold">
-                  {i.actual_quantity != null ? (
-                    formatWeight(lineQuantity(i), i.products?.unit ?? "kg")
-                  ) : i.sold_by_weight ? (
-                    <span className="font-normal">{i.quantity} estimé · pesé : ______</span>
-                  ) : (
-                    i.quantity
-                  )}
-                </td>
-                <td className="py-2 text-right">{formatPrice(Number(i.unit_price))}</td>
-                <td className="py-2 text-right">
-                  {awaitingWeight(i) ? "à peser" : formatPrice(lineTotal(i))}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td colSpan={4} className="pt-3 text-right">
-                Articles
-              </td>
-              <td className="pt-3 text-right">{formatPrice(subtotal)}</td>
-            </tr>
-            <tr>
-              <td colSpan={4} className="text-right">
-                Livraison
-              </td>
-              <td className="text-right">{fee > 0 ? formatPrice(fee) : "Gratuite"}</td>
-            </tr>
-            <tr className="text-base font-bold">
-              <td colSpan={4} className="pt-1 text-right">
-                {toWeigh > 0 ? "Total estimé (avant pesée)" : "Total"}
-              </td>
-              <td className="pt-1 text-right">{formatPrice(total)}</td>
-            </tr>
-          </tfoot>
-        </table>
-
-        <div className="mt-10 grid grid-cols-2 gap-8">
-          <div className="h-24 border-t border-black pt-1 text-xs">Préparée par</div>
-          <div className="h-24 border-t border-black pt-1 text-xs">
-            Reçue par (nom, date et signature du client)
-          </div>
-        </div>
-        <p className="mt-6 text-center text-xs text-gray-500">
-          {farm.name} · {farm.location}
-          {farm.phone ? ` · ${farm.phone}` : ""} · Merci de votre confiance !
-        </p>
-      </div>
+      <DeliveryNote order={order} />
     </>
   );
 }
 
 /** Saisie du poids pesé d'un article vendu au poids (recalcule le total en base). */
+function MobileActionBar({
+  order,
+  next,
+  busy,
+  onNext,
+}: {
+  order: SheetOrder;
+  next?: { to: OrderStatus; label: string };
+  busy: boolean;
+  onNext: (to: OrderStatus) => void;
+}) {
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-2 border-t border-border bg-card p-3 shadow-elevated print:hidden md:hidden">
+      <a
+        href={`tel:${order.shipping_phone.replace(/\s/g, "")}`}
+        aria-label={`Appeler ${order.shipping_full_name}`}
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-border"
+      >
+        <Phone className="h-5 w-5" />
+      </a>
+      {next ? (
+        <Button className="h-11 flex-1" disabled={busy} onClick={() => onNext(next.to)}>
+          {next.label}
+        </Button>
+      ) : (
+        <p className="flex-1 text-center text-sm font-medium text-primary">
+          {ORDER_STATUS_LABEL[order.status as OrderStatus]}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function CancelledBanner({
+  order,
+  busy,
+  onRefunded,
+}: {
+  order: SheetOrder;
+  busy: boolean;
+  onRefunded: () => void;
+}) {
+  const by =
+    order.cancelled_by === "customer"
+      ? "par le client"
+      : order.cancelled_by && CANCELLED_BY_LABEL[order.cancelled_by];
+  const refundDue = order.payment_status === "paid";
+  return (
+    <section className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
+      <p className="font-medium text-destructive">
+        Annulée
+        {by && ` ${by}`}
+        {order.cancelled_at && ` le ${formatDateTime(order.cancelled_at)}`}
+      </p>
+      {order.cancel_reason && <p className="mt-1">Motif : {order.cancel_reason}</p>}
+      {refundDue && (
+        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-md bg-accent/15 p-3">
+          <p className="flex-1">
+            <strong>Remboursement à faire :</strong> le client avait payé{" "}
+            {formatPrice(Number(order.total_amount))}
+            {order.payment_method === "wave" ? " par Wave" : ""}.
+          </p>
+          <Button size="sm" variant="outline" disabled={busy} onClick={onRefunded}>
+            Marquer comme remboursée
+          </Button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function PrintedQuantity({ item }: { item: SheetOrder["order_items"][number] }) {
+  if (item.actual_quantity != null)
+    return <>{formatWeight(lineQuantity(item), item.products?.unit ?? "kg")}</>;
+  if (item.sold_by_weight)
+    return <span className="font-normal">{item.quantity} estimé · pesé : ______</span>;
+  return <>{item.quantity}</>;
+}
+
+/** Bon de livraison imprimable (visible seulement à l'impression). */
+function DeliveryNote({ order }: { order: SheetOrder }) {
+  const farm = useFarm();
+  const items = order.order_items ?? [];
+  const subtotal = items.reduce((s, i) => s + lineTotal(i), 0);
+  const toWeigh = items.filter(awaitingWeight).length;
+  const fee = Number(order.delivery_fee ?? 0);
+  const total = Number(order.total_amount);
+  const estimate = toWeigh > 0 ? " (estimé avant pesée)" : "";
+  const collectLabel =
+    order.payment_status === "paid"
+      ? "DÉJÀ PAYÉE"
+      : `À ENCAISSER : ${formatPrice(total)}${estimate}`;
+  const no = orderNumber(order.id);
+  return (
+    <div className="hidden bg-white text-sm text-black print:block">
+      <div className="flex items-start justify-between border-b-2 border-[#14532d] pb-4">
+        <BrandLogo />
+        <div className="text-right">
+          <p className="text-xl font-bold">BON DE LIVRAISON</p>
+          <p className="mt-1">Commande n° {no}</p>
+          <p>Du {formatDateTime(order.created_at)}</p>
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-2 gap-6">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Livrer à</p>
+          <p className="mt-1 text-base font-semibold">{order.shipping_full_name}</p>
+          <p>{order.shipping_address}</p>
+          <p>{order.shipping_city}</p>
+          <p className="mt-1 font-medium">Tél. {order.shipping_phone}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Paiement</p>
+          <p className="mt-1">
+            {PAYMENT_METHOD_LABEL[order.payment_method] ?? order.payment_method}
+          </p>
+          <p className="mt-2 rounded border-2 border-black p-2 text-base font-bold">
+            {collectLabel}
+          </p>
+        </div>
+      </div>
+
+      {order.slaughter_date && (
+        <p className="mt-4 rounded border-2 border-black p-2 font-semibold">
+          Viande de l'abattage du {formatSlaughterDay(order.slaughter_date)} : livrer à partir de ce
+          jour.
+        </p>
+      )}
+
+      {order.notes && (
+        <p className="mt-4 rounded border border-gray-400 p-2">
+          <strong>Instructions du client :</strong> {order.notes}
+        </p>
+      )}
+
+      <table className="mt-5 w-full border-collapse">
+        <thead>
+          <tr className="border-b-2 border-black text-left">
+            <th className="w-8 py-2" />
+            <th className="py-2">Article</th>
+            <th className="py-2 text-center">Qté</th>
+            <th className="py-2 text-right">Prix unitaire</th>
+            <th className="py-2 text-right">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((i) => (
+            <tr key={i.id} className="border-b border-gray-300">
+              <td className="py-2">
+                <span className="inline-block h-4 w-4 border border-black" />
+              </td>
+              <td className="py-2">
+                {i.product_name}
+                {i.products?.unit ? (
+                  <span className="text-gray-500"> ({i.products.unit})</span>
+                ) : null}
+              </td>
+              <td className="py-2 text-center font-semibold">
+                <PrintedQuantity item={i} />
+              </td>
+              <td className="py-2 text-right">{formatPrice(Number(i.unit_price))}</td>
+              <td className="py-2 text-right">
+                {awaitingWeight(i) ? "à peser" : formatPrice(lineTotal(i))}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colSpan={4} className="pt-3 text-right">
+              Articles
+            </td>
+            <td className="pt-3 text-right">{formatPrice(subtotal)}</td>
+          </tr>
+          <tr>
+            <td colSpan={4} className="text-right">
+              Livraison
+            </td>
+            <td className="text-right">{fee > 0 ? formatPrice(fee) : "Gratuite"}</td>
+          </tr>
+          <tr className="text-base font-bold">
+            <td colSpan={4} className="pt-1 text-right">
+              {toWeigh > 0 ? "Total estimé (avant pesée)" : "Total"}
+            </td>
+            <td className="pt-1 text-right">{formatPrice(total)}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div className="mt-10 grid grid-cols-2 gap-8">
+        <div className="h-24 border-t border-black pt-1 text-xs">Préparée par</div>
+        <div className="h-24 border-t border-black pt-1 text-xs">
+          Reçue par (nom, date et signature du client)
+        </div>
+      </div>
+      <p className="mt-6 text-center text-xs text-gray-500">
+        {farm.name} · {farm.location}
+        {farm.phone ? ` · ${farm.phone}` : ""} · Merci de votre confiance !
+      </p>
+    </div>
+  );
+}
+
 function WeightInput({
   itemId,
   ordered,

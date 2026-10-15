@@ -78,9 +78,12 @@ export function useCartLines(items: CartItem[]) {
     }
     const price = effectivePrice(product);
     let issue: string | null = null;
-    if (!inSeason(product))
-      issue = `Hors saison${backInLabel(product) ? `, ${backInLabel(product)}` : ""} : retirez cet article.`;
-    else if (product.stock <= 0) issue = "Actuellement indisponible.";
+    if (!inSeason(product)) {
+      const back = backInLabel(product);
+      issue = back
+        ? `Hors saison, ${back} : retirez cet article.`
+        : "Hors saison : retirez cet article.";
+    } else if (product.stock <= 0) issue = "Actuellement indisponible.";
     else if (item.quantity > product.stock)
       issue = `Plus que ${product.stock} en stock : réduisez la quantité.`;
     else if (product.needs_slaughter && upcoming && upcoming.length === 0)

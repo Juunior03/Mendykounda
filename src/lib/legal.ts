@@ -28,8 +28,13 @@ export const DEFAULT_LEGAL_DATE = "2026-10-13";
 
 /** « Ferme MendyKounda (raison sociale), adresse, localité » */
 function seller(farm: FarmSettings) {
+  const legalName = farm.legal_name || farm.name;
+  const operates =
+    farm.legal_name && farm.legal_name !== farm.name
+      ? `, qui exploite la ferme « ${farm.name} »`
+      : "";
   const lines = [
-    `**${farm.legal_name || farm.name}**${farm.legal_name && farm.legal_name !== farm.name ? `, qui exploite la ferme « ${farm.name} »` : ""}`,
+    `**${legalName}**${operates}`,
     [farm.address, farm.location].filter(Boolean).join(", "),
   ];
   if (farm.ninea) lines.push(`NINEA : ${farm.ninea}`);
@@ -211,9 +216,7 @@ export function legalDate(page: LegalPage, farm: FarmSettings) {
 }
 
 export type LegalBlock =
-  | { type: "h2"; text: string }
-  | { type: "p"; text: string }
-  | { type: "ul"; items: string[] };
+  { type: "h2"; text: string } | { type: "p"; text: string } | { type: "ul"; items: string[] };
 
 /** Découpe un texte en titres, paragraphes et listes. */
 export function parseLegal(text: string): LegalBlock[] {
@@ -252,19 +255,47 @@ export type InlinePart =
   | { type: "bold"; text: string }
   | { type: "link"; text: string; href: string };
 
+const SAFE_HREF = /^(\/(?!\/)|https?:\/\/|mailto:|tel:)/i;
+
+/** Morceau spécial (gras ou lien) commençant à la position i, ou null. */
+function readToken(text: string, i: number): { part: InlinePart; end: number } | null {
+  if (text.startsWith("**", i)) {
+    const close = text.indexOf("**", i + 2);
+    if (close > i + 2)
+      return { part: { type: "bold", text: text.slice(i + 2, close) }, end: close + 2 };
+    return null;
+  }
+  if (text[i] !== "[") return null;
+  const mid = text.indexOf("](", i + 1);
+  if (mid <= i + 1) return null;
+  const close = text.indexOf(")", mid + 2);
+  if (close <= mid + 2) return null;
+  const label = text.slice(i + 1, mid);
+  const href = text.slice(mid + 2, close);
+  if (label.includes("]") || /\s/.test(href)) return null;
+  const part: InlinePart = SAFE_HREF.test(href)
+    ? { type: "link", text: label, href }
+    : { type: "text", text: label };
+  return { part, end: close + 1 };
+}
+
 /** **gras** et [texte](lien) ; les liens non sûrs restent du texte. */
 export function parseInline(text: string): InlinePart[] {
   const parts: InlinePart[] = [];
-  const re = /\*\*(.+?)\*\*|\[([^\]]+)\]\(([^)\s]+)\)/g;
-  let last = 0;
-  for (const m of text.matchAll(re)) {
-    if (m.index > last) parts.push({ type: "text", text: text.slice(last, m.index) });
-    if (m[1] !== undefined) parts.push({ type: "bold", text: m[1] });
-    else if (/^(\/(?!\/)|https?:\/\/|mailto:|tel:)/i.test(m[3]))
-      parts.push({ type: "link", text: m[2], href: m[3] });
-    else parts.push({ type: "text", text: m[2] });
-    last = m.index + m[0].length;
+  let plain = "";
+  let i = 0;
+  while (i < text.length) {
+    const token = readToken(text, i);
+    if (token) {
+      if (plain) parts.push({ type: "text", text: plain });
+      plain = "";
+      parts.push(token.part);
+      i = token.end;
+    } else {
+      plain += text[i];
+      i++;
+    }
   }
-  if (last < text.length) parts.push({ type: "text", text: text.slice(last) });
+  if (plain) parts.push({ type: "text", text: plain });
   return parts;
 }
