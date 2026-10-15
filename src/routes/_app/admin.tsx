@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
-import { formatPrice, plural } from "@/lib/format";
+import { formatPrice, plural, orNull } from "@/lib/format";
 import {
   ALLOWED_TRANSITIONS,
   ORDER_STATUS_LABEL,
@@ -36,6 +36,7 @@ import { AlertBadge } from "@/components/alert-badge";
 import { ADMIN_ALERTS_KEY, useAdminAlerts } from "@/lib/admin-alerts";
 import { ImagePicker } from "@/components/admin/image-picker";
 import { CancelOrderDialog, DeliverOrderDialog } from "@/components/admin/order-status-dialogs";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 const PAYMENT_STATUS_LABEL: Record<string, string> = {
   unpaid: "Non payée",
@@ -144,6 +145,7 @@ function AdminPage() {
         <div className="mt-4 flex flex-wrap gap-2 md:hidden">
           {alerts.orders > 0 && (
             <button
+              type="button"
               onClick={() => {
                 setOrdersFilter("pending");
                 setTab("orders");
@@ -156,6 +158,7 @@ function AdminPage() {
           )}
           {alerts.messages > 0 && (
             <button
+              type="button"
               onClick={() => setTab("messages")}
               className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs"
             >
@@ -192,6 +195,7 @@ function AdminPage() {
       <div className="mt-8 hidden gap-1 overflow-x-auto border-b border-border md:flex">
         {TABS.map((t) => (
           <button
+            type="button"
             key={t}
             onClick={() => {
               // Un clic direct sur l'onglet repart de la liste complète
@@ -238,18 +242,19 @@ function FilterChips<T extends string>({
   value,
   onChange,
   options,
-}: {
+}: Readonly<{
   value: T;
   onChange: (v: T) => void;
   options: { value: T; label: string; count?: number }[];
-}) {
+}>) {
   return (
-    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Filtrer">
+    <fieldset className="flex flex-wrap gap-2">
+      <legend className="sr-only">Filtrer</legend>
       {options.map((o) => (
         <button
+          type="button"
           key={o.value}
-          role="radio"
-          aria-checked={value === o.value}
+          aria-pressed={value === o.value}
           onClick={() => onChange(o.value)}
           className={`rounded-full border px-3 py-1 text-xs transition-colors ${
             value === o.value
@@ -261,7 +266,7 @@ function FilterChips<T extends string>({
           {o.count != null && <span className="ml-1.5 tabular-nums opacity-70">{o.count}</span>}
         </button>
       ))}
-    </div>
+    </fieldset>
   );
 }
 
@@ -269,9 +274,9 @@ const slugify = (s: string) =>
   s
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replaceAll(/[\u0300-\u036f]/g, "")
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    .replaceAll(/^-|-$/g, "");
 
 interface ProductRow {
   id: string;
@@ -324,17 +329,17 @@ function matchesStockFilter(stock: number, f: ProductsFilter) {
 function ProductsAdmin({
   filter,
   onFilter,
-}: {
+}: Readonly<{
   filter: ProductsFilter;
   onFilter: (f: ProductsFilter) => void;
-}) {
+}>) {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Partial<ProductRow> | null>(null);
 
   const invalidateAll = () => {
-    qc.invalidateQueries({ queryKey: ["admin-products"] });
-    qc.invalidateQueries({ queryKey: ["products"] });
-    qc.invalidateQueries({ queryKey: ["product"] });
+    void qc.invalidateQueries({ queryKey: ["admin-products"] });
+    void qc.invalidateQueries({ queryKey: ["products"] });
+    void qc.invalidateQueries({ queryKey: ["product"] });
   };
 
   const { data: products } = useQuery({
@@ -347,7 +352,7 @@ function ProductsAdmin({
         )
         .order("name");
       if (error) throw error;
-      return data as ProductRow[];
+      return data;
     },
   });
 
@@ -392,15 +397,15 @@ function ProductsAdmin({
     if (!editing) return;
     const payload = {
       name: editing.name!,
-      slug: editing.slug || slugify(editing.name || ""),
-      description: editing.description || null,
+      slug: orNull(editing.slug) ?? slugify(editing.name ?? ""),
+      description: orNull(editing.description),
       price: Number(editing.price ?? 0),
       stock: Number(editing.stock ?? 0),
-      unit: editing.unit || "unit",
-      image_url: editing.image_url || null,
+      unit: orNull(editing.unit) ?? "unit",
+      image_url: orNull(editing.image_url),
       is_active: !!editing.is_active,
       is_featured: !!editing.is_featured,
-      category_id: editing.category_id || null,
+      category_id: orNull(editing.category_id),
       discount_price:
         editing.discount_price != null && Number(editing.discount_price) > 0
           ? Number(editing.discount_price)
@@ -449,6 +454,7 @@ function ProductsAdmin({
           ]}
         />
         <button
+          type="button"
           onClick={() => setEditing({ ...emptyProduct })}
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
         >
@@ -495,6 +501,7 @@ function ProductsAdmin({
                 </span>
               </div>
               <button
+                type="button"
                 onClick={() => setEditing(p)}
                 className="shrink-0 rounded-md border border-border px-3 py-1.5 text-sm"
               >
@@ -530,7 +537,11 @@ function ProductsAdmin({
                 />{" "}
                 Vedette
               </label>
-              <button onClick={() => remove(p.id)} className="ml-auto text-xs text-destructive">
+              <button
+                type="button"
+                onClick={() => remove(p.id)}
+                className="ml-auto text-xs text-destructive"
+              >
                 Supprimer
               </button>
             </div>
@@ -560,7 +571,10 @@ function ProductsAdmin({
               <tr key={p.id} className="hover:bg-secondary/40">
                 <td className="p-3 font-medium">
                   {p.name}
-                  {(p.variant_label || p.needs_slaughter || isSeasonal(p) || p.sold_by_weight) && (
+                  {(Boolean(p.variant_label) ||
+                    p.needs_slaughter ||
+                    isSeasonal(p) ||
+                    p.sold_by_weight) && (
                     <span className="mt-1 flex flex-wrap gap-1 text-[11px] font-normal">
                       {p.variant_label && (
                         <span className="rounded bg-secondary px-1.5 py-0.5">
@@ -622,10 +636,18 @@ function ProductsAdmin({
                   />
                 </td>
                 <td className="p-3 text-right space-x-2">
-                  <button onClick={() => setEditing(p)} className="text-xs underline-grow">
+                  <button
+                    type="button"
+                    onClick={() => setEditing(p)}
+                    className="text-xs underline-grow"
+                  >
                     Éditer
                   </button>
-                  <button onClick={() => remove(p.id)} className="text-xs text-destructive">
+                  <button
+                    type="button"
+                    onClick={() => remove(p.id)}
+                    className="text-xs text-destructive"
+                  >
                     Suppr.
                   </button>
                 </td>
@@ -642,244 +664,255 @@ function ProductsAdmin({
         </table>
       </div>
 
-      {editing && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          onClick={() => setEditing(null)}
+      <Dialog
+        open={!!editing}
+        onOpenChange={(open) => {
+          if (!open) setEditing(null);
+        }}
+      >
+        <DialogContent
+          aria-describedby={undefined}
+          className="block max-h-[90vh] max-w-2xl overflow-y-auto"
         >
-          <div
-            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-background p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-lg font-medium">
-              {editing.id ? "Éditer le produit" : "Nouveau produit"}
-            </h3>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <Field label="Nom">
-                <input
-                  className="input"
-                  value={editing.name ?? ""}
-                  onChange={(e) =>
-                    setEditing({
-                      ...editing,
-                      name: e.target.value,
-                      slug: editing.id ? editing.slug : slugify(e.target.value),
-                    })
-                  }
-                />
-              </Field>
-              <Field label="Slug">
-                <input
-                  className="input"
-                  value={editing.slug ?? ""}
-                  onChange={(e) => setEditing({ ...editing, slug: e.target.value })}
-                />
-              </Field>
-              <Field label="Prix (FCFA)">
-                <input
-                  type="number"
-                  step="1"
-                  className="input"
-                  value={editing.price ?? 0}
-                  onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })}
-                />
-              </Field>
-              <Field label="Stock">
-                <input
-                  type="number"
-                  className="input"
-                  value={editing.stock ?? 0}
-                  onChange={(e) => setEditing({ ...editing, stock: Number(e.target.value) })}
-                />
-              </Field>
-              <Field label="Unité">
-                <input
-                  className="input"
-                  value={editing.unit ?? ""}
-                  onChange={(e) => setEditing({ ...editing, unit: e.target.value })}
-                  placeholder="kg, pièce…"
-                />
-              </Field>
-              <Field label="Catégorie">
-                <select
-                  className="input"
-                  value={editing.category_id ?? ""}
-                  onChange={(e) => setEditing({ ...editing, category_id: e.target.value || null })}
+          {editing && (
+            <>
+              <DialogTitle className="text-lg font-medium">
+                {editing.id ? "Éditer le produit" : "Nouveau produit"}
+              </DialogTitle>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <Field label="Nom">
+                  <input
+                    className="input"
+                    value={editing.name ?? ""}
+                    onChange={(e) =>
+                      setEditing({
+                        ...editing,
+                        name: e.target.value,
+                        slug: editing.id ? editing.slug : slugify(e.target.value),
+                      })
+                    }
+                  />
+                </Field>
+                <Field label="Slug">
+                  <input
+                    className="input"
+                    value={editing.slug ?? ""}
+                    onChange={(e) => setEditing({ ...editing, slug: e.target.value })}
+                  />
+                </Field>
+                <Field label="Prix (FCFA)">
+                  <input
+                    type="number"
+                    step="1"
+                    className="input"
+                    value={editing.price ?? 0}
+                    onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })}
+                  />
+                </Field>
+                <Field label="Stock">
+                  <input
+                    type="number"
+                    className="input"
+                    value={editing.stock ?? 0}
+                    onChange={(e) => setEditing({ ...editing, stock: Number(e.target.value) })}
+                  />
+                </Field>
+                <Field label="Unité">
+                  <input
+                    className="input"
+                    value={editing.unit ?? ""}
+                    onChange={(e) => setEditing({ ...editing, unit: e.target.value })}
+                    placeholder="kg, pièce…"
+                  />
+                </Field>
+                <Field label="Catégorie">
+                  <select
+                    className="input"
+                    value={editing.category_id ?? ""}
+                    onChange={(e) =>
+                      setEditing({ ...editing, category_id: e.target.value || null })
+                    }
+                  >
+                    <option value="">— Aucune —</option>
+                    {categories?.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Prix promo (FCFA, optionnel)">
+                  <input
+                    type="number"
+                    step="1"
+                    className="input"
+                    value={editing.discount_price ?? ""}
+                    placeholder="Laisser vide si pas de promo"
+                    onChange={(e) =>
+                      setEditing({
+                        ...editing,
+                        discount_price: e.target.value === "" ? null : Number(e.target.value),
+                      })
+                    }
+                  />
+                </Field>
+                <Field label="Étiquette promo">
+                  <input
+                    className="input"
+                    value={editing.discount_label ?? ""}
+                    placeholder="Promo, Bon plan, -20%…"
+                    onChange={(e) => setEditing({ ...editing, discount_label: e.target.value })}
+                  />
+                </Field>
+                <div className="rounded-md border border-border p-3 sm:col-span-2">
+                  <p className="text-xs font-medium">Formats (facultatif)</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Donnez le même groupe à plusieurs produits pour les proposer sur une seule
+                    fiche, par exemple groupe « poulet » : « Vivant » et « Au kg, déplumé, vidé,
+                    emballé ».
+                  </p>
+                  <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                    <Field label="Groupe">
+                      <input
+                        className="input"
+                        list="variant-groups"
+                        value={editing.variant_group ?? ""}
+                        placeholder="poulet, cochon-de-lait…"
+                        onChange={(e) => setEditing({ ...editing, variant_group: e.target.value })}
+                      />
+                      <datalist id="variant-groups">
+                        {[
+                          ...new Set((products ?? []).map((p) => p.variant_group).filter(Boolean)),
+                        ].map((g) => (
+                          <option key={g} value={g!} />
+                        ))}
+                      </datalist>
+                    </Field>
+                    <Field label="Nom du format">
+                      <input
+                        className="input"
+                        value={editing.variant_label ?? ""}
+                        placeholder="Sur pied, Vivant, En viande, Au kg…"
+                        onChange={(e) => setEditing({ ...editing, variant_label: e.target.value })}
+                      />
+                    </Field>
+                  </div>
+                  <label className="mt-3 flex items-start gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      className="mt-1"
+                      checked={!!editing.sold_by_weight}
+                      onChange={(e) => setEditing({ ...editing, sold_by_weight: e.target.checked })}
+                    />
+                    <span>
+                      Vendu au poids réel{" "}
+                      <span className="block text-xs text-muted-foreground">
+                        Prix au kilo : le client commande une quantité estimée, vous saisissez le
+                        poids pesé dans la fiche commande et le montant est recalculé.
+                      </span>
+                    </span>
+                  </label>
+                  <label className="mt-3 flex items-start gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      className="mt-1"
+                      checked={!!editing.needs_slaughter}
+                      onChange={(e) =>
+                        setEditing({ ...editing, needs_slaughter: e.target.checked })
+                      }
+                    />
+                    <span>
+                      Viande à l'abattage{" "}
+                      <span className="block text-xs text-muted-foreground">
+                        Commandable seulement s'il y a un abattage programmé (onglet Abattages),
+                        livrée à partir de ce jour.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+                <div className="rounded-md border border-border p-3 sm:col-span-2">
+                  <p className="text-xs font-medium">Saison (facultatif)</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Cochez les mois où le produit est disponible. Hors saison, il reste visible mais
+                    ne peut pas être commandé. Aucun mois coché = toute l'année.
+                  </p>
+                  <div className="mt-2 grid grid-cols-4 gap-1.5 sm:grid-cols-6">
+                    {MONTHS_SHORT.map((label, i) => {
+                      const m = i + 1;
+                      const on = !!editing.season_months?.includes(m);
+                      return (
+                        <button
+                          key={m}
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() => {
+                            const cur = editing.season_months ?? [];
+                            setEditing({
+                              ...editing,
+                              season_months: on ? cur.filter((x) => x !== m) : [...cur, m],
+                            });
+                          }}
+                          className={`rounded-md border px-2 py-1.5 text-xs ${on ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-secondary"}`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Disponible : {formatSeason(editing.season_months)}
+                  </p>
+                </div>
+                <Field label="Image" className="sm:col-span-2">
+                  <ImagePicker
+                    value={editing.image_url ?? ""}
+                    onChange={(url) => setEditing({ ...editing, image_url: url })}
+                  />
+                </Field>
+                <Field label="Description" className="sm:col-span-2">
+                  <textarea
+                    className="input min-h-[100px]"
+                    value={editing.description ?? ""}
+                    onChange={(e) => setEditing({ ...editing, description: e.target.value })}
+                  />
+                </Field>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={!!editing.is_active}
+                    onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })}
+                  />{" "}
+                  Actif (visible)
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={!!editing.is_featured}
+                    onChange={(e) => setEditing({ ...editing, is_featured: e.target.checked })}
+                  />{" "}
+                  Mis en avant
+                </label>
+              </div>
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditing(null)}
+                  className="rounded-md border border-border px-4 py-2 text-sm"
                 >
-                  <option value="">— Aucune —</option>
-                  {categories?.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Prix promo (FCFA, optionnel)">
-                <input
-                  type="number"
-                  step="1"
-                  className="input"
-                  value={editing.discount_price ?? ""}
-                  placeholder="Laisser vide si pas de promo"
-                  onChange={(e) =>
-                    setEditing({
-                      ...editing,
-                      discount_price: e.target.value === "" ? null : Number(e.target.value),
-                    })
-                  }
-                />
-              </Field>
-              <Field label="Étiquette promo">
-                <input
-                  className="input"
-                  value={editing.discount_label ?? ""}
-                  placeholder="Promo, Bon plan, -20%…"
-                  onChange={(e) => setEditing({ ...editing, discount_label: e.target.value })}
-                />
-              </Field>
-              <div className="rounded-md border border-border p-3 sm:col-span-2">
-                <p className="text-xs font-medium">Formats (facultatif)</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Donnez le même groupe à plusieurs produits pour les proposer sur une seule fiche,
-                  par exemple groupe « poulet » : « Vivant » et « Au kg, déplumé, vidé, emballé ».
-                </p>
-                <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                  <Field label="Groupe">
-                    <input
-                      className="input"
-                      list="variant-groups"
-                      value={editing.variant_group ?? ""}
-                      placeholder="poulet, cochon-de-lait…"
-                      onChange={(e) => setEditing({ ...editing, variant_group: e.target.value })}
-                    />
-                    <datalist id="variant-groups">
-                      {[
-                        ...new Set((products ?? []).map((p) => p.variant_group).filter(Boolean)),
-                      ].map((g) => (
-                        <option key={g} value={g!} />
-                      ))}
-                    </datalist>
-                  </Field>
-                  <Field label="Nom du format">
-                    <input
-                      className="input"
-                      value={editing.variant_label ?? ""}
-                      placeholder="Sur pied, Vivant, En viande, Au kg…"
-                      onChange={(e) => setEditing({ ...editing, variant_label: e.target.value })}
-                    />
-                  </Field>
-                </div>
-                <label className="mt-3 flex items-start gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    className="mt-1"
-                    checked={!!editing.sold_by_weight}
-                    onChange={(e) => setEditing({ ...editing, sold_by_weight: e.target.checked })}
-                  />
-                  <span>
-                    Vendu au poids réel
-                    <span className="block text-xs text-muted-foreground">
-                      Prix au kilo : le client commande une quantité estimée, vous saisissez le
-                      poids pesé dans la fiche commande et le montant est recalculé.
-                    </span>
-                  </span>
-                </label>
-                <label className="mt-3 flex items-start gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    className="mt-1"
-                    checked={!!editing.needs_slaughter}
-                    onChange={(e) => setEditing({ ...editing, needs_slaughter: e.target.checked })}
-                  />
-                  <span>
-                    Viande à l'abattage
-                    <span className="block text-xs text-muted-foreground">
-                      Commandable seulement s'il y a un abattage programmé (onglet Abattages),
-                      livrée à partir de ce jour.
-                    </span>
-                  </span>
-                </label>
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={save}
+                  className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+                >
+                  Enregistrer
+                </button>
               </div>
-              <div className="rounded-md border border-border p-3 sm:col-span-2">
-                <p className="text-xs font-medium">Saison (facultatif)</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Cochez les mois où le produit est disponible. Hors saison, il reste visible mais
-                  ne peut pas être commandé. Aucun mois coché = toute l'année.
-                </p>
-                <div className="mt-2 grid grid-cols-4 gap-1.5 sm:grid-cols-6">
-                  {MONTHS_SHORT.map((label, i) => {
-                    const m = i + 1;
-                    const on = !!editing.season_months?.includes(m);
-                    return (
-                      <button
-                        key={m}
-                        type="button"
-                        aria-pressed={on}
-                        onClick={() => {
-                          const cur = editing.season_months ?? [];
-                          setEditing({
-                            ...editing,
-                            season_months: on ? cur.filter((x) => x !== m) : [...cur, m],
-                          });
-                        }}
-                        className={`rounded-md border px-2 py-1.5 text-xs ${on ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-secondary"}`}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Disponible : {formatSeason(editing.season_months)}
-                </p>
-              </div>
-              <Field label="Image" className="sm:col-span-2">
-                <ImagePicker
-                  value={editing.image_url ?? ""}
-                  onChange={(url) => setEditing({ ...editing, image_url: url })}
-                />
-              </Field>
-              <Field label="Description" className="sm:col-span-2">
-                <textarea
-                  className="input min-h-[100px]"
-                  value={editing.description ?? ""}
-                  onChange={(e) => setEditing({ ...editing, description: e.target.value })}
-                />
-              </Field>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={!!editing.is_active}
-                  onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })}
-                />{" "}
-                Actif (visible)
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={!!editing.is_featured}
-                  onChange={(e) => setEditing({ ...editing, is_featured: e.target.checked })}
-                />{" "}
-                Mis en avant
-              </label>
-            </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                onClick={() => setEditing(null)}
-                className="rounded-md border border-border px-4 py-2 text-sm"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={save}
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
-              >
-                Enregistrer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -888,11 +921,11 @@ function Field({
   label,
   children,
   className = "",
-}: {
+}: Readonly<{
   label: string;
   children: React.ReactNode;
   className?: string;
-}) {
+}>) {
   return (
     <label className={`block text-xs ${className}`}>
       <span className="mb-1 block text-muted-foreground">{label}</span>
@@ -919,14 +952,14 @@ function CategoriesAdmin() {
     queryFn: async () => {
       const { data, error } = await supabase.from("categories").select("*").order("name");
       if (error) throw error;
-      return data as CategoryRow[];
+      return data;
     },
   });
 
   const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ["admin-categories"] });
-    qc.invalidateQueries({ queryKey: ["admin-categories-list"] });
-    qc.invalidateQueries({ queryKey: ["categories"] });
+    void qc.invalidateQueries({ queryKey: ["admin-categories"] });
+    void qc.invalidateQueries({ queryKey: ["admin-categories-list"] });
+    void qc.invalidateQueries({ queryKey: ["categories"] });
   };
 
   const create = async () => {
@@ -936,9 +969,9 @@ function CategoriesAdmin() {
     }
     const { error } = await supabase.from("categories").insert({
       name: draft.name,
-      slug: draft.slug || slugify(draft.name),
-      description: draft.description || null,
-      image_url: draft.image_url || null,
+      slug: orNull(draft.slug) ?? slugify(draft.name),
+      description: orNull(draft.description),
+      image_url: orNull(draft.image_url),
     });
     if (error) toast.error(error.message);
     else {
@@ -990,6 +1023,7 @@ function CategoriesAdmin() {
             onChange={(e) => setDraft({ ...draft, image_url: e.target.value })}
           />
           <button
+            type="button"
             onClick={create}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
@@ -1037,7 +1071,11 @@ function CategoriesAdmin() {
                   />
                 </td>
                 <td className="p-3 text-right">
-                  <button onClick={() => remove(c.id)} className="text-xs text-destructive">
+                  <button
+                    type="button"
+                    onClick={() => remove(c.id)}
+                    className="text-xs text-destructive"
+                  >
                     Suppr.
                   </button>
                 </td>
@@ -1077,10 +1115,10 @@ function matchesOrdersFilter(
 function OrdersAdmin({
   filter,
   onFilter,
-}: {
+}: Readonly<{
   filter: OrdersFilter;
   onFilter: (f: OrdersFilter) => void;
-}) {
+}>) {
   const qc = useQueryClient();
   const { data: orders } = useQuery({
     queryKey: ["admin-orders"],
@@ -1174,10 +1212,8 @@ function OrdersAdmin({
                 </p>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
-                <span
-                  className={`rounded px-2 py-0.5 ${ORDER_STATUS_TONE[o.status as OrderStatus]}`}
-                >
-                  {ORDER_STATUS_LABEL[o.status as OrderStatus]}
+                <span className={`rounded px-2 py-0.5 ${ORDER_STATUS_TONE[o.status]}`}>
+                  {ORDER_STATUS_LABEL[o.status]}
                 </span>
                 <span
                   className={`rounded px-2 py-0.5 ${o.payment_status === "paid" ? "bg-primary/10 text-primary" : "bg-secondary"}`}
@@ -1267,13 +1303,11 @@ function OrdersAdmin({
                     className="rounded border border-border bg-background px-2 py-1 text-xs"
                   >
                     {/* Seuls les passages autorisés depuis le statut actuel sont proposés. */}
-                    {[o.status as OrderStatus, ...ALLOWED_TRANSITIONS[o.status as OrderStatus]].map(
-                      (s) => (
-                        <option key={s} value={s}>
-                          {s === o.status ? ORDER_STATUS_LABEL[s] : `→ ${ORDER_STATUS_LABEL[s]}`}
-                        </option>
-                      ),
-                    )}
+                    {[o.status, ...ALLOWED_TRANSITIONS[o.status]].map((s) => (
+                      <option key={s} value={s}>
+                        {s === o.status ? ORDER_STATUS_LABEL[s] : `→ ${ORDER_STATUS_LABEL[s]}`}
+                      </option>
+                    ))}
                   </select>
                 </td>
                 <td className="p-3 text-right">
@@ -1361,7 +1395,7 @@ function MessagesAdmin() {
           cur.unread += 1;
         }
       }
-      const list = Array.from(map.values()).sort((a, b) => b.at.localeCompare(a.at));
+      const list = [...map.values()].sort((a, b) => b.at.localeCompare(a.at));
       const ids = list.map((t) => t.user_id);
       if (ids.length === 0) return [];
       const { data: profiles } = await supabase
@@ -1369,7 +1403,10 @@ function MessagesAdmin() {
         .select("id, full_name")
         .in("id", ids);
       const nameMap = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
-      return list.map((t) => ({ ...t, name: nameMap.get(t.user_id) || t.user_id.slice(0, 8) }));
+      return list.map((t) => ({
+        ...t,
+        name: orNull(nameMap.get(t.user_id)) ?? t.user_id.slice(0, 8),
+      }));
     },
   });
 
@@ -1377,9 +1414,9 @@ function MessagesAdmin() {
   useEffect(() => {
     const channel = supabase
       .channel("admin-threads")
-      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () =>
-        qc.invalidateQueries({ queryKey: ["admin-message-threads"] }),
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => {
+        void qc.invalidateQueries({ queryKey: ["admin-message-threads"] });
+      })
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
@@ -1410,8 +1447,8 @@ function MessagesAdmin() {
     }
     toast.success("Conversation supprimée");
     if (selected === userId) setSelected(null);
-    qc.invalidateQueries({ queryKey: ["admin-message-threads"] });
-    qc.invalidateQueries({ queryKey: ["messages", userId] });
+    void qc.invalidateQueries({ queryKey: ["admin-message-threads"] });
+    void qc.invalidateQueries({ queryKey: ["messages", userId] });
   };
 
   return (
@@ -1427,6 +1464,7 @@ function MessagesAdmin() {
           {threads?.map((t) => (
             <li key={t.user_id} className="group relative border-b border-border">
               <button
+                type="button"
                 onClick={() => setSelected(t.user_id)}
                 className={`w-full p-3 pr-10 text-left hover:bg-secondary/40 ${
                   selected === t.user_id ? "bg-secondary/60" : ""
@@ -1449,6 +1487,7 @@ function MessagesAdmin() {
                 </p>
               </button>
               <button
+                type="button"
                 onClick={() => void deleteThread(t.user_id)}
                 aria-label="Supprimer la conversation"
                 className="absolute right-2 top-2 rounded p-1 text-xs text-destructive opacity-0 group-hover:opacity-100 hover:bg-destructive/10"

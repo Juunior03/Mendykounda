@@ -21,14 +21,14 @@ export function PhoneInput({
   id,
   className,
   autoComplete = "tel-national",
-}: {
+}: Readonly<{
   value: string | null | undefined;
   onChange: (value: string) => void;
   required?: boolean;
   id?: string;
   className?: string;
   autoComplete?: string;
-}) {
+}>) {
   const parsed = parsePhone(value);
   const [code, setCode] = useState(parsed.code);
   const [local, setLocal] = useState(parsed.local);
@@ -61,7 +61,7 @@ export function PhoneInput({
 
   const onInput = (raw: string) => {
     const trimmed = raw.trim();
-    const digits = raw.replace(/\D/g, "");
+    const digits = raw.replaceAll(/\D/g, "");
     const international = trimmed.startsWith("+") || trimmed.startsWith("00");
     // Numéro collé avec son indicatif (« +221 77 … », « 00221… », « 221771234567 »).
     if (international || digits.length > maxDigits(code)) {

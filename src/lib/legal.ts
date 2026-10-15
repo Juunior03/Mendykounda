@@ -8,6 +8,7 @@
  * séparés par une ligne vide, **gras** et [lien](/chemin).
  */
 import type { FarmSettings } from "@/lib/farm";
+import { orNull } from "@/lib/format";
 
 export type LegalPage = "terms" | "privacy";
 
@@ -28,7 +29,7 @@ export const DEFAULT_LEGAL_DATE = "2026-10-13";
 
 /** « Ferme MendyKounda (raison sociale), adresse, localité » */
 function seller(farm: FarmSettings) {
-  const legalName = farm.legal_name || farm.name;
+  const legalName = orNull(farm.legal_name) ?? farm.name;
   const operates =
     farm.legal_name && farm.legal_name !== farm.name
       ? `, qui exploite la ferme « ${farm.name} »`
@@ -221,7 +222,7 @@ export type LegalBlock =
 /** Découpe un texte en titres, paragraphes et listes. */
 export function parseLegal(text: string): LegalBlock[] {
   const blocks: LegalBlock[] = [];
-  for (const chunk of text.replace(/\r\n/g, "\n").split(/\n\s*\n/)) {
+  for (const chunk of text.replaceAll("\r\n", "\n").split(/\n\s*\n/)) {
     const lines = chunk
       .split("\n")
       .map((l) => l.trim())
@@ -237,7 +238,7 @@ export function parseLegal(text: string): LegalBlock[] {
         blocks.push({ type: "h2", text: line.slice(3).trim() });
       } else if (/^[-•*] /.test(line)) {
         flush();
-        const last = blocks[blocks.length - 1];
+        const last = blocks.at(-1);
         const item = line.slice(2).trim();
         if (last?.type === "ul") last.items.push(item);
         else blocks.push({ type: "ul", items: [item] });
@@ -298,4 +299,18 @@ export function parseInline(text: string): InlinePart[] {
   }
   if (plain) parts.push({ type: "text", text: plain });
   return parts;
+}
+
+/**
+ * Clés React stables tirées du contenu (un texte répété reçoit un suffixe),
+ * pour ne pas dépendre de la position dans la liste.
+ */
+export function keyed<T>(items: T[], keyOf: (item: T) => string) {
+  const seen = new Map<string, number>();
+  return items.map((item) => {
+    const base = keyOf(item);
+    const n = seen.get(base) ?? 0;
+    seen.set(base, n + 1);
+    return { item, key: n ? `${base}#${n}` : base };
+  });
 }

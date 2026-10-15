@@ -33,7 +33,7 @@ export const maxDigits = (code: string) => byCode(code)?.length[1] ?? 12;
 /** Décompose un numéro saisi ou enregistré en { indicatif, chiffres locaux }. */
 export function parsePhone(value: string | null | undefined): { code: string; local: string } {
   const raw = (value ?? "").trim();
-  let digits = raw.replace(/\D/g, "");
+  let digits = raw.replaceAll(/\D/g, "");
   if (!digits) return { code: DEFAULT_COUNTRY_CODE, local: "" };
   const international = raw.startsWith("+") || digits.startsWith("00");
   if (digits.startsWith("00")) digits = digits.slice(2);
@@ -49,7 +49,7 @@ export function parsePhone(value: string | null | undefined): { code: string; lo
 
 /** Chiffres locaux mis en forme : « 77 123 45 67 » (Sénégal), sinon par paires. */
 export function formatLocal(code: string, local: string) {
-  const d = local.replace(/\D/g, "");
+  const d = local.replaceAll(/\D/g, "");
   if (code === "221") {
     return [d.slice(0, 2), d.slice(2, 5), d.slice(5, 7), d.slice(7, 9)].filter(Boolean).join(" ");
   }
@@ -64,7 +64,7 @@ export const formatPhone = (code: string, local: string) =>
 
 /** Message d'erreur, ou null si le numéro est valide. */
 export function phoneError(code: string, local: string): string | null {
-  const d = local.replace(/\D/g, "");
+  const d = local.replaceAll(/\D/g, "");
   if (code === "221") {
     if (d.length !== 9) return "Le numéro doit comporter 9 chiffres (ex. 77 123 45 67).";
     if (!SENEGAL.test(d)) return "Numéro sénégalais invalide : il commence par 70 à 78 ou par 33.";

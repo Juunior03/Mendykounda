@@ -29,12 +29,12 @@ export function LiveHeroImage({
   alt,
   width,
   height,
-}: {
+}: Readonly<{
   src: string;
   alt: string;
   width?: number;
   height?: number;
-}) {
+}>) {
   // Calculé après le chargement (l'heure du serveur peut différer).
   const [phase, setPhase] = useState<Phase>("day");
   useEffect(() => {

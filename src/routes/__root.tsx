@@ -80,7 +80,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   notFoundComponent: NotFoundComponent,
 });
 
-function RootShell({ children }: { children: React.ReactNode }) {
+function RootShell({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="fr">
       <head>

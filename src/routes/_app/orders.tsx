@@ -111,6 +111,7 @@ function OrdersPage() {
       <div className="mt-4 flex gap-6 overflow-x-auto border-b border-border text-sm">
         {tabs.map((t) => (
           <button
+            type="button"
             key={t.id}
             onClick={() => setFilter(t.id)}
             className={cn(
@@ -161,7 +162,7 @@ function matchesFilter(status: string, filter: Filter) {
 
 /** Titre de la commande : date de livraison ou étape en cours. */
 function orderHeadline(o: Order) {
-  const status = o.status as OrderStatus;
+  const status = o.status;
   if (status === "delivered") return `Livrée le ${formatLongDate(o.delivered_at ?? o.updated_at)}`;
   if (status === "cancelled") return `Annulée le ${formatLongDate(o.cancelled_at ?? o.updated_at)}`;
   if (status === "shipped") return "En cours de livraison : le livreur est en route";
@@ -194,7 +195,10 @@ function stepTone(i: number, current: number) {
   return i < current ? "" : "text-muted-foreground";
 }
 
-function QuantityLine({ item, unit }: { item: Order["order_items"][number]; unit: string }) {
+function QuantityLine({
+  item,
+  unit,
+}: Readonly<{ item: Order["order_items"][number]; unit: string }>) {
   const price = formatPrice(Number(item.unit_price));
   if (!item.sold_by_weight)
     return (
@@ -216,7 +220,7 @@ function QuantityLine({ item, unit }: { item: Order["order_items"][number]; unit
   );
 }
 
-function OrderHeader({ order: o }: { order: Order }) {
+function OrderHeader({ order: o }: Readonly<{ order: Order }>) {
   return (
     <header className="grid grid-cols-2 gap-3 bg-secondary px-4 py-3 text-xs sm:grid-cols-[auto_auto_1fr_auto] sm:gap-8">
       <div>
@@ -248,8 +252,8 @@ function OrderHeader({ order: o }: { order: Order }) {
   );
 }
 
-function OrderCard({ order: o }: { order: Order }) {
-  const status = o.status as OrderStatus;
+function OrderCard({ order: o }: Readonly<{ order: Order }>) {
+  const status = o.status;
 
   const headline = orderHeadline(o);
 
@@ -282,7 +286,7 @@ function OrderCard({ order: o }: { order: Order }) {
                 <button type="button" onClick={openChat} className="text-primary underline">
                   écrivez à la ferme
                 </button>
-                .
+                <span>.</span>
               </p>
             )
           )}
@@ -303,8 +307,8 @@ function OrderCard({ order: o }: { order: Order }) {
   );
 }
 
-function Tracker({ order }: { order: Order }) {
-  const current = ORDER_STEPS.indexOf(order.status as OrderStatus);
+function Tracker({ order }: Readonly<{ order: Order }>) {
+  const current = ORDER_STEPS.indexOf(order.status);
   const dates: (string | null)[] = [
     order.created_at,
     order.processing_at,
@@ -344,7 +348,7 @@ function Tracker({ order }: { order: Order }) {
               {ORDER_STATUS_LABEL[step]}
             </span>
             {done && dates[i] && (
-              <span className="text-[10px] text-muted-foreground">{formatDate(dates[i]!)}</span>
+              <span className="text-[10px] text-muted-foreground">{formatDate(dates[i])}</span>
             )}
           </li>
         );
@@ -356,10 +360,10 @@ function Tracker({ order }: { order: Order }) {
 function OrderLine({
   item,
   delivered,
-}: {
+}: Readonly<{
   item: Order["order_items"][number];
   delivered: boolean;
-}) {
+}>) {
   const navigate = useNavigate();
   const product = item.products;
   const img = resolveProductImage(product?.image_url ?? null);
@@ -402,6 +406,7 @@ function OrderLine({
         <div className="mt-2 flex flex-wrap gap-2">
           {canBuyAgain ? (
             <button
+              type="button"
               onClick={buyAgain}
               className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground hover:bg-accent/85"
             >
@@ -426,12 +431,12 @@ function OrderLine({
   );
 }
 
-function CancelInfo({ order }: { order: Order }) {
+function CancelInfo({ order }: Readonly<{ order: Order }>) {
   const by = order.cancelled_by ? CANCELLED_BY_LABEL[order.cancelled_by] : null;
   const refund = order.payment_status === "paid";
   return (
     <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-      {(by || order.cancel_reason) && (
+      {(Boolean(by) || Boolean(order.cancel_reason)) && (
         <p>
           {by && <>Annulée {by}</>}
           {by && order.cancel_reason && " : "}
@@ -444,7 +449,7 @@ function CancelInfo({ order }: { order: Order }) {
   );
 }
 
-function CancelButton({ orderId }: { orderId: string }) {
+function CancelButton({ orderId }: Readonly<{ orderId: string }>) {
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [reason, setReason] = useState("");
@@ -471,6 +476,7 @@ function CancelButton({ orderId }: { orderId: string }) {
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <button
+          type="button"
           disabled={busy}
           className="flex w-full items-center justify-center gap-1.5 rounded-full border border-border px-4 py-1.5 text-sm hover:bg-secondary disabled:opacity-50"
         >

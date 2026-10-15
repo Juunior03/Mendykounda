@@ -97,10 +97,10 @@ export function inSegment(
 export function toCsv(rows: (string | number | null)[][]) {
   const cell = (v: string | number | null) => {
     const s = v == null ? "" : String(v);
-    return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    return /[;"\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
   };
   // BOM pour que les accents s'affichent correctement dans Excel.
-  return String.fromCharCode(0xfeff) + rows.map((r) => r.map(cell).join(";")).join("\n");
+  return String.fromCodePoint(0xfeff) + rows.map((r) => r.map(cell).join(";")).join("\n");
 }
 
 /** Clé de cache de la liste des clients (admin). */

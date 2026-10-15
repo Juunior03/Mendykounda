@@ -19,7 +19,10 @@ interface Message {
   created_at: string;
 }
 
-export function ChatBox({ userId, asAdmin = false }: { userId: string; asAdmin?: boolean }) {
+export function ChatBox({
+  userId,
+  asAdmin = false,
+}: Readonly<{ userId: string; asAdmin?: boolean }>) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [text, setText] = useState("");
@@ -35,7 +38,7 @@ export function ChatBox({ userId, asAdmin = false }: { userId: string; asAdmin?:
         .eq("user_id", userId)
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return data as Message[];
+      return data;
     },
   });
 
@@ -46,7 +49,9 @@ export function ChatBox({ userId, asAdmin = false }: { userId: string; asAdmin?:
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `user_id=eq.${userId}` },
-        () => qc.invalidateQueries({ queryKey: ["messages", userId] }),
+        () => {
+          void qc.invalidateQueries({ queryKey: ["messages", userId] });
+        },
       )
       .subscribe();
     return () => {
@@ -120,6 +125,7 @@ export function ChatBox({ userId, asAdmin = false }: { userId: string; asAdmin?:
           className="flex-1 resize-none rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
         />
         <button
+          type="button"
           onClick={() => void send()}
           disabled={sending || !text.trim()}
           className="flex items-center gap-1 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"

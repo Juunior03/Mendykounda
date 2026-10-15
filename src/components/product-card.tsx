@@ -17,7 +17,7 @@ import { deliveryWindow, formatLongDate } from "@/lib/delivery";
 import { formatSlaughterDay, upcomingSlaughterQuery } from "@/lib/slaughter";
 import { backInLabel, inSeason, isSeasonal } from "@/lib/season";
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({ product }: Readonly<{ product: Product }>) {
   const img = resolveProductImage(product.image_url);
   const promo = hasPromo(product);
   const price = effectivePrice(product);
@@ -134,12 +134,12 @@ function CardImage({
   img,
   promo,
   offSeason,
-}: {
+}: Readonly<{
   product: Product;
   img: string | null;
   promo: boolean;
   offSeason: boolean;
-}) {
+}>) {
   return (
     <div className="image-zoom relative aspect-square overflow-hidden rounded-md bg-warm">
       {img ? (
@@ -179,11 +179,11 @@ function AvailabilityNote({
   product,
   availability,
   slaughter,
-}: {
+}: Readonly<{
   product: Product;
   availability: Availability;
   slaughter: { day: string } | null;
-}) {
+}>) {
   if (availability === "off-season") {
     const back = backInLabel(product);
     return (

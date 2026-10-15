@@ -52,7 +52,10 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
 
 /** Lit la configuration dans les secrets Supabase. */
 export function configFromEnv(): { apiKey?: string; config: NotifyConfig } {
-  const env = (k: string) => Deno.env.get(k)?.trim() || undefined;
+  const env = (k: string) => {
+    const v = Deno.env.get(k)?.trim();
+    return v === "" ? undefined : v;
+  };
   const from = env("EMAIL_FROM");
   const sender = env("SMS_SENDER");
   return {
@@ -61,7 +64,7 @@ export function configFromEnv(): { apiKey?: string; config: NotifyConfig } {
       siteUrl: env("SITE_URL") ?? "http://localhost:8080",
       emailFrom: from ? { email: from, name: env("EMAIL_FROM_NAME") ?? "MendyKounda" } : undefined,
       // Nom d'expéditeur SMS : 11 caractères alphanumériques maximum.
-      smsSender: sender ? sender.replace(/[^A-Za-z0-9]/g, "").slice(0, 11) : undefined,
+      smsSender: sender ? sender.replaceAll(/[^A-Za-z0-9]/g, "").slice(0, 11) : undefined,
       adminEmail: env("ADMIN_EMAIL"),
     },
   };

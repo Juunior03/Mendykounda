@@ -115,7 +115,7 @@ export const BACK_STATUS: Partial<Record<OrderStatus, { to: OrderStatus; label: 
 
 /** Lien WhatsApp à partir d'un numéro saisi librement (indicatif +221 ajouté si absent). */
 export const whatsappLink = (phone: string) => {
-  let digits = phone.replace(/\D/g, "");
+  let digits = phone.replaceAll(/\D/g, "");
   if (digits.startsWith("00")) digits = digits.slice(2);
   if (digits.length === 9) digits = `221${digits}`;
   return digits.length >= 11 ? `https://wa.me/${digits}` : null;
@@ -131,7 +131,7 @@ interface LineLike {
 
 /** Quantité facturée : poids pesé s'il est saisi, sinon quantité commandée. */
 export const lineQuantity = (i: LineLike) =>
-  i.actual_quantity != null ? Number(i.actual_quantity) : i.quantity;
+  i.actual_quantity == null ? i.quantity : Number(i.actual_quantity);
 
 /** Montant de la ligne, arrondi au franc comme en base (set_item_weight). */
 export const lineTotal = (i: LineLike) => Math.round(Number(i.unit_price) * lineQuantity(i));

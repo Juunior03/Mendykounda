@@ -69,8 +69,8 @@ export const paragraphs = (text: string) =>
     .map((p) => p.trim())
     .filter(Boolean);
 
-export const telHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "")}`;
+export const telHref = (phone: string) => `tel:${phone.replaceAll(/[^\d+]/g, "")}`;
 
 /** Événement global pour ouvrir la messagerie (pastille de chat). */
 export const OPEN_CHAT_EVENT = "mk:open-chat";
-export const openChat = () => window.dispatchEvent(new Event(OPEN_CHAT_EVENT));
+export const openChat = () => globalThis.dispatchEvent(new Event(OPEN_CHAT_EVENT));

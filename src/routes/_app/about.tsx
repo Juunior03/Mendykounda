@@ -50,8 +50,8 @@ function AboutPage() {
               <div className="h-4 w-2/3 rounded bg-secondary" />
             </div>
           ) : (
-            paragraphs(f.about_body).map((p, i) => (
-              <p key={i} className="whitespace-pre-line">
+            paragraphs(f.about_body).map((p) => (
+              <p key={p} className="whitespace-pre-line">
                 {p}
               </p>
             ))

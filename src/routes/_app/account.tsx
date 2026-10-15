@@ -2,6 +2,7 @@
  * Compte client — coordonnées / adresse par défaut et raccourcis.
  */
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { orNull } from "@/lib/format";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -73,7 +74,7 @@ function AccountPage() {
     }
   }, [profile]);
 
-  const save = async (e: React.FormEvent) => {
+  const save = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (!user) return;
     if (form.phone && !isValidPhone(form.phone)) {
@@ -100,10 +101,14 @@ function AccountPage() {
         <div>
           <p className="editorial-eyebrow">Mon compte</p>
           <h1 className="mt-3 text-3xl font-medium tracking-tight">
-            {profile?.full_name || user.email}
+            {orNull(profile?.full_name) ?? user.email}
           </h1>
         </div>
-        <button onClick={signOut} className="text-xs underline-grow text-muted-foreground">
+        <button
+          type="button"
+          onClick={signOut}
+          className="text-xs underline-grow text-muted-foreground"
+        >
           Se déconnecter
         </button>
       </div>
@@ -172,7 +177,10 @@ function AccountPage() {
                 ))}
               </select>
             </div>
-            <button className="rounded-md bg-foreground px-4 py-2 text-xs font-medium text-background">
+            <button
+              type="submit"
+              className="rounded-md bg-foreground px-4 py-2 text-xs font-medium text-background"
+            >
               Enregistrer
             </button>
           </form>

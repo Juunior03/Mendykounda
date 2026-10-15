@@ -4,7 +4,7 @@
 import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function Stars({ rating, className }: { rating: number; className?: string }) {
+export function Stars({ rating, className }: Readonly<{ rating: number; className?: string }>) {
   return (
     <div className={cn("flex", className)} aria-label={`${rating.toFixed(1)} sur 5`}>
       {[1, 2, 3, 4, 5].map((n) => (

@@ -31,7 +31,7 @@ export const deliveryZonesQuery = (includeInactive = false) =>
       if (!includeInactive) q = q.eq("is_active", true);
       const { data, error } = await q.order("sort_order").order("commune");
       if (error) throw error;
-      return (data ?? []) as unknown as DeliveryZone[];
+      return data ?? [];
     },
   });
 
@@ -50,7 +50,7 @@ export function freeDeliveryGap(
   zone: DeliveryZone | null | undefined,
   subtotal: number,
 ): number | null {
-  if (!zone || zone.free_from == null || deliveryFee(zone, subtotal) === 0) return null;
+  if (zone?.free_from == null || deliveryFee(zone, subtotal) === 0) return null;
   const gap = Number(zone.free_from) - subtotal;
   return gap > 0 ? gap : null;
 }
@@ -79,9 +79,9 @@ export const zoneLabel = (z: DeliveryZone, all: DeliveryZone[]) =>
 const norm = (s: string) =>
   s
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replaceAll(/[̀-ͯ]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
+    .replaceAll(/[^a-z0-9]+/g, " ")
     .trim();
 
 /** Retrouve la zone correspondant à une ville saisie (profil existant). */

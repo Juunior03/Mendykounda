@@ -134,6 +134,7 @@ function CartPage() {
                       </label>
                       <span className="h-4 w-px bg-border" />
                       <button
+                        type="button"
                         onClick={() => cartStore.remove(item.productId)}
                         className="text-xs text-primary hover:underline"
                       >
@@ -164,6 +165,7 @@ function CartPage() {
               </p>
             )}
             <button
+              type="button"
               onClick={() => void navigate({ to: "/checkout" })}
               disabled={blocked || itemCount === 0}
               className="mt-4 w-full rounded-full bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground hover:bg-accent/85 disabled:cursor-not-allowed disabled:opacity-50"
@@ -190,7 +192,7 @@ function CartPage() {
  * Règles de livraison avant le choix de la commune : communes toujours
  * gratuites, seuil de gratuité ailleurs et montant restant à atteindre.
  */
-function DeliveryInfo({ subtotal }: { subtotal: number }) {
+function DeliveryInfo({ subtotal }: Readonly<{ subtotal: number }>) {
   const { data: zones = [] } = useQuery(deliveryZonesQuery());
   if (zones.length === 0) return null;
   // Communes toujours livrées gratuitement (frais nuls ou seuil à 0).
@@ -203,7 +205,7 @@ function DeliveryInfo({ subtotal }: { subtotal: number }) {
     .filter((t): t is number => t != null && Number(t) > 0)
     .map(Number);
   const threshold = thresholds.length ? Math.min(...thresholds) : null;
-  const gap = threshold != null ? threshold - subtotal : 0;
+  const gap = threshold == null ? 0 : threshold - subtotal;
 
   return (
     <div className="mt-3 space-y-1 rounded-md bg-secondary px-3 py-2 text-xs">
@@ -232,7 +234,7 @@ function DeliveryInfo({ subtotal }: { subtotal: number }) {
   );
 }
 
-function StockNote({ issue, stock }: { issue: string | null; stock?: number }) {
+function StockNote({ issue, stock }: Readonly<{ issue: string | null; stock?: number }>) {
   if (issue) return <p className="mt-1 text-sm font-medium text-destructive">{issue}</p>;
   if (stock != null && stock <= LOW_STOCK_THRESHOLD)
     return <p className="mt-1 text-sm text-destructive">Plus que {stock} en stock</p>;

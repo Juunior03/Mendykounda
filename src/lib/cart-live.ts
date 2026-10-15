@@ -38,7 +38,7 @@ export interface CartLine {
 }
 
 export function useCartLines(items: CartItem[]) {
-  const ids = items.map((i) => i.productId).sort();
+  const ids = items.map((i) => i.productId).sort((a, b) => a.localeCompare(b));
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["cart-products", ids],
@@ -52,7 +52,7 @@ export function useCartLines(items: CartItem[]) {
         )
         .in("id", ids);
       if (error) throw error;
-      return (data ?? []) as LiveProduct[];
+      return data ?? [];
     },
   });
 
@@ -67,7 +67,7 @@ export function useCartLines(items: CartItem[]) {
     const product = products?.find((p) => p.id === item.productId) ?? null;
     if (!products)
       return { item, product: null, price: item.price, previousPrice: null, issue: null };
-    if (!product || !product.is_active) {
+    if (!product?.is_active) {
       return {
         item,
         product,
@@ -86,9 +86,9 @@ export function useCartLines(items: CartItem[]) {
     } else if (product.stock <= 0) issue = "Actuellement indisponible.";
     else if (item.quantity > product.stock)
       issue = `Plus que ${product.stock} en stock : réduisez la quantité.`;
-    else if (product.needs_slaughter && upcoming && upcoming.length === 0)
+    else if (product.needs_slaughter && upcoming?.length === 0)
       issue = "Aucun abattage programmé pour le moment : retirez cet article ou revenez plus tard.";
-    return { item, product, price, previousPrice: price !== item.price ? item.price : null, issue };
+    return { item, product, price, previousPrice: price === item.price ? null : item.price, issue };
   });
 
   // Après quelques secondes d'affichage de l'écart, on mémorise le prix

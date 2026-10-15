@@ -9,14 +9,13 @@ import { ArrowLeft, MapPin, MessageCircle, Phone, StickyNote } from "lucide-reac
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { formatDateTime, formatPrice, plural } from "@/lib/format";
+import { formatDateTime, formatPrice, plural, orNull } from "@/lib/format";
 import {
   ORDER_STATUS_LABEL,
   ORDER_STATUS_TONE,
   lineQuantity,
   orderNumber,
   whatsappLink,
-  type OrderStatus,
 } from "@/lib/orders";
 import {
   SEGMENT_HELP,
@@ -148,7 +147,7 @@ function CustomerPage() {
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold md:text-3xl">
-          {profile.full_name || "Client sans nom"}
+          {orNull(profile.full_name) ?? "Client sans nom"}
         </h1>
         {segments.map((s) => (
           <span
@@ -214,7 +213,7 @@ function CustomerPage() {
             ) : (
               <ul className="mt-3 divide-y divide-border">
                 {orders.map((o) => {
-                  const status = o.status as OrderStatus;
+                  const status = o.status;
                   const count = o.order_items.length;
                   return (
                     <li key={o.id}>
@@ -270,7 +269,7 @@ function CustomerPage() {
             {profile.phone ? (
               <div className="mt-3 flex flex-wrap gap-2">
                 <a
-                  href={`tel:${profile.phone.replace(/\s/g, "")}`}
+                  href={`tel:${profile.phone.replaceAll(/\s/g, "")}`}
                   className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm hover:bg-secondary"
                 >
                   <Phone className="h-4 w-4" /> {profile.phone}
@@ -302,7 +301,7 @@ function CustomerPage() {
   );
 }
 
-function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function Kpi({ label, value, hint }: Readonly<{ label: string; value: string; hint?: string }>) {
   return (
     <div className="min-w-0 rounded-lg border border-border bg-card p-3 sm:p-4">
       <dt className="text-xs text-muted-foreground">{label}</dt>
@@ -317,11 +316,11 @@ function NoteEditor({
   customerId,
   note,
   updatedAt,
-}: {
+}: Readonly<{
   customerId: string;
   note: string;
   updatedAt: string | null;
-}) {
+}>) {
   const qc = useQueryClient();
   const { user } = useAuth();
   const [value, setValue] = useState(note);

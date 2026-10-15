@@ -19,3 +19,9 @@ export const formatDateTime = (iso: string) =>
 
 /** « s » final au pluriel : plural(2) === "s", plural(1) === "". */
 export const plural = (n: number, suffix = "s") => (n > 1 ? suffix : "");
+
+/** Texte vide ou absent → null, pour écrire `orNull(nom) ?? "Sans nom"`. */
+export function orNull(s: string | null | undefined): string | null {
+  if (!s) return null;
+  return s;
+}

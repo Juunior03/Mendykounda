@@ -48,15 +48,16 @@ function memoryRepo(o: NotifyOrder | null = order(), email: string | null = "awa
   const sent: Record<Channel, string | null> = { email: null, sms: null };
   const repo: NotifyRepo & { sent: typeof sent } = {
     sent,
-    getOrder: async (id) => (o && id === o.id ? o : null),
-    getUserEmail: async () => email,
-    claim: async (_id, ch) => {
-      if (sent[ch]) return false;
+    getOrder: (id) => Promise.resolve(id === o?.id ? o : null),
+    getUserEmail: () => Promise.resolve(email),
+    claim: (_id, ch) => {
+      if (sent[ch]) return Promise.resolve(false);
       sent[ch] = "now";
-      return true;
+      return Promise.resolve(true);
     },
-    release: async (_id, ch) => {
+    release: (_id, ch) => {
       sent[ch] = null;
+      return Promise.resolve();
     },
   };
   return repo;
@@ -69,15 +70,17 @@ function fakeSenders(fail: Partial<Record<Channel, boolean>> = {}) {
     emails,
     sms,
     mailer: {
-      sendEmail: async (m: { to: string; subject: string; html: string; text: string }) => {
-        if (fail.email) throw new Error("Brevo KO");
+      sendEmail: (m: { to: string; subject: string; html: string; text: string }) => {
+        if (fail.email) return Promise.reject(new Error("Brevo KO"));
         emails.push(m);
+        return Promise.resolve();
       },
     },
     smsSender: {
-      sendSms: async (m: { recipient: string; content: string }) => {
-        if (fail.sms) throw new Error("Brevo KO");
+      sendSms: (m: { recipient: string; content: string }) => {
+        if (fail.sms) return Promise.reject(new Error("Brevo KO"));
         sms.push(m);
+        return Promise.resolve();
       },
     },
   };
@@ -252,7 +255,7 @@ Deno.test("order-notify : authentification et validation", async () => {
     mailer: f.mailer,
     sms: f.smsSender,
     config: fullConfig,
-    userId: async () => uid,
+    userId: () => Promise.resolve(uid),
   });
   const post = (body: unknown) =>
     new Request(TEST_URL, { method: "POST", body: JSON.stringify(body) });

@@ -2,7 +2,7 @@ import { createRouter, useRouter } from "@tanstack/react-router";
 import { QueryClient } from "@tanstack/react-query";
 import { routeTree } from "./routeTree.gen";
 
-function DefaultErrorComponent({ error, reset }: { error: unknown; reset: () => void }) {
+function DefaultErrorComponent({ error, reset }: Readonly<{ error: unknown; reset: () => void }>) {
   const router = useRouter();
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -16,8 +16,9 @@ function DefaultErrorComponent({ error, reset }: { error: unknown; reset: () => 
         </p>
         <div className="mt-6 flex items-center justify-center gap-3">
           <button
+            type="button"
             onClick={() => {
-              router.invalidate();
+              void router.invalidate();
               reset();
             }}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"

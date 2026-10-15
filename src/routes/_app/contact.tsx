@@ -59,7 +59,7 @@ function ContactPage() {
           </div>
         </section>
 
-        {(farm.phone || wa) && (
+        {(Boolean(farm.phone) || Boolean(wa)) && (
           <section className="rounded-lg border border-border bg-card p-6">
             <Phone className="h-5 w-5 text-primary" />
             <h2 className="mt-3 font-semibold">Par téléphone</h2>
@@ -122,7 +122,7 @@ function ContactPage() {
   );
 }
 
-function ChatAction({ isAdmin, signedIn }: { isAdmin: boolean; signedIn: boolean }) {
+function ChatAction({ isAdmin, signedIn }: Readonly<{ isAdmin: boolean; signedIn: boolean }>) {
   if (isAdmin)
     return (
       <Button asChild variant="outline">

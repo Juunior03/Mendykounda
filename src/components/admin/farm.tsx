@@ -160,7 +160,7 @@ export function FarmAdmin() {
   const set = (key: Key, value: string) => setForm((f) => ({ ...f, [key]: value }));
   const dirty = !!data && JSON.stringify(form) !== JSON.stringify(data);
 
-  const save = async (e: React.FormEvent) => {
+  const save = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     const values = cleanValues(form);
     const problem = validateFarm(form, values);

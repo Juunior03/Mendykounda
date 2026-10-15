@@ -5,6 +5,7 @@
  * la ferme ; l'admin peut le personnaliser.
  */
 import { useState } from "react";
+import { orNull } from "@/lib/format";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -62,15 +63,15 @@ export function LegalAdmin() {
     rccm: form.rccm.trim() || null,
   };
 
-  const save = async (e: React.FormEvent) => {
+  const save = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     const texts = {
-      terms_body: form.terms_body?.trim() || null,
-      privacy_body: form.privacy_body?.trim() || null,
+      terms_body: orNull(form.terms_body?.trim()),
+      privacy_body: orNull(form.privacy_body?.trim()),
     };
     const textsChanged =
-      texts.terms_body !== (farm.terms_body?.trim() || null) ||
-      texts.privacy_body !== (farm.privacy_body?.trim() || null);
+      texts.terms_body !== orNull(farm.terms_body?.trim()) ||
+      texts.privacy_body !== orNull(farm.privacy_body?.trim());
     setSaving(true);
     const { error } = await supabase
       .from("farm_settings")
@@ -162,7 +163,11 @@ export function LegalAdmin() {
                       if (o.value && custom === null)
                         setForm({ ...form, [field]: defaultLegalText(page, draftFarm) });
                       if (!o.value && custom !== null) {
-                        if (!window.confirm("Abandonner votre texte et revenir au texte proposé ?"))
+                        if (
+                          !globalThis.confirm(
+                            "Abandonner votre texte et revenir au texte proposé ?",
+                          )
+                        )
                           return;
                         setForm({ ...form, [field]: null });
                       }
@@ -209,7 +214,11 @@ export function LegalAdmin() {
               )
             )}
 
-            {custom !== null && !preview[page] ? (
+            {custom === null || preview[page] ? (
+              <div className="mt-2 max-h-96 overflow-y-auto rounded-md border border-border bg-background p-4">
+                <LegalText text={shown} />
+              </div>
+            ) : (
               <textarea
                 value={custom}
                 rows={18}
@@ -217,10 +226,6 @@ export function LegalAdmin() {
                 onChange={(e) => setForm({ ...form, [field]: e.target.value })}
                 className="input mt-2 font-mono text-xs leading-relaxed"
               />
-            ) : (
-              <div className="mt-2 max-h-96 overflow-y-auto rounded-md border border-border bg-background p-4">
-                <LegalText text={shown} />
-              </div>
             )}
           </fieldset>
         );
@@ -244,7 +249,7 @@ export function LegalAdmin() {
             >
               cdp.sn
             </a>
-            .
+            <span>.</span>
           </li>
           <li>En cas de doute, faire valider les textes par un juriste.</li>
         </ul>

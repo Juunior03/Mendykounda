@@ -86,7 +86,7 @@ function AuthPage() {
     if (user) void navigate({ to: takeAfterLogin() ?? "/account" });
   }, [user, navigate]);
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setBusy(true);
     try {
@@ -101,7 +101,7 @@ function AuthPage() {
           email: parsed.email,
           password: parsed.password,
           options: {
-            emailRedirectTo: `${window.location.origin}/account`,
+            emailRedirectTo: `${globalThis.location.origin}/account`,
             data: { full_name: parsed.fullName },
           },
         });
@@ -110,7 +110,7 @@ function AuthPage() {
       } else {
         const parsed = z.object({ email: z.string().email("Email invalide") }).parse({ email });
         const { error } = await supabase.auth.resetPasswordForEmail(parsed.email, {
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: `${globalThis.location.origin}/reset-password`,
         });
         if (error) throw error;
         toast.success("Email envoyé. Vérifiez votre boîte mail.");
@@ -126,7 +126,7 @@ function AuthPage() {
   const google = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/account` },
+      options: { redirectTo: `${globalThis.location.origin}/account` },
     });
     if (error) toast.error("Connexion Google impossible");
   };
@@ -143,6 +143,7 @@ function AuthPage() {
         {mode !== "forgot" && (
           <>
             <button
+              type="button"
               onClick={google}
               className="mt-8 flex w-full items-center justify-center gap-2 rounded-md border border-border bg-background px-4 py-2.5 text-sm font-medium hover:bg-secondary"
             >
@@ -160,8 +161,11 @@ function AuthPage() {
         <form onSubmit={submit} className="mt-8 space-y-4">
           {mode === "signup" && (
             <div>
-              <label className="text-xs text-muted-foreground">Nom complet</label>
+              <label htmlFor="auth-name" className="text-xs text-muted-foreground">
+                Nom complet
+              </label>
               <input
+                id="auth-name"
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
@@ -171,8 +175,11 @@ function AuthPage() {
             </div>
           )}
           <div>
-            <label className="text-xs text-muted-foreground">Email</label>
+            <label htmlFor="auth-email" className="text-xs text-muted-foreground">
+              Email
+            </label>
             <input
+              id="auth-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -183,7 +190,9 @@ function AuthPage() {
           {mode !== "forgot" && (
             <div>
               <div className="flex items-center justify-between">
-                <label className="text-xs text-muted-foreground">Mot de passe</label>
+                <label htmlFor="auth-password" className="text-xs text-muted-foreground">
+                  Mot de passe
+                </label>
                 {mode === "login" && (
                   <button
                     type="button"
@@ -195,6 +204,7 @@ function AuthPage() {
                 )}
               </div>
               <input
+                id="auth-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -231,13 +241,18 @@ function AuthPage() {
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
           {mode === "forgot" ? (
-            <button onClick={() => setMode("login")} className="underline-grow text-foreground">
+            <button
+              type="button"
+              onClick={() => setMode("login")}
+              className="underline-grow text-foreground"
+            >
               ← Retour à la connexion
             </button>
           ) : (
             <>
               {mode === "login" ? "Pas encore de compte ?" : "Déjà inscrit ?"}{" "}
               <button
+                type="button"
                 onClick={() => setMode(mode === "login" ? "signup" : "login")}
                 className="underline-grow text-foreground"
               >

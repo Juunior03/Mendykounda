@@ -25,7 +25,7 @@ let cache: CartItem[] = EMPTY;
 const readFromStorage = (): CartItem[] => {
   if (!isBrowser) return EMPTY;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = globalThis.localStorage.getItem(STORAGE_KEY);
     return raw ? (JSON.parse(raw) as CartItem[]) : EMPTY;
   } catch {
     return EMPTY;
@@ -39,7 +39,7 @@ if (isBrowser) {
 const write = (items: CartItem[]) => {
   cache = items;
   if (isBrowser) {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }
   listeners.forEach((l) => l());
 };

@@ -27,7 +27,7 @@ import {
   orderDeliveryWindow,
 } from "@/lib/delivery";
 import { ORDER_STATUS_LABEL, type OrderStatus } from "@/lib/orders";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, orNull } from "@/lib/format";
 import { DELIVERY_AREA } from "@/lib/zones";
 import hero from "@/assets/market-hero.jpg";
 import { LiveHeroImage } from "@/components/live-hero-image";
@@ -37,8 +37,8 @@ import { useFarm } from "@/lib/farm";
 export const Route = createFileRoute("/_app/")({
   loader: async ({ context }) => {
     await Promise.all([
-      context.queryClient.ensureQueryData(productsQuery({})).catch(() => {}),
-      context.queryClient.ensureQueryData(categoriesQuery()).catch(() => {}),
+      context.queryClient.query({ ...productsQuery({}), staleTime: "static" }).catch(() => {}),
+      context.queryClient.query({ ...categoriesQuery(), staleTime: "static" }).catch(() => {}),
     ]);
   },
   component: HomePage,
@@ -350,7 +350,7 @@ function PersonalPanel() {
     <aside className="flex flex-col gap-4 rounded-lg bg-card p-5 shadow-soft">
       <div>
         <p className="text-sm text-muted-foreground">Bonjour</p>
-        <h2 className="text-xl font-semibold">{firstName || user.email}</h2>
+        <h2 className="text-xl font-semibold">{orNull(firstName) ?? user.email}</h2>
       </div>
 
       {lastOrder ? (
@@ -389,7 +389,7 @@ function PersonalPanel() {
 }
 
 /** Produits déjà commandés par le client, du plus récent au plus ancien. */
-function BuyAgainRail({ products }: { products: Product[] }) {
+function BuyAgainRail({ products }: Readonly<{ products: Product[] }>) {
   const { user } = useAuth();
   const { data: ids } = useQuery({
     queryKey: ["buy-again", user?.id],

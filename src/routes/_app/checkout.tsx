@@ -15,7 +15,7 @@ import { useAuth } from "@/lib/auth";
 import { useFarm } from "@/lib/farm";
 import { isValidPhone, normalizePhone } from "@/lib/phone";
 import { PhoneInput } from "@/components/phone-input";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, orNull } from "@/lib/format";
 import { formatDeliveryWindow } from "@/lib/delivery";
 import { formatDeadline, formatSlaughterDay } from "@/lib/slaughter";
 import { resolveProductImage } from "@/lib/product-images";
@@ -84,7 +84,7 @@ async function placeOrder(
       phone: a.phone,
       address: a.address,
       zone_id: a.zoneId,
-      notes: a.notes || null,
+      notes: orNull(a.notes),
     },
     _payment_method: paymentMethod,
   });
@@ -121,7 +121,7 @@ function placeLabel(busy: boolean, paymentMethod: PaymentMethod) {
   return paymentMethod === "wave" ? "Valider et payer avec Wave" : "Valider la commande";
 }
 
-function FeeLabel({ known, fee }: { known: boolean; fee: number }) {
+function FeeLabel({ known, fee }: Readonly<{ known: boolean; fee: number }>) {
   if (!known) return <span className="text-muted-foreground">selon la commune</span>;
   if (fee === 0) return <span className="font-medium text-primary">Gratuite</span>;
   return <>{formatPrice(fee)}</>;
@@ -187,7 +187,7 @@ function CheckoutPage() {
     (k: keyof Address) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setAddress({ ...address, [k]: e.target.value });
 
-  const submit = async (e?: React.FormEvent) => {
+  const submit = async (e?: React.SyntheticEvent) => {
     e?.preventDefault();
     if (!user || blocked) return;
     const parsed = shippingSchema.safeParse({ ...address, notes });
@@ -373,7 +373,7 @@ function CheckoutPage() {
                     onChange={(e) => setSaveAsDefault(e.target.checked)}
                     className="h-4 w-4 accent-[var(--primary)]"
                   />
-                  Enregistrer comme adresse par défaut
+                  <span>Enregistrer comme adresse par défaut</span>
                 </label>
                 {shippingSchema.safeParse(address).success && (
                   <button
@@ -428,6 +428,7 @@ function CheckoutPage() {
                 .map((m) => (
                   <label
                     key={m.id}
+                    aria-label={m.title}
                     className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 text-sm ${
                       paymentMethod === m.id ? "border-primary bg-primary/5" : "border-border"
                     }`}
@@ -573,7 +574,11 @@ function CheckoutPage() {
   );
 }
 
-function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+function Step({
+  n,
+  title,
+  children,
+}: Readonly<{ n: number; title: string; children: React.ReactNode }>) {
   return (
     <section className="rounded-lg bg-card p-4 shadow-soft md:p-5">
       <h2 className="mb-4 flex items-baseline gap-3 text-lg font-semibold">

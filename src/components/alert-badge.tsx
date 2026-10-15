@@ -6,12 +6,12 @@ export function AlertBadge({
   count,
   label,
   className,
-}: {
+}: Readonly<{
   count: number;
   /** Texte lu par les lecteurs d'écran, ex. « nouvelles commandes ». */
   label: string;
   className?: string;
-}) {
+}>) {
   if (count <= 0) return null;
   return (
     <span

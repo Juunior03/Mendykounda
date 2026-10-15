@@ -65,7 +65,7 @@ export function SlaughterAdmin() {
         .gte("slaughter_date", since)
         .neq("status", "cancelled");
       if (error) throw error;
-      return (data ?? []) as unknown as SlaughterOrder[];
+      return data ?? [];
     },
   });
 
@@ -76,7 +76,7 @@ export function SlaughterAdmin() {
 
   const refresh = () => void qc.invalidateQueries({ queryKey: ["slaughter-days"] });
 
-  const add = async (e: React.FormEvent) => {
+  const add = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (!day || !deadline) return;
     const deadlineIso = fromLocalInput(deadline);
@@ -104,7 +104,7 @@ export function SlaughterAdmin() {
     const warning = orderCount
       ? `${orderCount} commande(s) sont rattachées à cet abattage et resteront prévues ce jour-là. Supprimer quand même ?`
       : `Supprimer l'abattage du ${formatSlaughterDay(d.day)} ?`;
-    if (!window.confirm(warning)) return;
+    if (!globalThis.confirm(warning)) return;
     const { error } = await supabase.from("slaughter_days").delete().eq("id", d.id);
     if (error) toast.error(error.message);
     else refresh();
@@ -208,11 +208,11 @@ function SlaughterCard({
   day: d,
   orders,
   onRemove,
-}: {
+}: Readonly<{
   day: SlaughterDay;
   orders: SlaughterOrder[];
   onRemove: (d: SlaughterDay, orderCount: number) => void;
-}) {
+}>) {
   // Quantités de viande à l'abattage commandées pour ce jour, par produit.
   const totals = new Map<string, { quantity: number; unit: string }>();
   for (const o of orders) {
@@ -240,6 +240,7 @@ function SlaughterCard({
           </div>
         </div>
         <button
+          type="button"
           onClick={() => onRemove(d, orders.length)}
           className="inline-flex items-center gap-1 text-xs text-destructive hover:underline"
         >

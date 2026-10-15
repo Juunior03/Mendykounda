@@ -37,14 +37,16 @@ function memoryRepo(order: Partial<OrderRow> = {}) {
   };
   const repo: OrdersRepo & { row: OrderRow } = {
     row,
-    findById: async (id) => (id === row.id ? { ...row } : null),
-    findBySession: async (s) => (s === row.payment_session_id ? { ...row } : null),
-    setSession: async (_id, s) => {
+    findById: (id) => Promise.resolve(id === row.id ? { ...row } : null),
+    findBySession: (s) => Promise.resolve(s === row.payment_session_id ? { ...row } : null),
+    setSession: (_id, s) => {
       row.payment_session_id = s;
+      return Promise.resolve();
     },
-    markPaid: async (_id, s) => {
+    markPaid: (_id, s) => {
       row.payment_status = "paid";
       row.payment_session_id = s;
+      return Promise.resolve();
     },
   };
   return repo;
@@ -57,7 +59,7 @@ function fakeWave(overrides: Partial<WaveSession> = {}) {
   const wave: WaveApi & { sessions: typeof sessions; created: unknown[] } = {
     sessions,
     created,
-    async createSession(input) {
+    createSession(input) {
       created.push(input);
       const s: WaveSession = {
         id: `cos-${++n}`,
@@ -70,12 +72,12 @@ function fakeWave(overrides: Partial<WaveSession> = {}) {
         ...overrides,
       };
       sessions.set(s.id, s);
-      return s;
+      return Promise.resolve(s);
     },
-    async getSession(id) {
+    getSession(id) {
       const s = sessions.get(id);
-      if (!s) throw new Error("not found");
-      return { ...s };
+      if (!s) return Promise.reject(new Error("not found"));
+      return Promise.resolve({ ...s });
     },
   };
   return wave;
@@ -293,7 +295,12 @@ Deno.test("wave-webhook : refuse sans signature, relit la session chez Wave", as
 Deno.test("wave-checkout : authentification et validation", async () => {
   const repo = memoryRepo();
   const wave = fakeWave();
-  const deps = (uid: string | null) => ({ repo, wave, userId: async () => uid, siteUrl: SITE });
+  const deps = (uid: string | null) => ({
+    repo,
+    wave,
+    userId: () => Promise.resolve(uid),
+    siteUrl: SITE,
+  });
   const post = (body: unknown) =>
     new Request(TEST_URL, { method: "POST", body: JSON.stringify(body) });
 

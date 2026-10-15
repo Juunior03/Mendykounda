@@ -73,7 +73,7 @@ function OrderConfirmation() {
             {data && <> · {PAYMENT_METHOD_LABEL[data.payment_method] ?? data.payment_method}</>}
           </p>
 
-          {data && data.payment_method === "wave" && data.status !== "cancelled" && (
+          {data?.payment_method === "wave" && data.status !== "cancelled" && (
             <div className="mt-4">
               <WavePaymentStatusPanel
                 orderId={id}

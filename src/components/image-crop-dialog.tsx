@@ -70,7 +70,7 @@ export function ImageCropDialog({
   open,
   onCancel,
   onConfirm,
-}: ImageCropDialogProps) {
+}: Readonly<ImageCropDialogProps>) {
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [imageAspect, setImageAspect] = useState(1);

@@ -13,13 +13,13 @@ export function ProductRail({
   subtitle,
   products,
   seeAll,
-}: {
+}: Readonly<{
   title: string;
   subtitle?: string;
   products: Product[];
   /** Lien « Tout voir » vers la boutique (avec ses filtres) ou vers « Mes commandes ». */
   seeAll?: { label?: string; search?: Record<string, string>; toOrders?: boolean };
-}) {
+}>) {
   const track = useRef<HTMLUListElement>(null);
   if (products.length === 0) return null;
 
@@ -51,6 +51,7 @@ export function ProductRail({
               </Link>
             ))}
           <button
+            type="button"
             onClick={() => scroll(-1)}
             className="hidden h-8 w-8 place-items-center rounded-full border border-border hover:bg-secondary md:grid"
             aria-label={`Précédent : ${title}`}
@@ -58,6 +59,7 @@ export function ProductRail({
             <ChevronLeft className="h-4 w-4" />
           </button>
           <button
+            type="button"
             onClick={() => scroll(1)}
             className="hidden h-8 w-8 place-items-center rounded-full border border-border hover:bg-secondary md:grid"
             aria-label={`Suivant : ${title}`}
