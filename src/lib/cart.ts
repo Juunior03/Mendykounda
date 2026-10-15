@@ -55,7 +55,7 @@ export const cartStore = {
   },
   add(item: Omit<CartItem, "quantity">, quantity = 1) {
     const items = read();
-    const existing = items.find((i) => i.productId === item.productId);
+    const existing = items.some((i) => i.productId === item.productId);
     write(
       existing
         ? items.map((i) =>

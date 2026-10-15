@@ -103,8 +103,8 @@ export function ImageCropDialog({
     setError(null);
     try {
       onConfirm(await createCroppedFile(imageUrl, croppedArea, fileName));
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Impossible de recadrer cette image.");
+    } catch (error_) {
+      setError(error_ instanceof Error ? error_.message : "Impossible de recadrer cette image.");
     } finally {
       setProcessing(false);
     }

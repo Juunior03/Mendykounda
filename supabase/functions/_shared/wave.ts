@@ -68,7 +68,7 @@ export function waveApi(apiKey: string, baseUrl = "https://api.wave.com"): WaveA
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        ...(init.headers ?? {}),
+        ...init.headers,
       },
     });
     const text = await res.text();
