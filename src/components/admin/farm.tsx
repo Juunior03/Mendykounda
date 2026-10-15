@@ -126,6 +126,27 @@ const SECTIONS: { title: string; help?: string; fields: FieldDef[] }[] = [
 
 const URL_KEYS: Key[] = ["facebook_url", "instagram_url", "tiktok_url"];
 
+/** Champs facultatifs vides : enregistrés comme absents (non affichés). */
+const cleanValues = (form: FarmSettings) =>
+  Object.fromEntries(
+    Object.entries(form).map(([k, v]) => [k, typeof v === "string" ? v.trim() || null : v]),
+  ) as Partial<FarmSettings>;
+
+/** Premier problème du formulaire, ou null s'il est valide. */
+function validateFarm(form: FarmSettings, values: Partial<FarmSettings>): string | null {
+  const badUrl = URL_KEYS.some((k) => {
+    const v = (form[k] ?? "").trim();
+    return v && !/^https?:\/\//i.test(v);
+  });
+  if (badUrl) return "Les liens des réseaux sociaux doivent commencer par https://";
+  if (form.phone && !isValidPhone(form.phone))
+    return "Téléphone : numéro invalide (ex. +221 77 123 45 67)";
+  if (form.whatsapp && !isValidPhone(form.whatsapp))
+    return "WhatsApp : numéro invalide (ex. +221 77 123 45 67)";
+  const missing = SECTIONS.flatMap((s) => s.fields).find((f) => f.required && !values[f.key]);
+  return missing ? `« ${missing.label} » est obligatoire` : null;
+}
+
 export function FarmAdmin() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery(farmSettingsQuery());
@@ -141,31 +162,12 @@ export function FarmAdmin() {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    for (const k of URL_KEYS) {
-      const v = (form[k] ?? "").trim();
-      if (v && !/^https?:\/\//i.test(v)) {
-        toast.error("Les liens des réseaux sociaux doivent commencer par https://");
-        return;
-      }
+    const values = cleanValues(form);
+    const problem = validateFarm(form, values);
+    if (problem) {
+      toast.error(problem);
+      return;
     }
-    for (const k of ["phone", "whatsapp"] as const) {
-      if (form[k] && !isValidPhone(form[k])) {
-        toast.error(
-          `${k === "phone" ? "Téléphone" : "WhatsApp"} : numéro invalide (ex. +221 77 123 45 67)`,
-        );
-        return;
-      }
-    }
-    // Champs facultatifs vides : enregistrés comme absents (non affichés).
-    const values = Object.fromEntries(
-      Object.entries(form).map(([k, v]) => [k, typeof v === "string" ? v.trim() || null : v]),
-    ) as Partial<FarmSettings>;
-    for (const s of SECTIONS)
-      for (const f of s.fields)
-        if (f.required && !values[f.key]) {
-          toast.error(`« ${f.label} » est obligatoire`);
-          return;
-        }
     setSaving(true);
     const { error } = await supabase
       .from("farm_settings")

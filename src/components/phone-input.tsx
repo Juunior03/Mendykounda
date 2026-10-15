@@ -36,17 +36,21 @@ export function PhoneInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const errorId = useId();
 
-  // Valeur modifiée de l'extérieur (ex. profil chargé après coup).
-  useEffect(() => {
+  // Valeur modifiée de l'extérieur (ex. profil chargé après coup) : on se
+  // resynchronise pendant le rendu, comme le recommande React.
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) {
+    setPrevValue(value);
     if (formatPhone(code, local) !== (value ?? "")) {
       const p = parsePhone(value);
       setCode(p.code);
       setLocal(p.local);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
+  }
 
-  const error = local ? phoneError(code, local) : required ? "Numéro de téléphone requis." : null;
+  let error: string | null = null;
+  if (local) error = phoneError(code, local);
+  else if (required) error = "Numéro de téléphone requis.";
 
   // Message natif : empêche l'envoi du formulaire tant que le numéro est faux.
   useEffect(() => {

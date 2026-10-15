@@ -90,13 +90,7 @@ function OrdersPage() {
 
   if (!user) return null;
 
-  const shown = (orders ?? []).filter((o) =>
-    filter === "all"
-      ? true
-      : filter === "cancelled"
-        ? o.status === "cancelled"
-        : o.status !== "cancelled" && o.status !== "delivered",
-  );
+  const shown = (orders ?? []).filter((o) => matchesFilter(o.status, filter));
 
   const tabs: { id: Filter; label: string }[] = [
     { id: "all", label: "Commandes" },
@@ -159,68 +153,113 @@ function OrdersPage() {
   );
 }
 
+function matchesFilter(status: string, filter: Filter) {
+  if (filter === "all") return true;
+  if (filter === "cancelled") return status === "cancelled";
+  return status !== "cancelled" && status !== "delivered";
+}
+
+/** Titre de la commande : date de livraison ou étape en cours. */
+function orderHeadline(o: Order) {
+  const status = o.status as OrderStatus;
+  if (status === "delivered") return `Livrée le ${formatLongDate(o.delivered_at ?? o.updated_at)}`;
+  if (status === "cancelled") return `Annulée le ${formatLongDate(o.cancelled_at ?? o.updated_at)}`;
+  if (status === "shipped") return "En cours de livraison : le livreur est en route";
+  // Fenêtre estimée ; si elle est dépassée sans livraison, on reste vague.
+  const late = orderDeliveryWindow(o).end.getTime() < Date.now();
+  if (status === "ready")
+    return late
+      ? "Prête, bientôt en route — livraison imminente"
+      : `Prête, bientôt en route — arrivée prévue ${formatOrderDeliveryWindow(o)}`;
+  return late ? "Livraison imminente" : `Arrivée prévue ${formatOrderDeliveryWindow(o)}`;
+}
+
+const HEADLINE_TONE: Record<OrderStatus, string> = {
+  pending: "text-primary",
+  processing: "text-primary",
+  ready: "text-primary",
+  shipped: "text-primary",
+  delivered: "",
+  cancelled: "text-destructive",
+};
+
+function paymentSuffix(o: Order) {
+  if (o.payment_status === "paid") return " · réglé";
+  if (o.payment_method === "wave" && o.status !== "cancelled") return " · en attente de paiement";
+  return "";
+}
+
+function stepTone(i: number, current: number) {
+  if (i === current) return "font-semibold";
+  return i < current ? "" : "text-muted-foreground";
+}
+
+function QuantityLine({ item, unit }: { item: Order["order_items"][number]; unit: string }) {
+  const price = formatPrice(Number(item.unit_price));
+  if (!item.sold_by_weight)
+    return (
+      <>
+        Quantité : {item.quantity} · {price} l'unité
+      </>
+    );
+  if (item.actual_quantity != null)
+    return (
+      <>
+        Poids réel : {formatWeight(lineQuantity(item), unit)} (commandé : {item.quantity}) · {price}{" "}
+        le {unit}
+      </>
+    );
+  return (
+    <>
+      Quantité estimée : {item.quantity} · {price} le {unit} · montant ajusté après la pesée
+    </>
+  );
+}
+
+function OrderHeader({ order: o }: { order: Order }) {
+  return (
+    <header className="grid grid-cols-2 gap-3 bg-secondary px-4 py-3 text-xs sm:grid-cols-[auto_auto_1fr_auto] sm:gap-8">
+      <div>
+        <p className="uppercase text-muted-foreground">Commande effectuée le</p>
+        <p className="mt-0.5 text-sm">{formatDate(o.created_at)}</p>
+      </div>
+      <div>
+        <p className="uppercase text-muted-foreground">
+          {o.order_items.some(awaitingWeight) ? "Total estimé" : "Total"}
+        </p>
+        <p className="mt-0.5 text-sm tabular-nums">{formatPrice(Number(o.total_amount))}</p>
+        <p className="text-[11px] text-muted-foreground">
+          {Number(o.delivery_fee) > 0
+            ? `dont livraison ${formatPrice(Number(o.delivery_fee))}`
+            : "livraison offerte"}
+        </p>
+      </div>
+      <div className="min-w-0">
+        <p className="uppercase text-muted-foreground">Livraison à</p>
+        <p className="mt-0.5 truncate text-sm" title={`${o.shipping_address}, ${o.shipping_city}`}>
+          {o.shipping_full_name}, {o.shipping_city}
+        </p>
+      </div>
+      <div className="sm:text-right">
+        <p className="uppercase text-muted-foreground">N° de commande</p>
+        <p className="mt-0.5 font-mono text-sm">{o.id.slice(0, 8).toUpperCase()}</p>
+      </div>
+    </header>
+  );
+}
+
 function OrderCard({ order: o }: { order: Order }) {
   const status = o.status as OrderStatus;
 
-  // Fenêtre estimée ; si elle est dépassée sans livraison, on reste vague.
-  const late = orderDeliveryWindow(o).end.getTime() < Date.now();
-  const eta = late ? "Livraison imminente" : `Arrivée prévue ${formatOrderDeliveryWindow(o)}`;
-  const headline =
-    status === "delivered"
-      ? `Livrée le ${formatLongDate(o.delivered_at ?? o.updated_at)}`
-      : status === "cancelled"
-        ? `Annulée le ${formatLongDate(o.cancelled_at ?? o.updated_at)}`
-        : status === "shipped"
-          ? "En cours de livraison : le livreur est en route"
-          : status === "ready"
-            ? `Prête, bientôt en route — ${eta.charAt(0).toLowerCase()}${eta.slice(1)}`
-            : eta;
+  const headline = orderHeadline(o);
 
   return (
     <article className="overflow-hidden rounded-lg border border-border bg-card">
-      <header className="grid grid-cols-2 gap-3 bg-secondary px-4 py-3 text-xs sm:grid-cols-[auto_auto_1fr_auto] sm:gap-8">
-        <div>
-          <p className="uppercase text-muted-foreground">Commande effectuée le</p>
-          <p className="mt-0.5 text-sm">{formatDate(o.created_at)}</p>
-        </div>
-        <div>
-          <p className="uppercase text-muted-foreground">
-            {o.order_items.some(awaitingWeight) ? "Total estimé" : "Total"}
-          </p>
-          <p className="mt-0.5 text-sm tabular-nums">{formatPrice(Number(o.total_amount))}</p>
-          <p className="text-[11px] text-muted-foreground">
-            {Number(o.delivery_fee) > 0
-              ? `dont livraison ${formatPrice(Number(o.delivery_fee))}`
-              : "livraison offerte"}
-          </p>
-        </div>
-        <div className="min-w-0">
-          <p className="uppercase text-muted-foreground">Livraison à</p>
-          <p
-            className="mt-0.5 truncate text-sm"
-            title={`${o.shipping_address}, ${o.shipping_city}`}
-          >
-            {o.shipping_full_name}, {o.shipping_city}
-          </p>
-        </div>
-        <div className="sm:text-right">
-          <p className="uppercase text-muted-foreground">N° de commande</p>
-          <p className="mt-0.5 font-mono text-sm">{o.id.slice(0, 8).toUpperCase()}</p>
-        </div>
-      </header>
+      <OrderHeader order={o} />
 
       <div className="grid gap-5 p-4 md:grid-cols-[minmax(0,1fr)_220px]">
         <div className="min-w-0">
-          <h2
-            className={cn(
-              "text-base font-semibold sm:text-lg",
-              status === "cancelled"
-                ? "text-destructive"
-                : status === "delivered"
-                  ? ""
-                  : "text-primary",
-            )}
-          >
+          <h2 className={cn("text-base font-semibold sm:text-lg", HEADLINE_TONE[status])}>
             {headline}
           </h2>
           {status === "cancelled" ? <CancelInfo order={o} /> : <Tracker order={o} />}
@@ -255,11 +294,7 @@ function OrderCard({ order: o }: { order: Order }) {
           </Link>
           <p className="pt-1 text-xs text-muted-foreground">
             {PAYMENT_METHOD_LABEL[o.payment_method] ?? o.payment_method}
-            {o.payment_status === "paid"
-              ? " · réglé"
-              : o.payment_method === "wave" && o.status !== "cancelled"
-                ? " · en attente de paiement"
-                : ""}
+            {paymentSuffix(o)}
           </p>
           {o.notes && <p className="text-xs text-muted-foreground">Instructions : {o.notes}</p>}
         </div>
@@ -304,10 +339,7 @@ function Tracker({ order }: { order: Order }) {
               {done && <Check className="h-3 w-3" strokeWidth={3} />}
             </span>
             <span
-              className={cn(
-                "mt-1.5 text-[11px] leading-tight sm:text-xs",
-                i === current ? "font-semibold" : done ? "" : "text-muted-foreground",
-              )}
+              className={cn("mt-1.5 text-[11px] leading-tight sm:text-xs", stepTone(i, current))}
             >
               {ORDER_STATUS_LABEL[step]}
             </span>
@@ -365,23 +397,7 @@ function OrderLine({
           <p className="line-clamp-2">{item.product_name}</p>
         )}
         <p className="text-xs text-muted-foreground">
-          {item.sold_by_weight ? (
-            item.actual_quantity != null ? (
-              <>
-                Poids réel : {formatWeight(lineQuantity(item), product?.unit ?? "kg")} (commandé :{" "}
-                {item.quantity}) · {formatPrice(Number(item.unit_price))} le {product?.unit ?? "kg"}
-              </>
-            ) : (
-              <>
-                Quantité estimée : {item.quantity} · {formatPrice(Number(item.unit_price))} le{" "}
-                {product?.unit ?? "kg"} · montant ajusté après la pesée
-              </>
-            )
-          ) : (
-            <>
-              Quantité : {item.quantity} · {formatPrice(Number(item.unit_price))} l'unité
-            </>
-          )}
+          <QuantityLine item={item} unit={product?.unit ?? "kg"} />
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
           {canBuyAgain ? (

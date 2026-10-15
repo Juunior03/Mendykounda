@@ -40,8 +40,28 @@ const signupSchema = loginSchema.extend({
   fullName: z.string().trim().min(2, "Nom requis").max(80),
 });
 
+type Mode = "login" | "signup" | "forgot";
+
+const MODE_TITLE: Record<Mode, string> = {
+  login: "Bon retour",
+  signup: "Créez votre compte",
+  forgot: "Mot de passe oublié",
+};
+
+const MODE_SUBMIT: Record<Mode, string> = {
+  login: "Se connecter",
+  signup: "Créer mon compte",
+  forgot: "Envoyer le lien",
+};
+
+/** Message d'erreur lisible : formulaire invalide ou erreur de connexion. */
+function submitErrorMessage(err: unknown) {
+  if (err instanceof z.ZodError) return err.issues[0]?.message ?? "Formulaire incomplet";
+  return authErrorMessage(err instanceof Error ? err.message : "");
+}
+
 function AuthPage() {
-  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
+  const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -90,11 +110,7 @@ function AuthPage() {
         setMode("login");
       }
     } catch (err) {
-      toast.error(
-        err instanceof z.ZodError
-          ? (err.issues[0]?.message ?? "Formulaire incomplet")
-          : authErrorMessage(err instanceof Error ? err.message : ""),
-      );
+      toast.error(submitErrorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -116,7 +132,7 @@ function AuthPage() {
         </Link>
         <p className="editorial-eyebrow text-center">Espace client</p>
         <h1 className="mt-3 text-center text-3xl font-medium tracking-tight">
-          {mode === "login" ? "Bon retour" : mode === "signup" ? "Créez votre compte" : "Mot de passe oublié"}
+          {MODE_TITLE[mode]}
         </h1>
 
         {mode !== "forgot" && (
@@ -183,7 +199,7 @@ function AuthPage() {
             disabled={busy}
             className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
-            {busy ? "…" : mode === "login" ? "Se connecter" : mode === "signup" ? "Créer mon compte" : "Envoyer le lien"}
+            {busy ? "…" : MODE_SUBMIT[mode]}
           </button>
           {mode === "signup" && (
             <p className="text-center text-xs text-muted-foreground">

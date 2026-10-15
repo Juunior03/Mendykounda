@@ -6,38 +6,60 @@ import {
   legalText,
   parseInline,
   parseLegal,
+  type InlinePart,
+  type LegalBlock,
   type LegalPage,
 } from "@/lib/legal";
+
+function InlinePartView({ part }: { part: InlinePart }) {
+  if (part.type === "bold")
+    return <strong className="font-semibold text-foreground">{part.text}</strong>;
+  if (part.type === "text") return <span>{part.text}</span>;
+  if (part.href.startsWith("/"))
+    return (
+      <Link to={part.href as "/"} className="text-primary underline">
+        {part.text}
+      </Link>
+    );
+  return (
+    <a href={part.href} target="_blank" rel="noreferrer" className="text-primary underline">
+      {part.text}
+    </a>
+  );
+}
 
 function Inline({ text }: { text: string }) {
   return (
     <>
-      {parseInline(text).map((p, i) =>
-        p.type === "bold" ? (
-          <strong key={i} className="font-semibold text-foreground">
-            {p.text}
-          </strong>
-        ) : p.type === "link" ? (
-          p.href.startsWith("/") ? (
-            <Link key={i} to={p.href as "/"} className="text-primary underline">
-              {p.text}
-            </Link>
-          ) : (
-            <a
-              key={i}
-              href={p.href}
-              target="_blank"
-              rel="noreferrer"
-              className="text-primary underline"
-            >
-              {p.text}
-            </a>
-          )
-        ) : (
-          <span key={i}>{p.text}</span>
-        ),
-      )}
+      {parseInline(text).map((part, i) => (
+        // Les morceaux d'un texte n'ont pas d'identifiant : leur position suffit.
+        <InlinePartView key={i} part={part} />
+      ))}
     </>
+  );
+}
+
+function BlockView({ block }: { block: LegalBlock }) {
+  if (block.type === "h2")
+    return (
+      <h2 className="pt-4 text-lg font-semibold text-foreground md:text-xl">
+        <Inline text={block.text} />
+      </h2>
+    );
+  if (block.type === "ul")
+    return (
+      <ul className="list-disc space-y-1.5 pl-5">
+        {block.items.map((item, j) => (
+          <li key={j}>
+            <Inline text={item} />
+          </li>
+        ))}
+      </ul>
+    );
+  return (
+    <p>
+      <Inline text={block.text} />
+    </p>
   );
 }
 
@@ -45,25 +67,9 @@ function Inline({ text }: { text: string }) {
 export function LegalText({ text }: { text: string }) {
   return (
     <div className="space-y-4 text-sm leading-relaxed text-muted-foreground md:text-base">
-      {parseLegal(text).map((b, i) =>
-        b.type === "h2" ? (
-          <h2 key={i} className="pt-4 text-lg font-semibold text-foreground md:text-xl">
-            <Inline text={b.text} />
-          </h2>
-        ) : b.type === "ul" ? (
-          <ul key={i} className="list-disc space-y-1.5 pl-5">
-            {b.items.map((item, j) => (
-              <li key={j}>
-                <Inline text={item} />
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p key={i}>
-            <Inline text={b.text} />
-          </p>
-        ),
-      )}
+      {parseLegal(text).map((block, i) => (
+        <BlockView key={i} block={block} />
+      ))}
     </div>
   );
 }

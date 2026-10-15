@@ -112,59 +112,66 @@ function AccountPage() {
         <section>
           <p className="editorial-eyebrow mb-5">Coordonnées et adresse par défaut</p>
           <form onSubmit={save} className="space-y-4">
-            {[
-              { k: "full_name", label: "Nom complet" },
-              { k: "phone", label: "Téléphone" },
-              { k: "address", label: "Adresse (quartier, rue, point de repère)" },
-              { k: "city", label: "Commune de livraison" },
-            ].map((f) =>
-              f.k === "phone" ? (
-                <div key={f.k}>
-                  <label htmlFor="account-phone" className="text-xs text-muted-foreground">
-                    {f.label}
-                  </label>
-                  <PhoneInput
-                    id="account-phone"
-                    value={form.phone}
-                    onChange={(phone) => setForm((v) => ({ ...v, phone }))}
-                  />
-                </div>
-              ) : f.k === "city" ? (
-                <div key={f.k}>
-                  <label className="text-xs text-muted-foreground">{f.label}</label>
-                  <select
-                    value={form.city}
-                    onChange={(e) => setForm({ ...form, city: e.target.value })}
-                    className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                  >
-                    <option value="">Choisissez votre commune…</option>
-                    {/* Ancienne ville hors zone : on l'affiche pour ne pas la perdre silencieusement. */}
-                    {form.city && !matchZone(form.city, zones) && (
-                      <option value={form.city}>{form.city} (hors zone de livraison)</option>
-                    )}
-                    {groupByDepartment(zones).map(([dep, list]) => (
-                      <optgroup key={dep} label={`Département de ${dep}`}>
-                        {list.map((z) => (
-                          <option key={z.id} value={zoneLabel(z, zones)}>
-                            {zoneLabel(z, zones)}
-                          </option>
-                        ))}
-                      </optgroup>
+            <div>
+              <label htmlFor="account-name" className="text-xs text-muted-foreground">
+                Nom complet
+              </label>
+              <input
+                id="account-name"
+                type="text"
+                value={form.full_name}
+                onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label htmlFor="account-phone" className="text-xs text-muted-foreground">
+                Téléphone
+              </label>
+              <PhoneInput
+                id="account-phone"
+                value={form.phone}
+                onChange={(phone) => setForm((v) => ({ ...v, phone }))}
+              />
+            </div>
+            <div>
+              <label htmlFor="account-address" className="text-xs text-muted-foreground">
+                Adresse (quartier, rue, point de repère)
+              </label>
+              <input
+                id="account-address"
+                type="text"
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+                className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label htmlFor="account-city" className="text-xs text-muted-foreground">
+                Commune de livraison
+              </label>
+              <select
+                id="account-city"
+                value={form.city}
+                onChange={(e) => setForm({ ...form, city: e.target.value })}
+                className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                <option value="">Choisissez votre commune…</option>
+                {/* Ancienne ville hors zone : on l'affiche pour ne pas la perdre silencieusement. */}
+                {form.city && !matchZone(form.city, zones) && (
+                  <option value={form.city}>{form.city} (hors zone de livraison)</option>
+                )}
+                {groupByDepartment(zones).map(([dep, list]) => (
+                  <optgroup key={dep} label={`Département de ${dep}`}>
+                    {list.map((z) => (
+                      <option key={z.id} value={zoneLabel(z, zones)}>
+                        {zoneLabel(z, zones)}
+                      </option>
                     ))}
-                  </select>
-                </div>
-              ) : (
-                <div key={f.k}>
-                  <label className="text-xs text-muted-foreground">{f.label}</label>
-                  <input
-                    type="text"
-                    value={(form as Record<string, string>)[f.k]}
-                    onChange={(e) => setForm({ ...form, [f.k]: e.target.value })}
-                    className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                  />
-                </div>
-              ),
-            )}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
             <button className="rounded-md bg-foreground px-4 py-2 text-xs font-medium text-background">
               Enregistrer
             </button>

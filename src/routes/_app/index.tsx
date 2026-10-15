@@ -23,7 +23,6 @@ import { hasPromo } from "@/lib/pricing";
 import {
   formatDeliveryWindow,
   formatLongDate,
-  deliveryWindow,
   formatOrderDeliveryWindow,
   orderDeliveryWindow,
 } from "@/lib/delivery";
@@ -345,16 +344,7 @@ function PersonalPanel() {
   }
 
   const firstName = profile?.full_name?.trim().split(/\s+/)[0];
-  const status = lastOrder?.status as OrderStatus | undefined;
-  const lastLine = !lastOrder
-    ? null
-    : status === "delivered"
-      ? `Livrée le ${formatLongDate(lastOrder.delivered_at ?? lastOrder.created_at)}`
-      : status === "cancelled"
-        ? "Annulée"
-        : orderDeliveryWindow(lastOrder).end.getTime() < Date.now()
-          ? `${ORDER_STATUS_LABEL[status!]} · livraison imminente`
-          : `${ORDER_STATUS_LABEL[status!]} · arrivée prévue ${formatOrderDeliveryWindow(lastOrder)}`;
+  const lastLine = lastOrder ? lastOrderLine(lastOrder) : null;
 
   return (
     <aside className="flex flex-col gap-4 rounded-lg bg-card p-5 shadow-soft">
@@ -432,4 +422,21 @@ function BuyAgainRail({ products }: { products: Product[] }) {
       seeAll={{ toOrders: true }}
     />
   );
+}
+
+/** Résumé de la dernière commande : « Livrée le… », « Annulée », ou étape et date prévue. */
+function lastOrderLine(order: {
+  status: string;
+  created_at: string;
+  delivered_at: string | null;
+  slaughter_date: string | null;
+}) {
+  const status = order.status as OrderStatus;
+  if (status === "delivered")
+    return `Livrée le ${formatLongDate(order.delivered_at ?? order.created_at)}`;
+  if (status === "cancelled") return "Annulée";
+  const label = ORDER_STATUS_LABEL[status];
+  if (orderDeliveryWindow(order).end.getTime() < Date.now())
+    return `${label} · livraison imminente`;
+  return `${label} · arrivée prévue ${formatOrderDeliveryWindow(order)}`;
 }

@@ -69,6 +69,64 @@ const WAVE_ENABLED = import.meta.env.VITE_WAVE_ENABLED === "true";
 type Address = Omit<z.infer<typeof shippingSchema>, "notes">;
 const EMPTY_ADDRESS: Address = { fullName: "", phone: "", address: "", zoneId: "" };
 
+type ShippingData = z.infer<typeof shippingSchema>;
+
+/** Enregistre la commande en base (prix et stock vérifiés par place_order). */
+async function placeOrder(
+  items: { productId: string; quantity: number }[],
+  a: ShippingData,
+  paymentMethod: PaymentMethod,
+) {
+  const { data, error } = await supabase.rpc("place_order", {
+    _items: items.map((it) => ({ product_id: it.productId, quantity: it.quantity })),
+    _shipping: {
+      full_name: a.fullName,
+      phone: a.phone,
+      address: a.address,
+      zone_id: a.zoneId,
+      notes: a.notes || null,
+    },
+    _payment_method: paymentMethod,
+  });
+  if (error) throw error;
+  return data;
+}
+
+async function saveDefaultAddress(userId: string, a: ShippingData, city: string | null) {
+  await supabase
+    .from("profiles")
+    .update({ full_name: a.fullName, phone: a.phone, address: a.address, city })
+    .eq("id", userId);
+}
+
+/** Lance le paiement Wave ; false (et un message) si Wave est indisponible. */
+async function tryWavePayment(orderId: string) {
+  try {
+    await startWavePayment(orderId);
+    return true; // redirection vers Wave en cours
+  } catch (waveErr) {
+    toast.error(waveErr instanceof Error ? waveErr.message : "Paiement Wave indisponible");
+    return false;
+  }
+}
+
+/** Les erreurs Supabase sont des objets { message } (pas des Error). */
+function errorMessage(err: unknown) {
+  const msg = (err as { message?: unknown } | null)?.message;
+  return typeof msg === "string" && msg ? msg : "Erreur";
+}
+
+function placeLabel(busy: boolean, paymentMethod: PaymentMethod) {
+  if (busy) return "Validation…";
+  return paymentMethod === "wave" ? "Valider et payer avec Wave" : "Valider la commande";
+}
+
+function FeeLabel({ known, fee }: { known: boolean; fee: number }) {
+  if (!known) return <span className="text-muted-foreground">selon la commune</span>;
+  if (fee === 0) return <span className="font-medium text-primary">Gratuite</span>;
+  return <>{formatPrice(fee)}</>;
+}
+
 function CheckoutPage() {
   const farm = useFarm();
   const items = useCart();
@@ -141,29 +199,9 @@ function CheckoutPage() {
     setBusy(true);
     try {
       const a = parsed.data;
-      const { data: orderId, error } = await supabase.rpc("place_order", {
-        _items: items.map((it) => ({ product_id: it.productId, quantity: it.quantity })),
-        _shipping: {
-          full_name: a.fullName,
-          phone: a.phone,
-          address: a.address,
-          zone_id: a.zoneId,
-          notes: a.notes || null,
-        },
-        _payment_method: paymentMethod,
-      });
-      if (error) throw error;
-
+      const orderId = await placeOrder(items, a, paymentMethod);
       if (saveAsDefault) {
-        await supabase
-          .from("profiles")
-          .update({
-            full_name: a.fullName,
-            phone: a.phone,
-            address: a.address,
-            city: zone ? zoneLabel(zone, zones) : null,
-          })
-          .eq("id", user.id);
+        await saveDefaultAddress(user.id, a, zone ? zoneLabel(zone, zones) : null);
       }
 
       cartStore.clear();
@@ -179,20 +217,14 @@ function CheckoutPage() {
       if (paymentMethod === "wave") {
         // La commande est enregistrée ; on part payer chez Wave. En cas
         // d'échec, le client pourra relancer le paiement depuis la confirmation.
-        try {
-          await startWavePayment(orderId);
-          return; // redirection vers Wave en cours
-        } catch (waveErr) {
-          toast.error(waveErr instanceof Error ? waveErr.message : "Paiement Wave indisponible");
-          void navigate({ to: "/order-confirmation", search: { id: orderId, wave: "error" } });
-          return;
-        }
+        const redirecting = await tryWavePayment(orderId);
+        if (redirecting) return;
+        void navigate({ to: "/order-confirmation", search: { id: orderId, wave: "error" } });
+        return;
       }
       void navigate({ to: "/order-confirmation", search: { id: orderId } });
     } catch (err) {
-      // Les erreurs Supabase sont des objets { message } (pas des Error).
-      const msg = (err as { message?: unknown } | null)?.message;
-      toast.error(typeof msg === "string" && msg ? msg : "Erreur");
+      toast.error(errorMessage(err));
       void qc.invalidateQueries({ queryKey: ["cart-products"] });
     } finally {
       setBusy(false);
@@ -221,11 +253,7 @@ function CheckoutPage() {
       disabled={!canSubmit}
       className="w-full rounded-full bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground hover:bg-accent/85 disabled:cursor-not-allowed disabled:opacity-50"
     >
-      {busy
-        ? "Validation…"
-        : paymentMethod === "wave"
-          ? "Valider et payer avec Wave"
-          : "Valider la commande"}
+      {placeLabel(busy, paymentMethod)}
     </button>
   );
 
@@ -513,13 +541,7 @@ function CheckoutPage() {
             <div className="mt-1 flex justify-between">
               <span>Livraison :</span>
               <span className="tabular-nums">
-                {!zone ? (
-                  <span className="text-muted-foreground">selon la commune</span>
-                ) : fee === 0 ? (
-                  <span className="font-medium text-primary">Gratuite</span>
-                ) : (
-                  formatPrice(fee)
-                )}
+                <FeeLabel known={!!zone} fee={fee} />
               </span>
             </div>
             {gap != null && (

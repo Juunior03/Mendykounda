@@ -22,7 +22,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, plural } from "@/lib/format";
 import { ORDER_STATUS_LABEL, lineTotal, orderNumber, type OrderStatus } from "@/lib/orders";
 import { LOW_STOCK_THRESHOLD } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
@@ -326,7 +326,7 @@ export function AdminDashboard({ nav }: { nav: DashboardNav }) {
           compareLabel={prevLabel}
           note={
             stats?.cancelled
-              ? `${stats.cancelled} annulée${stats.cancelled > 1 ? "s" : ""} non comptée${stats.cancelled > 1 ? "s" : ""}`
+              ? `${stats.cancelled} annulée${plural(stats.cancelled)} non comptée${plural(stats.cancelled)}`
               : undefined
           }
         />
@@ -510,6 +510,20 @@ export function AdminDashboard({ nav }: { nav: DashboardNav }) {
 
 /* ------------------------------------------------------------------ */
 
+type Delta = { text: string; dir: "up" | "down" | "flat" };
+
+const DELTA_ICON = { up: ArrowUpRight, down: ArrowDownRight, flat: Minus };
+
+/** Évolution par rapport à la période précédente (null si inconnue). */
+function computeDelta(current?: number, previous?: number): Delta | null {
+  if (current == null || previous == null) return null;
+  if (previous === 0) return current > 0 ? { text: "nouveau", dir: "up" } : { text: "stable", dir: "flat" };
+  const pct = Math.round(((current - previous) / previous) * 100);
+  if (pct > 0) return { text: `+${pct} %`, dir: "up" };
+  if (pct < 0) return { text: `${pct} %`, dir: "down" };
+  return { text: "0 %", dir: "flat" };
+}
+
 function StatTile({
   label,
   value,
@@ -525,19 +539,8 @@ function StatTile({
   compareLabel: string;
   note?: string;
 }) {
-  let delta: { text: string; dir: "up" | "down" | "flat" } | null = null;
-  if (current != null && previous != null) {
-    if (previous === 0)
-      delta = current > 0 ? { text: "nouveau", dir: "up" } : { text: "stable", dir: "flat" };
-    else {
-      const pct = Math.round(((current - previous) / previous) * 100);
-      delta = {
-        text: `${pct > 0 ? "+" : ""}${pct} %`,
-        dir: pct > 0 ? "up" : pct < 0 ? "down" : "flat",
-      };
-    }
-  }
-  const Icon = delta?.dir === "up" ? ArrowUpRight : delta?.dir === "down" ? ArrowDownRight : Minus;
+  const delta = computeDelta(current, previous);
+  const Icon = DELTA_ICON[delta?.dir ?? "flat"];
   return (
     <div className="rounded-lg border border-border bg-card p-5">
       <p className="text-sm text-muted-foreground">{label}</p>
@@ -567,6 +570,9 @@ function ActionRow({
   onClick: () => void;
 }) {
   const active = (count ?? 0) > 0;
+  let iconTone = "text-muted-foreground";
+  if (active && tone === "critical") iconTone = "text-destructive";
+  else if (active && tone === "warning") iconTone = "text-accent";
   return (
     <li>
       <button
@@ -574,14 +580,7 @@ function ActionRow({
         className="group flex w-full items-center gap-3 py-2.5 text-left text-sm hover:bg-secondary/50"
       >
         <Icon
-          className={cn(
-            "h-4 w-4 shrink-0",
-            active && tone === "critical"
-              ? "text-destructive"
-              : active && tone === "warning"
-                ? "text-accent"
-                : "text-muted-foreground",
-          )}
+          className={cn("h-4 w-4 shrink-0", iconTone)}
           aria-hidden
         />
         <span className={cn("flex-1", !active && "text-muted-foreground")}>{label}</span>
@@ -621,22 +620,23 @@ function StatusLabel({ status }: { status: OrderStatus }) {
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-const shortAmount = (v: number) =>
-  v >= 1_000_000
-    ? `${(v / 1_000_000).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} M`
-    : v >= 1000
-      ? `${Math.round(v / 1000)} k`
-      : String(v);
+function shortAmount(v: number) {
+  if (v >= 1_000_000)
+    return `${(v / 1_000_000).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} M`;
+  if (v >= 1000) return `${Math.round(v / 1000)} k`;
+  return String(v);
+}
 
-const bucketLabel = (d: Date, weekly: boolean, long = false) =>
-  weekly
-    ? `${long ? "Semaine du " : ""}${d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`
-    : d.toLocaleDateString(
-        "fr-FR",
-        long
-          ? { weekday: "long", day: "numeric", month: "long" }
-          : { day: "2-digit", month: "2-digit" },
-      );
+function bucketLabel(d: Date, weekly: boolean, long = false) {
+  if (weekly) {
+    const day = d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+    return long ? `Semaine du ${day}` : day;
+  }
+  return d.toLocaleDateString(
+    "fr-FR",
+    long ? { weekday: "long", day: "numeric", month: "long" } : { day: "2-digit", month: "2-digit" },
+  );
+}
 
 function SalesChart({
   buckets,

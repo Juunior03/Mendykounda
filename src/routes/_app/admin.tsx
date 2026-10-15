@@ -2,13 +2,13 @@
  * Dashboard Admin — KPIs, graphique ventes, gestion produits & commandes.
  */
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, plural } from "@/lib/format";
 import {
   ALLOWED_TRANSITIONS,
   ORDER_STATUS_LABEL,
@@ -160,7 +160,7 @@ function AdminPage() {
             <option key={t} value={t}>
               {TAB_LABEL[t]}
               {t === "orders" && alerts.orders ? ` · ${alerts.orders} à préparer` : ""}
-              {t === "messages" && alerts.messages ? ` · ${alerts.messages} non lu${alerts.messages > 1 ? "s" : ""}` : ""}
+              {t === "messages" && alerts.messages ? ` · ${alerts.messages} non lu${plural(alerts.messages)}` : ""}
             </option>
           ))}
         </select>
@@ -240,7 +240,7 @@ function FilterChips<T extends string>({
 
 const slugify = (s: string) =>
   s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 interface ProductRow {
   id: string;
@@ -271,6 +271,12 @@ const emptyProduct: Partial<ProductRow> = {
 };
 
 /* ---------- Products admin ---------- */
+function matchesStockFilter(stock: number, f: ProductsFilter) {
+  if (f === "out") return stock <= 0;
+  if (f === "low") return stock > 0 && stock <= LOW_STOCK_THRESHOLD;
+  return true;
+}
+
 function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter: (f: ProductsFilter) => void }) {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Partial<ProductRow> | null>(null);
@@ -293,9 +299,7 @@ function ProductsAdmin({ filter, onFilter }: { filter: ProductsFilter; onFilter:
     },
   });
 
-  const shownProducts = products?.filter((p) =>
-    filter === "out" ? p.stock <= 0 : filter === "low" ? p.stock > 0 && p.stock <= LOW_STOCK_THRESHOLD : true,
-  );
+  const shownProducts = products?.filter((p) => matchesStockFilter(p.stock, filter));
 
   const { data: categories } = useQuery({
     queryKey: ["admin-categories-list"],
@@ -769,6 +773,22 @@ function CategoriesAdmin() {
   );
 }
 
+function matchesOrdersFilter(
+  o: { status: string; payment_status: string; payment_method: string },
+  f: OrdersFilter,
+) {
+  switch (f) {
+    case "all":
+      return true;
+    case "refund_due":
+      return o.status === "cancelled" && o.payment_status === "paid";
+    case "wave_unpaid":
+      return o.payment_method === "wave" && o.payment_status !== "paid" && o.status !== "cancelled";
+    default:
+      return o.status === f;
+  }
+}
+
 /* ---------- Orders admin ---------- */
 function OrdersAdmin({ filter, onFilter }: { filter: OrdersFilter; onFilter: (f: OrdersFilter) => void }) {
   const qc = useQueryClient();
@@ -809,14 +829,7 @@ function OrdersAdmin({ filter, onFilter }: { filter: OrdersFilter; onFilter: (f:
     if (status === "cancelled" || status === "delivered") setPending({ id, to: status });
     else void saveStatus(id, { status });
   };
-  const matches = (o: NonNullable<typeof orders>[number], f: OrdersFilter) =>
-    f === "all"
-      ? true
-      : f === "refund_due"
-        ? o.status === "cancelled" && o.payment_status === "paid"
-      : f === "wave_unpaid"
-        ? o.payment_method === "wave" && o.payment_status !== "paid" && o.status !== "cancelled"
-        : o.status === f;
+  const matches = matchesOrdersFilter;
   const shownOrders = orders?.filter((o) => matches(o, filter));
   const chip = (value: OrdersFilter, label: string) => ({
     value,

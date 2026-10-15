@@ -48,8 +48,10 @@ export const farmSettingsQuery = () =>
         .eq("id", 1)
         .maybeSingle();
       if (error || !data) return DEFAULT_FARM;
-      const { id: _id, updated_at: _u, ...farm } = data;
-      return farm;
+      const farm: Partial<typeof data> = { ...data };
+      delete farm.id;
+      delete farm.updated_at;
+      return farm as FarmSettings;
     },
     staleTime: 5 * 60 * 1000,
   });

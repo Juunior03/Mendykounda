@@ -28,7 +28,8 @@ export function ProductCard({ product }: { product: Product }) {
   const slaughter = product.needs_slaughter ? (upcoming?.[0] ?? null) : null;
   const noSlaughter = product.needs_slaughter && upcoming !== undefined && !slaughter;
   const offSeason = !inSeason(product);
-  const outOfStock = product.stock <= 0 || noSlaughter || offSeason;
+  const availability = cardAvailability(product, offSeason, noSlaughter);
+  const outOfStock = availability !== "ok";
   const ratingCount = product.rating_count ?? 0;
 
   const add = () => {
@@ -45,37 +46,7 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <article className="group flex h-full min-w-0 flex-col rounded-md bg-card p-2.5 transition-shadow hover:shadow-elevated sm:p-3">
       <Link to="/products/$slug" params={{ slug: product.slug }} className="block min-w-0">
-        <div className="image-zoom relative aspect-square overflow-hidden rounded-md bg-warm">
-          {img ? (
-            <img
-              src={img}
-              alt={product.name}
-              loading="lazy"
-              width={1024}
-              height={1024}
-              className="h-full w-full object-contain"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-              {product.name}
-            </div>
-          )}
-          {product.is_featured && (
-            <span className="absolute left-2 top-2 rounded-sm bg-background/90 px-2 py-1 text-[9px] font-semibold uppercase backdrop-blur">
-              Coup de cœur
-            </span>
-          )}
-          {isSeasonal(product) && !offSeason && (
-            <span className="absolute bottom-2 left-2 rounded-sm bg-primary px-2 py-1 text-[10px] font-semibold text-primary-foreground">
-              De saison
-            </span>
-          )}
-          {promo && (
-            <span className="absolute right-2 top-2 rounded-sm bg-destructive px-2 py-1 text-[10px] font-semibold text-destructive-foreground">
-              -{promoPercent(product)} %
-            </span>
-          )}
-        </div>
+        <CardImage product={product} img={img} promo={promo} offSeason={offSeason} />
 
         <h3 className="mt-3 line-clamp-2 min-h-[2.5rem] text-sm leading-5 group-hover:text-primary">
           {product.name}
@@ -121,29 +92,7 @@ export function ProductCard({ product }: { product: Product }) {
       )}
 
       <div className="mt-1.5 text-[11px] leading-4">
-        {offSeason ? (
-          <p className="font-medium text-muted-foreground">
-            Hors saison{backInLabel(product) ? ` · ${backInLabel(product)}` : ""}
-          </p>
-        ) : noSlaughter ? (
-          <p className="font-medium text-muted-foreground">Prochain abattage bientôt programmé</p>
-        ) : outOfStock ? (
-          <p className="font-medium text-destructive">Actuellement indisponible</p>
-        ) : (
-          <>
-            <p className="text-muted-foreground">
-              {slaughter ? "Abattage du " : "Livraison dès le "}
-              <span className="font-medium text-foreground">
-                {slaughter
-                  ? formatSlaughterDay(slaughter.day)
-                  : formatLongDate(deliveryWindow().start)}
-              </span>
-            </p>
-            {product.stock <= LOW_STOCK_THRESHOLD && (
-              <p className="font-medium text-destructive">Plus que {product.stock} en stock</p>
-            )}
-          </>
-        )}
+        <AvailabilityNote product={product} availability={availability} slaughter={slaughter} />
       </div>
 
       <div className="flex-1" />
@@ -154,15 +103,108 @@ export function ProductCard({ product }: { product: Product }) {
         disabled={outOfStock}
         onClick={add}
       >
-        <ShoppingCart />{" "}
-        {offSeason
-          ? "Hors saison"
-          : noSlaughter
-            ? "Bientôt disponible"
-            : outOfStock
-              ? "Épuisé"
-              : "Ajouter au panier"}
+        <ShoppingCart /> {BUTTON_LABEL[availability]}
       </Button>
     </article>
+  );
+}
+
+type Availability = "off-season" | "no-slaughter" | "out" | "ok";
+
+function cardAvailability(
+  product: Product,
+  offSeason: boolean,
+  noSlaughter: boolean,
+): Availability {
+  if (offSeason) return "off-season";
+  if (noSlaughter) return "no-slaughter";
+  if (product.stock <= 0) return "out";
+  return "ok";
+}
+
+const BUTTON_LABEL: Record<Availability, string> = {
+  "off-season": "Hors saison",
+  "no-slaughter": "Bientôt disponible",
+  out: "Épuisé",
+  ok: "Ajouter au panier",
+};
+
+function CardImage({
+  product,
+  img,
+  promo,
+  offSeason,
+}: {
+  product: Product;
+  img: string | null;
+  promo: boolean;
+  offSeason: boolean;
+}) {
+  return (
+    <div className="image-zoom relative aspect-square overflow-hidden rounded-md bg-warm">
+      {img ? (
+        <img
+          src={img}
+          alt={product.name}
+          loading="lazy"
+          width={1024}
+          height={1024}
+          className="h-full w-full object-contain"
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+          {product.name}
+        </div>
+      )}
+      {product.is_featured && (
+        <span className="absolute left-2 top-2 rounded-sm bg-background/90 px-2 py-1 text-[9px] font-semibold uppercase backdrop-blur">
+          Coup de cœur
+        </span>
+      )}
+      {isSeasonal(product) && !offSeason && (
+        <span className="absolute bottom-2 left-2 rounded-sm bg-primary px-2 py-1 text-[10px] font-semibold text-primary-foreground">
+          De saison
+        </span>
+      )}
+      {promo && (
+        <span className="absolute right-2 top-2 rounded-sm bg-destructive px-2 py-1 text-[10px] font-semibold text-destructive-foreground">
+          -{promoPercent(product)} %
+        </span>
+      )}
+    </div>
+  );
+}
+
+function AvailabilityNote({
+  product,
+  availability,
+  slaughter,
+}: {
+  product: Product;
+  availability: Availability;
+  slaughter: { day: string } | null;
+}) {
+  if (availability === "off-season") {
+    const back = backInLabel(product);
+    return (
+      <p className="font-medium text-muted-foreground">Hors saison{back ? ` · ${back}` : ""}</p>
+    );
+  }
+  if (availability === "no-slaughter")
+    return <p className="font-medium text-muted-foreground">Prochain abattage bientôt programmé</p>;
+  if (availability === "out")
+    return <p className="font-medium text-destructive">Actuellement indisponible</p>;
+  return (
+    <>
+      <p className="text-muted-foreground">
+        {slaughter ? "Abattage du " : "Livraison dès le "}
+        <span className="font-medium text-foreground">
+          {slaughter ? formatSlaughterDay(slaughter.day) : formatLongDate(deliveryWindow().start)}
+        </span>
+      </p>
+      {product.stock <= LOW_STOCK_THRESHOLD && (
+        <p className="font-medium text-destructive">Plus que {product.stock} en stock</p>
+      )}
+    </>
   );
 }
