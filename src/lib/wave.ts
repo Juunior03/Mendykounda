@@ -27,7 +27,7 @@ async function call(action: "create" | "sync", orderId: string) {
 /** Crée la session Wave et redirige vers l'appli / la page de paiement Wave. */
 export async function startWavePayment(orderId: string): Promise<WavePaymentStatus> {
   const res = await call("create", orderId);
-  if (res.launch_url) window.location.assign(res.launch_url);
+  if (res.launch_url) globalThis.location.assign(res.launch_url);
   return res.status;
 }
 

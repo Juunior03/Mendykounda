@@ -12,7 +12,10 @@ export const BRAND = {
 } as const;
 
 /** Monogramme rond : M, soleil et feuille. `disc` ajoute le fond blanc (fonds sombres). */
-export function BrandMark({ className, disc = false }: { className?: string; disc?: boolean }) {
+export function BrandMark({
+  className,
+  disc = false,
+}: Readonly<{ className?: string; disc?: boolean }>) {
   return (
     <svg viewBox="0 0 200 200" className={cn("shrink-0", className)} aria-hidden="true">
       {disc && <circle cx="100" cy="100" r="96" fill="#ffffff" />}
@@ -36,13 +39,13 @@ export function BrandLogo({
   className,
   compact = false,
   inverted = false,
-}: {
+}: Readonly<{
   className?: string;
   /** Sans la ligne de sous-titre (petits écrans). */
   compact?: boolean;
   /** Sur fond sombre : monogramme sur disque blanc, texte clair. */
   inverted?: boolean;
-}) {
+}>) {
   return (
     <span className={cn("flex min-w-0 items-center gap-2.5", className)}>
       <BrandMark disc={inverted} className={compact ? "h-9 w-9" : "h-11 w-11"} />
@@ -75,7 +78,7 @@ export function BrandLogo({
 }
 
 /** Logo principal empilé (pages de connexion, 404…). */
-export function BrandLogoStacked({ className }: { className?: string }) {
+export function BrandLogoStacked({ className }: Readonly<{ className?: string }>) {
   return (
     <span className={cn("flex flex-col items-center font-brand", className)}>
       <BrandMark className="h-20 w-20" />

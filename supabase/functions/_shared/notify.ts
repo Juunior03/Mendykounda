@@ -173,7 +173,7 @@ export const PAYMENT_LABEL: Record<string, string> = {
 };
 
 export const escapeHtml = (s: string) =>
-  s.replace(
+  s.replaceAll(
     /[&<>"']/g,
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
   );
@@ -187,7 +187,7 @@ export const escapeHtml = (s: string) =>
  * 77 123 45 67 / +221 77… / 00221 77… -> 221771234567. Sinon null (pas de SMS).
  */
 export function normalizeSenegalPhone(raw: string): string | null {
-  let d = raw.replace(/\D/g, "");
+  let d = raw.replaceAll(/\D/g, "");
   if (d.startsWith("00")) d = d.slice(2);
   if (d.length === 9 && d.startsWith("7")) d = `221${d}`;
   return /^2217\d{8}$/.test(d) ? d : null;
@@ -197,7 +197,7 @@ export function normalizeSenegalPhone(raw: string): string | null {
 // et la limite tombe à 70 caractères.
 const GSM7 =
   "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
-const GSM7_EXT = "^{}\\[~]|€";
+const GSM7_EXT = String.raw`^{}\[~]|€`;
 
 export const isGsm7 = (s: string) => [...s].every((c) => GSM7.includes(c) || GSM7_EXT.includes(c));
 export const gsm7Length = (s: string) =>
@@ -361,7 +361,7 @@ export async function notifyOrder(
 ): Promise<{ email: ChannelResult; sms: ChannelResult }> {
   const { repo, mailer, sms, config } = deps;
   const order = await repo.getOrder(orderId);
-  if (!order || order.user_id !== userId) throw new NotFoundError("Commande introuvable");
+  if (order?.user_id !== userId || !order) throw new NotFoundError("Commande introuvable");
   if (order.status === "cancelled") return { email: "skipped", sms: "skipped" };
 
   const send = async (

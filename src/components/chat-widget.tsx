@@ -38,7 +38,9 @@ export function ChatWidget() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "messages", filter: `user_id=eq.${user.id}` },
-        () => qc.invalidateQueries({ queryKey: ["chat-unread", user.id] }),
+        () => {
+          void qc.invalidateQueries({ queryKey: ["chat-unread", user.id] });
+        },
       )
       .subscribe();
     return () => {
@@ -49,8 +51,8 @@ export function ChatWidget() {
   // Ouverture depuis un autre endroit du site (ex. page Contact).
   useEffect(() => {
     const onOpen = () => setOpen(true);
-    window.addEventListener(OPEN_CHAT_EVENT, onOpen);
-    return () => window.removeEventListener(OPEN_CHAT_EVENT, onOpen);
+    globalThis.addEventListener(OPEN_CHAT_EVENT, onOpen);
+    return () => globalThis.removeEventListener(OPEN_CHAT_EVENT, onOpen);
   }, []);
 
   // Mark as read when opening
@@ -77,6 +79,7 @@ export function ChatWidget() {
               <p className="text-[11px] text-muted-foreground">Réponse sous quelques heures</p>
             </div>
             <button
+              type="button"
               onClick={() => setOpen(false)}
               aria-label="Fermer"
               className="rounded-md p-1 text-muted-foreground hover:bg-background hover:text-foreground"
@@ -88,6 +91,7 @@ export function ChatWidget() {
         </div>
       )}
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? "Fermer le chat" : "Ouvrir le chat"}
         className="fixed bottom-5 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl transition hover:scale-105 hover:opacity-90 md:right-6"

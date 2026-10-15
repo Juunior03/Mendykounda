@@ -46,8 +46,8 @@ export const Route = createFileRoute("/_app/shop")({
   validateSearch: searchSchema,
   loader: async ({ context }) => {
     await Promise.all([
-      context.queryClient.ensureQueryData(productsQuery({})).catch(() => {}),
-      context.queryClient.ensureQueryData(categoriesQuery()).catch(() => {}),
+      context.queryClient.query({ ...productsQuery({}), staleTime: "static" }).catch(() => {}),
+      context.queryClient.query({ ...categoriesQuery(), staleTime: "static" }).catch(() => {}),
     ]);
   },
   component: ShopPage,
@@ -81,7 +81,7 @@ const PRICE_RANGES: { label: string; min?: number; max?: number }[] = [
 type Row = Product & { categories?: { slug: string } | null };
 
 const norm = (s: string) =>
-  s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/œ/g, "oe").toLowerCase();
+  s.normalize("NFD").replaceAll(/[̀-ͯ]/g, "").replaceAll("œ", "oe").toLowerCase();
 
 const words = (s: string) =>
   norm(s)
@@ -326,6 +326,7 @@ function ShopPage() {
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 {chips.map((c) => (
                   <button
+                    type="button"
                     key={c.label}
                     onClick={() => update(c.clear)}
                     className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1 text-xs hover:border-foreground"
@@ -377,12 +378,12 @@ function Filters({
   update,
   categories,
   totalForAllCategories,
-}: {
+}: Readonly<{
   search: Search;
   update: (next: Partial<Search>) => void;
   categories: { id: string; slug: string; name: string; count: number }[];
   totalForAllCategories: number;
-}) {
+}>) {
   // Champs prix : appliqués sur « OK » (pas de rechargement à chaque frappe).
   const [min, setMin] = useState(search.min?.toString() ?? "");
   const [max, setMax] = useState(search.max?.toString() ?? "");
@@ -401,6 +402,7 @@ function Filters({
     <div className="space-y-6">
       <FilterGroup title="Catégorie">
         <button
+          type="button"
           className={option(!search.category)}
           onClick={() => update({ category: undefined })}
         >
@@ -411,6 +413,7 @@ function Filters({
         </button>
         {categories.map((c) => (
           <button
+            type="button"
             key={c.id}
             className={option(search.category === c.slug)}
             onClick={() => update({ category: search.category === c.slug ? undefined : c.slug })}
@@ -427,6 +430,7 @@ function Filters({
           const active = search.min === r.min && search.max === r.max;
           return (
             <button
+              type="button"
               key={r.label}
               className={option(active)}
               onClick={() =>
@@ -474,6 +478,7 @@ function Filters({
       <FilterGroup title="Avis clients">
         {[4, 3, 2].map((n) => (
           <button
+            type="button"
             key={n}
             className={option(search.rating === n)}
             onClick={() => update({ rating: search.rating === n ? undefined : n })}
@@ -490,7 +495,7 @@ function Filters({
                   />
                 ))}
               </span>
-              et plus
+              <span>et plus</span>
             </span>
           </button>
         ))}
@@ -504,7 +509,7 @@ function Filters({
             onChange={(e) => update({ stock: e.target.checked || undefined })}
             className="h-4 w-4 accent-[var(--primary)]"
           />
-          En stock uniquement
+          <span>En stock uniquement</span>
         </label>
         <label className="flex cursor-pointer items-center gap-2 px-2 py-1.5 text-sm">
           <input
@@ -513,7 +518,7 @@ function Filters({
             onChange={(e) => update({ promo: e.target.checked || undefined })}
             className="h-4 w-4 accent-[var(--primary)]"
           />
-          En promotion
+          <span>En promotion</span>
         </label>
         <label className="flex cursor-pointer items-center gap-2 px-2 py-1.5 text-sm">
           <input
@@ -522,14 +527,14 @@ function Filters({
             onChange={(e) => update({ season: e.target.checked || undefined })}
             className="h-4 w-4 accent-[var(--primary)]"
           />
-          De saison en ce moment
+          <span>De saison en ce moment</span>
         </label>
       </FilterGroup>
     </div>
   );
 }
 
-function FilterGroup({ title, children }: { title: string; children: React.ReactNode }) {
+function FilterGroup({ title, children }: Readonly<{ title: string; children: React.ReactNode }>) {
   return (
     <fieldset>
       <legend className="mb-2 text-sm font-semibold">{title}</legend>

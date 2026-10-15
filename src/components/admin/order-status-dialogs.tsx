@@ -22,16 +22,16 @@ export function CancelOrderDialog({
   open,
   onOpenChange,
   paid,
-  busy,
+  busy = false,
   onConfirm,
-}: {
+}: Readonly<{
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Le client a déjà payé : rappeler le remboursement. */
   paid: boolean;
   busy?: boolean;
   onConfirm: (reason: string) => void;
-}) {
+}>) {
   const [choice, setChoice] = useState("");
   const [other, setOther] = useState("");
 
@@ -84,7 +84,6 @@ export function CancelOrderDialog({
           {choice === OTHER && (
             <textarea
               required
-              autoFocus
               maxLength={300}
               rows={2}
               value={other}
@@ -122,9 +121,9 @@ export function DeliverOrderDialog({
   onOpenChange,
   amount,
   toCollect,
-  busy,
+  busy = false,
   onConfirm,
-}: {
+}: Readonly<{
   open: boolean;
   onOpenChange: (open: boolean) => void;
   amount: number;
@@ -132,7 +131,7 @@ export function DeliverOrderDialog({
   toCollect: boolean;
   busy?: boolean;
   onConfirm: (collected: boolean) => void;
-}) {
+}>) {
   const [collected, setCollected] = useState(true);
 
   useEffect(() => {

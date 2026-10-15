@@ -88,10 +88,14 @@ export const productsQuery = (filter: ProductsFilter = {}) =>
       if (filter.minPrice != null) q = q.gte("price", filter.minPrice);
       if (filter.maxPrice != null) q = q.lte("price", filter.maxPrice);
       if (filter.search) {
-        const safeSearch = filter.search.trim().replace(/[,%()]/g, "");
-        const searchVariants = Array.from(
-          new Set([safeSearch, safeSearch.replace(/oe/gi, "œ"), safeSearch.replace(/œ/gi, "oe")]),
-        ).filter(Boolean);
+        const safeSearch = filter.search.trim().replaceAll(/[,%()]/g, "");
+        const searchVariants = [
+          ...new Set([
+            safeSearch,
+            safeSearch.replaceAll(/oe/gi, "œ"),
+            safeSearch.replaceAll(/œ/gi, "oe"),
+          ]),
+        ].filter(Boolean);
         if (searchVariants.length > 0) {
           q = q.or(searchVariants.map((term) => `name.ilike.%${term}%`).join(","));
         }
@@ -144,7 +148,7 @@ export const productBySlugQuery = (slug: string) =>
         .eq("slug", slug)
         .maybeSingle();
       if (error) throw error;
-      return data as Product | null;
+      return data;
     },
   });
 
@@ -160,7 +164,7 @@ export const productVariantsQuery = (group: string) =>
         .eq("is_active", true)
         .order("price");
       if (error) throw error;
-      return (data ?? []) as Product[];
+      return data ?? [];
     },
   });
 

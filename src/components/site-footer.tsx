@@ -1,13 +1,14 @@
 import { Link } from "@tanstack/react-router";
-import { Facebook, Instagram, Mail, MapPin, Music2, Phone } from "lucide-react";
+import { Mail, MapPin, Music2, Phone } from "lucide-react";
+import { FacebookIcon, InstagramIcon } from "@/components/social-icons";
 import { BrandLogo } from "@/components/brand-logo";
 import { telHref, useFarm } from "@/lib/farm";
 
 export function SiteFooter() {
   const farm = useFarm();
   const socials = [
-    { url: farm.facebook_url, label: "Facebook", Icon: Facebook },
-    { url: farm.instagram_url, label: "Instagram", Icon: Instagram },
+    { url: farm.facebook_url, label: "Facebook", Icon: FacebookIcon },
+    { url: farm.instagram_url, label: "Instagram", Icon: InstagramIcon },
     { url: farm.tiktok_url, label: "TikTok", Icon: Music2 },
   ].filter((s) => s.url);
 

@@ -42,7 +42,7 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
     }
     if (body?.action === "sync") {
       const order = await deps.repo.findById(orderId);
-      if (!order || order.user_id !== userId) return json({ error: "Commande introuvable" }, 404);
+      if (order?.user_id !== userId || !order) return json({ error: "Commande introuvable" }, 404);
       return json({ status: await syncOrder(deps.repo, deps.wave, order) });
     }
     return json({ error: "Action inconnue" }, 400);

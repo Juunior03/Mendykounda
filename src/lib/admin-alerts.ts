@@ -56,9 +56,9 @@ export function useAdminAlertsSync() {
     const channel = supabase
       .channel("admin-alerts")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, refresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () =>
-        qc.invalidateQueries({ queryKey: ADMIN_ALERTS_KEY }),
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => {
+        void qc.invalidateQueries({ queryKey: ADMIN_ALERTS_KEY });
+      })
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);

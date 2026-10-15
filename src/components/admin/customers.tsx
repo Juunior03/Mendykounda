@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, orNull } from "@/lib/format";
 import {
   SEGMENT_HELP,
   SEGMENT_LABEL,
@@ -85,20 +85,20 @@ export function CustomersAdmin() {
       .trim()
       .toLowerCase()
       .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "");
+      .replaceAll(/\p{Diacritic}/gu, "");
     const norm = (s: string | null) =>
       (s ?? "")
         .toLowerCase()
         .normalize("NFD")
-        .replace(/\p{Diacritic}/gu, "");
-    const digits = q.replace(/\D/g, "");
+        .replaceAll(/\p{Diacritic}/gu, "");
+    const digits = q.replaceAll(/\D/g, "");
     const rows = (segment === "all" ? customers : clients).filter(
       (c) =>
         inSegment(segment, c) &&
         (!q ||
           norm(c.full_name).includes(q) ||
           norm(c.city).includes(q) ||
-          (digits.length >= 3 && (c.phone ?? "").replace(/\D/g, "").includes(digits))),
+          (digits.length >= 3 && (c.phone ?? "").replaceAll(/\D/g, "").includes(digits))),
     );
     return [...rows].sort((a, b) => {
       switch (sort) {
@@ -144,7 +144,7 @@ export function CustomersAdmin() {
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = `clients-mendykounda-${SEGMENT_LABEL[segment].toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `clients-mendykounda-${SEGMENT_LABEL[segment].toLowerCase().replaceAll(/\s+/g, "-")}-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -177,6 +177,7 @@ export function CustomersAdmin() {
             s === "all" ? customers.length : clients.filter((c) => inSegment(s, c)).length;
           return (
             <button
+              type="button"
               key={s}
               onClick={() => setSegment(s)}
               title={s === "all" ? undefined : SEGMENT_HELP[s]}
@@ -251,7 +252,7 @@ export function CustomersAdmin() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate font-medium">
-                    {c.full_name || "Sans nom"}
+                    {orNull(c.full_name) ?? "Sans nom"}
                     {c.is_admin && (
                       <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary">
                         admin
@@ -314,17 +315,19 @@ export function CustomersAdmin() {
                     params={{ customerId: c.id }}
                     className="font-medium text-primary hover:underline"
                   >
-                    {c.full_name || "Sans nom"}
+                    {orNull(c.full_name) ?? "Sans nom"}
                   </Link>
                   {c.is_admin && (
                     <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary">
                       admin
                     </span>
                   )}
-                  <span className="block text-xs text-muted-foreground">{c.city || "—"}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {orNull(c.city) ?? "—"}
+                  </span>
                 </td>
                 <td className="p-3 tabular-nums">
-                  {c.phone || <span className="text-muted-foreground">—</span>}
+                  {orNull(c.phone) ?? <span className="text-muted-foreground">—</span>}
                 </td>
                 <td className="p-3 tabular-nums">
                   {c.stats.orderCount}
@@ -348,7 +351,7 @@ export function CustomersAdmin() {
   );
 }
 
-function Kpi({ label, value }: { label: string; value: string }) {
+function Kpi({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
     <div className="min-w-0 rounded-lg border border-border bg-card p-3 last:col-span-2 sm:p-4 sm:last:col-span-1">
       <dt className="text-xs text-muted-foreground">{label}</dt>

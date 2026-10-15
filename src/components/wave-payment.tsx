@@ -13,11 +13,11 @@ export function WavePayButton({
   orderId,
   label = "Payer avec Wave",
   className,
-}: {
+}: Readonly<{
   orderId: string;
   label?: string;
   className?: string;
-}) {
+}>) {
   const [busy, setBusy] = useState(false);
   const qc = useQueryClient();
 
@@ -64,11 +64,11 @@ export function WavePaymentStatusPanel({
   orderId,
   alreadyPaid,
   returnedWithError,
-}: {
+}: Readonly<{
   orderId: string;
   alreadyPaid: boolean;
   returnedWithError: boolean;
-}) {
+}>) {
   const [status, setStatus] = useState<WavePaymentStatus | "checking">(
     alreadyPaid ? "paid" : "checking",
   );
@@ -77,7 +77,7 @@ export function WavePaymentStatusPanel({
   useEffect(() => {
     if (alreadyPaid) return;
     let cancelled = false;
-    (async () => {
+    void (async () => {
       let last: WavePaymentStatus = "pending";
       for (const delay of POLL_DELAYS_MS) {
         if (delay) await new Promise((r) => setTimeout(r, delay));

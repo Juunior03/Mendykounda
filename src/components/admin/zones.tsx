@@ -38,7 +38,7 @@ export function ZonesAdmin() {
     return !error;
   };
 
-  const add = async (e: React.FormEvent) => {
+  const add = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     const dep = department.trim();
     const com = commune.trim();
@@ -76,7 +76,7 @@ export function ZonesAdmin() {
     const t = toInt(bulkThreshold);
     if (t == null || paying.length === 0) return;
     if (
-      !window.confirm(
+      !globalThis.confirm(
         `Appliquer « offerte dès ${formatPrice(t)} » aux ${paying.length} communes payantes ?`,
       )
     )
@@ -120,6 +120,7 @@ export function ZonesAdmin() {
           />
           <span>F</span>
           <button
+            type="button"
             onClick={() => void applyThresholdToAll()}
             className="rounded-md border border-border px-3 py-1 hover:bg-secondary"
           >
@@ -138,6 +139,7 @@ export function ZonesAdmin() {
               <div className="mb-2 flex items-baseline justify-between gap-2">
                 <h3 className="font-semibold">Département de {dep}</h3>
                 <button
+                  type="button"
                   onClick={() =>
                     void patch(
                       list.map((z) => z.id),
@@ -171,7 +173,7 @@ export function ZonesAdmin() {
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr_10rem_auto]">
           <label className="text-xs font-medium">
-            Département
+            <span>Département</span>
             <input
               list="departments"
               value={department}
@@ -187,7 +189,7 @@ export function ZonesAdmin() {
             </datalist>
           </label>
           <label className="text-xs font-medium">
-            Commune
+            <span>Commune</span>
             <input
               value={commune}
               onChange={(e) => setCommune(e.target.value)}
@@ -197,7 +199,7 @@ export function ZonesAdmin() {
             />
           </label>
           <label className="text-xs font-medium">
-            Frais de livraison (F)
+            <span>Frais de livraison (F)</span>
             <input
               type="number"
               min={0}
@@ -209,6 +211,7 @@ export function ZonesAdmin() {
             />
           </label>
           <button
+            type="submit"
             disabled={busy}
             className="self-end rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
@@ -224,10 +227,10 @@ export function ZonesAdmin() {
 function ZoneRow({
   zone: z,
   onPatch,
-}: {
+}: Readonly<{
   zone: DeliveryZone;
   onPatch: (v: ZonePatch) => Promise<boolean>;
-}) {
+}>) {
   const feeText = String(Number(z.delivery_fee));
   const freeText = z.free_from == null ? "" : String(Number(z.free_from));
   const [fee, setFee] = useState(feeText);

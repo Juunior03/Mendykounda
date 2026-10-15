@@ -104,7 +104,7 @@ function useDashboard(period: Period) {
           .gte("created_at", prevStart.toISOString())
           .then((r) => {
             if (r.error) throw r.error;
-            return (r.data ?? []) as DashOrder[];
+            return r.data ?? [];
           }),
         count(
           supabase
@@ -202,7 +202,7 @@ function useDashboard(period: Period) {
 
 /* ------------------------------------------------------------------ */
 
-export function AdminDashboard({ nav }: { nav: DashboardNav }) {
+export function AdminDashboard({ nav }: Readonly<{ nav: DashboardNav }>) {
   const [period, setPeriod] = useState<Period>(7);
   const { data, isLoading, error } = useDashboard(period);
 
@@ -285,16 +285,13 @@ export function AdminDashboard({ nav }: { nav: DashboardNav }) {
             ? `Du ${data.start.toLocaleDateString("fr-FR", { day: "numeric", month: "long" })} à aujourd'hui`
             : "Chargement…"}
         </p>
-        <div
-          role="radiogroup"
-          aria-label="Période"
-          className="inline-flex rounded-md border border-border bg-card p-0.5"
-        >
+        <fieldset className="inline-flex rounded-md border border-border bg-card p-0.5">
+          <legend className="sr-only">Période</legend>
           {PERIODS.map((p) => (
             <button
+              type="button"
               key={p.days}
-              role="radio"
-              aria-checked={period === p.days}
+              aria-pressed={period === p.days}
               onClick={() => setPeriod(p.days)}
               className={cn(
                 "rounded px-3 py-1.5 text-sm transition-colors",
@@ -306,7 +303,7 @@ export function AdminDashboard({ nav }: { nav: DashboardNav }) {
               {p.label}
             </button>
           ))}
-        </div>
+        </fieldset>
       </div>
 
       {/* Chiffres clés */}
@@ -431,7 +428,7 @@ export function AdminDashboard({ nav }: { nav: DashboardNav }) {
         <section className="rounded-lg border border-border bg-card p-5">
           <h2 className="text-base font-semibold">Meilleurs produits</h2>
           <p className="text-xs text-muted-foreground">Par chiffre d'affaires sur la période</p>
-          {stats && stats.top.length === 0 && (
+          {stats?.top.length === 0 && (
             <p className="mt-6 text-sm text-muted-foreground">Aucune vente sur la période.</p>
           )}
           <ol className="mt-4 space-y-3">
@@ -467,6 +464,7 @@ export function AdminDashboard({ nav }: { nav: DashboardNav }) {
           <div className="flex items-baseline justify-between">
             <h2 className="text-base font-semibold">Dernières commandes</h2>
             <button
+              type="button"
               onClick={() => nav.orders("all")}
               className="text-sm text-primary hover:underline"
             >
@@ -494,7 +492,7 @@ export function AdminDashboard({ nav }: { nav: DashboardNav }) {
                       })}
                     </span>
                   </span>
-                  <StatusLabel status={o.status as OrderStatus} />
+                  <StatusLabel status={o.status} />
                   <span className="w-24 shrink-0 text-right tabular-nums">
                     {formatPrice(Number(o.total_amount))}
                   </span>
@@ -532,14 +530,14 @@ function StatTile({
   previous,
   compareLabel,
   note,
-}: {
+}: Readonly<{
   label: string;
   value: string;
   current?: number;
   previous?: number;
   compareLabel: string;
   note?: string;
-}) {
+}>) {
   const delta = computeDelta(current, previous);
   const Icon = DELTA_ICON[delta?.dir ?? "flat"];
   return (
@@ -563,13 +561,13 @@ function ActionRow({
   count,
   tone,
   onClick,
-}: {
+}: Readonly<{
   icon: typeof Clock;
   label: string;
   count?: number;
   tone?: "warning" | "critical";
   onClick: () => void;
-}) {
+}>) {
   const active = (count ?? 0) > 0;
   let iconTone = "text-muted-foreground";
   if (active && tone === "critical") iconTone = "text-destructive";
@@ -577,6 +575,7 @@ function ActionRow({
   return (
     <li>
       <button
+        type="button"
         onClick={onClick}
         className="group flex w-full items-center gap-3 py-2.5 text-left text-sm hover:bg-secondary/50"
       >
@@ -599,7 +598,7 @@ function ActionRow({
   );
 }
 
-function StatusLabel({ status }: { status: OrderStatus }) {
+function StatusLabel({ status }: Readonly<{ status: OrderStatus }>) {
   return (
     <span
       className={cn(
@@ -641,10 +640,10 @@ function bucketLabel(d: Date, weekly: boolean, long = false) {
 function SalesChart({
   buckets,
   weekly,
-}: {
+}: Readonly<{
   buckets: { start: Date; revenue: number; orders: number }[];
   weekly: boolean;
-}) {
+}>) {
   const rows = buckets.map((b) => ({ ...b, label: bucketLabel(b.start, weekly) }));
   return (
     // Hauteur du conteneur = zone de tracé + bande de l'axe X.
@@ -669,19 +668,7 @@ function SalesChart({
           />
           <Tooltip
             cursor={{ fill: "var(--secondary)" }}
-            content={({ active, payload }) => {
-              if (!active || !payload?.length) return null;
-              const b = payload[0].payload as (typeof rows)[number];
-              return (
-                <div className="rounded-md border border-border bg-popover px-3 py-2 text-xs shadow-soft">
-                  <p className="font-medium">{capitalize(bucketLabel(b.start, weekly, true))}</p>
-                  <p className="mt-1 tabular-nums">{formatPrice(b.revenue)}</p>
-                  <p className="text-muted-foreground">
-                    {b.orders} commande{b.orders > 1 ? "s" : ""}
-                  </p>
-                </div>
-              );
-            }}
+            content={<SalesTooltip weekly={weekly} />}
           />
           <Bar dataKey="revenue" fill="var(--chart-sales)" radius={[4, 4, 0, 0]} maxBarSize={32} />
         </BarChart>
@@ -690,14 +677,36 @@ function SalesChart({
   );
 }
 
+function SalesTooltip({
+  active,
+  payload,
+  weekly,
+}: Readonly<{
+  active?: boolean;
+  payload?: { payload: { start: Date; revenue: number; orders: number } }[];
+  weekly: boolean;
+}>) {
+  if (!active || !payload?.length) return null;
+  const b = payload[0].payload;
+  return (
+    <div className="rounded-md border border-border bg-popover px-3 py-2 text-xs shadow-soft">
+      <p className="font-medium">{capitalize(bucketLabel(b.start, weekly, true))}</p>
+      <p className="mt-1 tabular-nums">{formatPrice(b.revenue)}</p>
+      <p className="text-muted-foreground">
+        {b.orders} commande{plural(b.orders)}
+      </p>
+    </div>
+  );
+}
+
 /** Vue tableau des mêmes données (accessibilité, lecture précise). */
 function SalesTable({
   buckets,
   weekly,
-}: {
+}: Readonly<{
   buckets: { start: Date; revenue: number; orders: number }[];
   weekly: boolean;
-}) {
+}>) {
   return (
     <details className="mt-3 text-sm">
       <summary className="cursor-pointer text-xs text-primary hover:underline">

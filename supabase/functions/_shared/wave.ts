@@ -11,8 +11,10 @@ export interface WaveSession {
   amount: string;
   currency: string;
   client_reference: string | null;
-  checkout_status: "open" | "complete" | "expired" | string;
-  payment_status: "processing" | "cancelled" | "succeeded" | string;
+  /** "open", "complete", "expired"… */
+  checkout_status: string;
+  /** "processing", "cancelled", "succeeded"… */
+  payment_status: string;
   wave_launch_url: string;
   when_expires?: string;
 }
@@ -137,7 +139,7 @@ export async function startCheckout(
   siteUrl: string,
 ): Promise<{ status: PaymentState; launch_url?: string }> {
   const order = await repo.findById(orderId);
-  if (!order || order.user_id !== userId) throw new HttpError(404, "Commande introuvable");
+  if (order?.user_id !== userId || !order) throw new HttpError(404, "Commande introuvable");
   if (order.payment_status === "paid") return { status: "paid" };
   if (order.status === "cancelled") throw new HttpError(409, "Cette commande est annulée");
   if (order.payment_method !== "wave")
@@ -187,7 +189,7 @@ const toHex = (buf: ArrayBuffer) =>
 const safeEqual = (a: string, b: string) => {
   if (a.length !== b.length) return false;
   let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  for (let i = 0; i < a.length; i++) diff |= (a.codePointAt(i) ?? 0) ^ (b.codePointAt(i) ?? 0);
   return diff === 0;
 };
 

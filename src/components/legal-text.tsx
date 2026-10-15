@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useFarm } from "@/lib/farm";
 import {
   LEGAL_PAGES,
+  keyed,
   legalDate,
   legalText,
   parseInline,
@@ -11,7 +12,7 @@ import {
   type LegalPage,
 } from "@/lib/legal";
 
-function InlinePartView({ part }: { part: InlinePart }) {
+function InlinePartView({ part }: Readonly<{ part: InlinePart }>) {
   if (part.type === "bold")
     return <strong className="font-semibold text-foreground">{part.text}</strong>;
   if (part.type === "text") return <span>{part.text}</span>;
@@ -28,18 +29,17 @@ function InlinePartView({ part }: { part: InlinePart }) {
   );
 }
 
-function Inline({ text }: { text: string }) {
+function Inline({ text }: Readonly<{ text: string }>) {
   return (
     <>
-      {parseInline(text).map((part, i) => (
-        // Les morceaux d'un texte n'ont pas d'identifiant : leur position suffit.
-        <InlinePartView key={i} part={part} />
+      {keyed(parseInline(text), (p) => `${p.type}:${p.text}`).map(({ item, key }) => (
+        <InlinePartView key={key} part={item} />
       ))}
     </>
   );
 }
 
-function BlockView({ block }: { block: LegalBlock }) {
+function BlockView({ block }: Readonly<{ block: LegalBlock }>) {
   if (block.type === "h2")
     return (
       <h2 className="pt-4 text-lg font-semibold text-foreground md:text-xl">
@@ -49,8 +49,8 @@ function BlockView({ block }: { block: LegalBlock }) {
   if (block.type === "ul")
     return (
       <ul className="list-disc space-y-1.5 pl-5">
-        {block.items.map((item, j) => (
-          <li key={j}>
+        {keyed(block.items, (t) => t).map(({ item, key }) => (
+          <li key={key}>
             <Inline text={item} />
           </li>
         ))}
@@ -63,19 +63,22 @@ function BlockView({ block }: { block: LegalBlock }) {
   );
 }
 
+const blockKey = (b: LegalBlock) =>
+  b.type === "ul" ? `ul:${b.items.join("|")}` : `${b.type}:${b.text}`;
+
 /** Affiche un texte légal (titres, paragraphes, listes). */
-export function LegalText({ text }: { text: string }) {
+export function LegalText({ text }: Readonly<{ text: string }>) {
   return (
     <div className="space-y-4 text-sm leading-relaxed text-muted-foreground md:text-base">
-      {parseLegal(text).map((block, i) => (
-        <BlockView key={i} block={block} />
+      {keyed(parseLegal(text), blockKey).map(({ item, key }) => (
+        <BlockView key={key} block={item} />
       ))}
     </div>
   );
 }
 
 /** Page complète : titre, date de mise à jour et texte. */
-export function LegalPageView({ page }: { page: LegalPage }) {
+export function LegalPageView({ page }: Readonly<{ page: LegalPage }>) {
   const farm = useFarm();
   const { title } = LEGAL_PAGES[page];
   const date = new Date(legalDate(page, farm)).toLocaleDateString("fr-FR", {

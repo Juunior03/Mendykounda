@@ -35,7 +35,7 @@ function ResetPasswordPage() {
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (password.length < 8 || !/[a-zA-Z]/.test(password) || !/\d/.test(password)) {
       toast.error("Mot de passe : 8 caractères minimum, avec au moins une lettre et un chiffre");
@@ -68,8 +68,11 @@ function ResetPasswordPage() {
         </h1>
         <form onSubmit={submit} className="mt-8 space-y-4">
           <div>
-            <label className="text-xs text-muted-foreground">Nouveau mot de passe</label>
+            <label htmlFor="new-password" className="text-xs text-muted-foreground">
+              Nouveau mot de passe
+            </label>
             <input
+              id="new-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -78,8 +81,11 @@ function ResetPasswordPage() {
             />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Confirmation</label>
+            <label htmlFor="confirm-password" className="text-xs text-muted-foreground">
+              Confirmation
+            </label>
             <input
+              id="confirm-password"
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}

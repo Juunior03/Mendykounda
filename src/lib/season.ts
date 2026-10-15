@@ -75,7 +75,7 @@ export const formatSeason = (months: number[] | null | undefined) => {
   let m = start;
   for (let i = 0; i < 12; i++) {
     if (set.has(m)) {
-      const last = runs[runs.length - 1];
+      const last = runs.at(-1);
       if (last && (last[1] % 12) + 1 === m) last[1] = m;
       else runs.push([m, m]);
     }

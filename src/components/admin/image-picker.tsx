@@ -3,6 +3,7 @@
  * avec recadrage optionnel avant l'envoi.
  */
 import { useEffect, useState } from "react";
+import { orNull } from "@/lib/format";
 import { Crop } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,10 +13,10 @@ import { Button } from "@/components/ui/button";
 export function ImagePicker({
   value,
   onChange,
-}: {
+}: Readonly<{
   value: string;
   onChange: (url: string) => void;
-}) {
+}>) {
   const [mode, setMode] = useState<"url" | "upload">(
     value && !value.includes("/storage/v1/") ? "url" : "upload",
   );
@@ -34,7 +35,7 @@ export function ImagePicker({
 
   const handleFile = async (file: File) => {
     setUploading(true);
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const ext = orNull(file.name.split(".").pop()?.toLowerCase()) ?? "jpg";
     const path = `${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from("product-images").upload(path, file, {
       cacheControl: "3600",
@@ -64,7 +65,7 @@ export function ImagePicker({
 
   const editExistingImage = () => {
     if (!value) return;
-    const fileName = value.split("/").pop()?.split("?")[0] || "produit.jpg";
+    const fileName = orNull(value.split("/").pop()?.split("?")[0]) ?? "produit.jpg";
     setSelectedImage({ fileName, url: value, local: false });
   };
 

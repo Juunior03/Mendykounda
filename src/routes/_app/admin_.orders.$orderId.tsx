@@ -144,14 +144,14 @@ function OrderSheetPage() {
   return <OrderSheet order={order} />;
 }
 
-function OrderSheet({ order }: { order: SheetOrder }) {
+function OrderSheet({ order }: Readonly<{ order: SheetOrder }>) {
   const orderId = order.id;
   const qc = useQueryClient();
   const { done, toggle } = usePrepChecklist(orderId);
   const [busy, setBusy] = useState(false);
   const [dialog, setDialog] = useState<"cancel" | "deliver" | null>(null);
 
-  const status = order.status as OrderStatus;
+  const status = order.status;
   const items = order.order_items ?? [];
   const subtotal = items.reduce((s, i) => s + lineTotal(i), 0);
   // Articles au poids pas encore pesés : le total reste une estimation.
@@ -191,7 +191,7 @@ function OrderSheet({ order }: { order: SheetOrder }) {
     if (
       to === "ready" &&
       preparedCount < items.length &&
-      !window.confirm(
+      !globalThis.confirm(
         `${items.length - preparedCount} article(s) ne sont pas cochés comme prêts. Marquer la commande comme prête quand même ?`,
       )
     )
@@ -199,7 +199,7 @@ function OrderSheet({ order }: { order: SheetOrder }) {
     if (
       (to === "ready" || to === "shipped" || to === "delivered") &&
       toWeigh > 0 &&
-      !window.confirm(
+      !globalThis.confirm(
         `${toWeigh} article(s) au poids ne sont pas pesés : le montant restera l'estimation. Continuer ?`,
       )
     )
@@ -228,12 +228,13 @@ function OrderSheet({ order }: { order: SheetOrder }) {
   };
 
   const markRefunded = () => {
-    if (!window.confirm(`Confirmer le remboursement de ${formatPrice(total)} au client ?`)) return;
+    if (!globalThis.confirm(`Confirmer le remboursement de ${formatPrice(total)} au client ?`))
+      return;
     void update({ payment_status: "refunded" }, "Remboursement enregistré");
   };
 
   const markPaid = () => {
-    if (!window.confirm(`Confirmer la réception de ${formatPrice(total)} ?`)) return;
+    if (!globalThis.confirm(`Confirmer la réception de ${formatPrice(total)} ?`)) return;
     void update(
       { payment_status: "paid", paid_at: new Date().toISOString() },
       "Paiement enregistré",
@@ -280,7 +281,7 @@ function OrderSheet({ order }: { order: SheetOrder }) {
               {items.length > 1 ? "s" : ""} · {formatPrice(total)}
             </p>
           </div>
-          <Button variant="outline" onClick={() => window.print()}>
+          <Button variant="outline" onClick={() => globalThis.print()}>
             <Printer className="h-4 w-4" /> Imprimer le bon de livraison
           </Button>
         </div>
@@ -340,6 +341,7 @@ function OrderSheet({ order }: { order: SheetOrder }) {
           <div className="ml-auto flex flex-wrap items-center gap-4">
             {back && (
               <button
+                type="button"
                 disabled={busy}
                 onClick={() => setStatus(back.to)}
                 className="text-sm text-muted-foreground hover:text-foreground hover:underline disabled:opacity-50"
@@ -349,6 +351,7 @@ function OrderSheet({ order }: { order: SheetOrder }) {
             )}
             {status !== "cancelled" && status !== "delivered" && (
               <button
+                type="button"
                 disabled={busy}
                 onClick={() => setStatus("cancelled")}
                 className="text-sm text-destructive hover:underline disabled:opacity-50"
@@ -391,6 +394,7 @@ function OrderSheet({ order }: { order: SheetOrder }) {
                 return (
                   <li key={i.id}>
                     <button
+                      type="button"
                       onClick={() => toggle(i.id)}
                       className="flex w-full items-center gap-3 py-3 text-left sm:gap-4"
                       aria-pressed={ready}
@@ -431,9 +435,9 @@ function OrderSheet({ order }: { order: SheetOrder }) {
                       </span>
                       <span className="shrink-0 text-right">
                         <span className="block text-lg font-semibold tabular-nums">
-                          {i.actual_quantity != null
-                            ? formatWeight(lineQuantity(i), i.products?.unit ?? "kg")
-                            : `× ${i.quantity}`}
+                          {i.actual_quantity == null
+                            ? `× ${i.quantity}`
+                            : formatWeight(lineQuantity(i), i.products?.unit ?? "kg")}
                         </span>
                         <span className="hidden text-sm tabular-nums text-muted-foreground sm:block">
                           {awaitingWeight(i) ? "≈ " : ""}
@@ -499,7 +503,7 @@ function OrderSheet({ order }: { order: SheetOrder }) {
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <a
-                  href={`tel:${order.shipping_phone.replace(/\s/g, "")}`}
+                  href={`tel:${order.shipping_phone.replaceAll(/\s/g, "")}`}
                   className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm hover:bg-secondary"
                 >
                   <Phone className="h-4 w-4" /> {order.shipping_phone}
@@ -593,16 +597,16 @@ function MobileActionBar({
   next,
   busy,
   onNext,
-}: {
+}: Readonly<{
   order: SheetOrder;
   next?: { to: OrderStatus; label: string };
   busy: boolean;
   onNext: (to: OrderStatus) => void;
-}) {
+}>) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-2 border-t border-border bg-card p-3 shadow-elevated print:hidden md:hidden">
       <a
-        href={`tel:${order.shipping_phone.replace(/\s/g, "")}`}
+        href={`tel:${order.shipping_phone.replaceAll(/\s/g, "")}`}
         aria-label={`Appeler ${order.shipping_full_name}`}
         className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-border"
       >
@@ -614,7 +618,7 @@ function MobileActionBar({
         </Button>
       ) : (
         <p className="flex-1 text-center text-sm font-medium text-primary">
-          {ORDER_STATUS_LABEL[order.status as OrderStatus]}
+          {ORDER_STATUS_LABEL[order.status]}
         </p>
       )}
     </div>
@@ -625,11 +629,11 @@ function CancelledBanner({
   order,
   busy,
   onRefunded,
-}: {
+}: Readonly<{
   order: SheetOrder;
   busy: boolean;
   onRefunded: () => void;
-}) {
+}>) {
   const by =
     order.cancelled_by === "customer"
       ? "par le client"
@@ -659,16 +663,16 @@ function CancelledBanner({
   );
 }
 
-function PrintedQuantity({ item }: { item: SheetOrder["order_items"][number] }) {
+function PrintedQuantity({ item }: Readonly<{ item: SheetOrder["order_items"][number] }>) {
   if (item.actual_quantity != null)
-    return <>{formatWeight(lineQuantity(item), item.products?.unit ?? "kg")}</>;
+    return <span>{formatWeight(lineQuantity(item), item.products?.unit ?? "kg")}</span>;
   if (item.sold_by_weight)
     return <span className="font-normal">{item.quantity} estimé · pesé : ______</span>;
-  return <>{item.quantity}</>;
+  return <span>{item.quantity}</span>;
 }
 
 /** Bon de livraison imprimable (visible seulement à l'impression). */
-function DeliveryNote({ order }: { order: SheetOrder }) {
+function DeliveryNote({ order }: Readonly<{ order: SheetOrder }>) {
   const farm = useFarm();
   const items = order.order_items ?? [];
   const subtotal = items.reduce((s, i) => s + lineTotal(i), 0);
@@ -799,19 +803,19 @@ function WeightInput({
   actual,
   disabled,
   onSaved,
-}: {
+}: Readonly<{
   itemId: string;
   ordered: number;
   unit: string;
   actual: number | null;
   disabled: boolean;
   onSaved: () => void;
-}) {
-  const [value, setValue] = useState(actual != null ? String(actual).replace(".", ",") : "");
+}>) {
+  const [value, setValue] = useState(actual == null ? "" : String(actual).replace(".", ","));
   const [saving, setSaving] = useState(false);
-  useEffect(() => setValue(actual != null ? String(actual).replace(".", ",") : ""), [actual]);
+  useEffect(() => setValue(actual == null ? "" : String(actual).replace(".", ",")), [actual]);
 
-  const save = async (e: React.FormEvent) => {
+  const save = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     const v = value.trim().replace(",", ".");
     const weight = v === "" ? null : Number(v);
@@ -836,7 +840,7 @@ function WeightInput({
     }
   };
 
-  const changed = value.trim().replace(",", ".") !== (actual != null ? String(actual) : "");
+  const changed = value.trim().replace(",", ".") !== (actual == null ? "" : String(actual));
 
   return (
     <form onSubmit={save} className="mb-3 flex flex-wrap items-center gap-2 text-sm sm:ml-10">

@@ -75,7 +75,7 @@ export function SiteHeader() {
           className="col-span-3 row-start-2 flex min-w-0 lg:col-span-1 lg:row-start-auto"
           onSubmit={(event) => {
             event.preventDefault();
-            navigate({ to: "/shop", search: query.trim() ? { q: query.trim() } : {} });
+            void navigate({ to: "/shop", search: query.trim() ? { q: query.trim() } : {} });
           }}
         >
           <div className="relative min-w-0 flex-1">

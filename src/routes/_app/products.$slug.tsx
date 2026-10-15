@@ -32,7 +32,7 @@ import {
   seasonEndMonth,
 } from "@/lib/season";
 import { resolveProductImage } from "@/lib/product-images";
-import { formatPrice, formatDate, plural } from "@/lib/format";
+import { formatPrice, formatDate, plural, orNull } from "@/lib/format";
 import { cartStore } from "@/lib/cart";
 import { Stars } from "@/components/stars";
 import { effectivePrice, hasPromo, promoPercent, LOW_STOCK_THRESHOLD } from "@/lib/pricing";
@@ -43,9 +43,14 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/products/$slug")({
   loader: async ({ context, params }) => {
-    const product = await context.queryClient.ensureQueryData(productBySlugQuery(params.slug));
+    const product = await context.queryClient.query({
+      ...productBySlugQuery(params.slug),
+      staleTime: "static",
+    });
     if (!product) throw notFound();
-    await context.queryClient.ensureQueryData(reviewsByProductQuery(product.id)).catch(() => {});
+    await context.queryClient
+      .query({ ...reviewsByProductQuery(product.id), staleTime: "static" })
+      .catch(() => {});
     return product;
   },
   notFoundComponent: () => (
@@ -184,7 +189,7 @@ function ProductPage() {
           <div className="mt-4 border-t border-border pt-4">
             {promo && (
               <span className="mb-2 inline-block rounded-sm bg-destructive px-2 py-0.5 text-xs font-semibold text-destructive-foreground">
-                {product.discount_label || "Offre limitée"}
+                {orNull(product.discount_label) ?? "Offre limitée"}
               </span>
             )}
             <div className="flex items-baseline gap-3">
@@ -282,6 +287,7 @@ function ProductPage() {
 
               <div className="mt-4 space-y-2">
                 <button
+                  type="button"
                   onClick={() => {
                     addToCart();
                     toast.success(`${product.name} ajouté au panier`, {
@@ -296,6 +302,7 @@ function ProductPage() {
                   Ajouter au panier
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     addToCart();
                     void navigate({ to: "/checkout" });
@@ -381,7 +388,7 @@ function ProductPage() {
   );
 }
 
-function RatingBreakdown({ ratings }: { ratings: number[] }) {
+function RatingBreakdown({ ratings }: Readonly<{ ratings: number[] }>) {
   return (
     <ul className="mt-4 space-y-1.5">
       {[5, 4, 3, 2, 1].map((n) => {
@@ -403,7 +410,7 @@ function RatingBreakdown({ ratings }: { ratings: number[] }) {
   );
 }
 
-function ReviewForm({ productId }: { productId: string }) {
+function ReviewForm({ productId }: Readonly<{ productId: string }>) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [rating, setRating] = useState(5);
@@ -426,7 +433,7 @@ function ReviewForm({ productId }: { productId: string }) {
         <Link
           to="/auth"
           search={{
-            redirect: typeof window === "undefined" ? undefined : window.location.pathname,
+            redirect: typeof window === "undefined" ? undefined : globalThis.location.pathname,
           }}
           className="underline-grow text-foreground"
         >
@@ -447,7 +454,7 @@ function ReviewForm({ productId }: { productId: string }) {
     );
   }
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setBusy(true);
     const { error } = await supabase
@@ -503,7 +510,7 @@ function ReviewForm({ productId }: { productId: string }) {
   );
 }
 
-function VariantPicker({ product, variants }: { product: Product; variants: Product[] }) {
+function VariantPicker({ product, variants }: Readonly<{ product: Product; variants: Product[] }>) {
   return (
     <div className="mt-5">
       <p className="text-sm">
@@ -546,7 +553,7 @@ function seasonTitle(product: Product) {
   return end ? `De saison jusqu'en ${MONTHS[end - 1]}` : "De saison";
 }
 
-function SeasonBox({ product }: { product: Product }) {
+function SeasonBox({ product }: Readonly<{ product: Product }>) {
   return (
     <div className="mt-5 flex gap-3 rounded-md border border-border bg-cream p-4 text-sm">
       <Sprout className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
@@ -564,10 +571,10 @@ function SeasonBox({ product }: { product: Product }) {
 function SlaughterBox({
   slaughter,
   hasVariants,
-}: {
+}: Readonly<{
   slaughter: { day: string; order_deadline: string; note: string | null } | null;
   hasVariants: boolean;
-}) {
+}>) {
   return (
     <div className="mt-5 flex gap-3 rounded-md border border-border bg-cream p-4 text-sm">
       <CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
@@ -603,7 +610,10 @@ function availabilityOf(stock: number, offSeason: boolean, noSlaughter: boolean)
   return stock <= LOW_STOCK_THRESHOLD ? "low" : "ok";
 }
 
-function StockStatus({ stock, availability }: { stock: number; availability: Availability }) {
+function StockStatus({
+  stock,
+  availability,
+}: Readonly<{ stock: number; availability: Availability }>) {
   const labels: Record<Availability, string> = {
     "off-season": "Hors saison",
     "no-slaughter": "Bientôt disponible",
