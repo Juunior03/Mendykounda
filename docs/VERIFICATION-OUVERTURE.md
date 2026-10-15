@@ -52,3 +52,6 @@ Réparé : `npm ci` fonctionne sur une installation neuve et `npm audit` ne sign
 
 ### Mise en ligne
 Suivre [HEBERGEMENT.md](HEBERGEMENT.md) : Cloudflare, nom de domaine, réglages Supabase pour l'adresse définitive (Site URL, SMTP Brevo, `SITE_URL`) et parcours de vérification final.
+
+### Sécurité (OWASP Top 10)
+Voir [SECURITE.md](SECURITE.md) : migration `20261028090000_security_hardening.sql` à exécuter, et réglages d'authentification Supabase à faire (mot de passe 8 caractères avec lettres et chiffres, mots de passe divulgués, compte admin protégé).
