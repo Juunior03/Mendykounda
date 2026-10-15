@@ -2,7 +2,7 @@
  * Accès aux commandes avec la clé service_role (contourne les RLS) :
  * uniquement côté serveur, dans les Edge Functions.
  */
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import type { OrderRow, OrdersRepo } from "./wave.ts";
 
 const COLUMNS =

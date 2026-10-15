@@ -96,7 +96,10 @@ export function inSegment(
 /** Fichier CSV (séparateur « ; » pour Excel en français). */
 export function toCsv(rows: (string | number | null)[][]) {
   const cell = (v: string | number | null) => {
-    const s = v == null ? "" : String(v);
+    let s = v == null ? "" : String(v);
+    // Anti « injection de formule » : un nom saisi comme =HYPERLINK(…) ne doit
+    // pas devenir une formule quand l'admin ouvre le fichier dans Excel.
+    if (typeof v === "string" && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
     return /[;"\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
   };
   // BOM pour que les accents s'affichent correctement dans Excel.

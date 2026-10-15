@@ -5,9 +5,22 @@
  */
 const KEY = "mk_after_login";
 
-/** Chemin interne uniquement (pas d'URL externe ni « //domaine »). */
-export const safeRedirect = (path: unknown): string | null =>
-  typeof path === "string" && path.startsWith("/") && !path.startsWith("//") ? path : null;
+/**
+ * Chemin interne uniquement : refuse les URL externes, « //domaine » et
+ * « /\domaine » (que les navigateurs traitent comme « //domaine »), ainsi
+ * que les caractères de contrôle.
+ */
+const isControlChar = (c: string) => {
+  const code = c.codePointAt(0) ?? 0;
+  return code < 32 || code === 127;
+};
+
+export function safeRedirect(path: unknown): string | null {
+  if (typeof path !== "string" || path.length > 500) return null;
+  if (!path.startsWith("/") || path.startsWith("//")) return null;
+  if (path.includes("\\") || [...path].some(isControlChar)) return null;
+  return path;
+}
 
 export function rememberAfterLogin(path: string | null | undefined) {
   const safe = safeRedirect(path);
